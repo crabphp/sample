@@ -1,0 +1,8 @@
+#!/usr/bin/env php
+<?php
+
+declare(strict_types=1);
+
+require __DIR__ . '/vendor/autoload.php';
+
+exit((require __DIR__ . '/app.php')->console->run(array_slice($argv, 1)));
