@@ -67,6 +67,17 @@ final class ShopTest extends TestCase
         self::assertArrayHasKey('perPage', json_decode((string) $refused->getBody(), true)['error']['fields']);
     }
 
+    public function testGuessingAPasswordIsSlowedDown(): void
+    {
+        $statuses = [];
+        for ($try = 0; $try < 11; ++$try) {
+            $statuses[] = $this->send('POST', '/login', ['email' => 'ada@example.com', 'password' => 'guess ' . $try])->getStatusCode();
+        }
+        self::assertSame([...array_fill(0, 10, 401), 429], $statuses);
+        // Registering is counted on its own.
+        self::assertSame(201, $this->send('POST', '/register', ['email' => 'new@example.com', 'name' => 'New Person', 'password' => 'correct horse'])->getStatusCode());
+    }
+
     public function testAnAccountIsMadeLoggedIntoAndKeptToItsOwner(): void
     {
         $made = $this->send('POST', '/register', ['email' => 'new@example.com', 'name' => 'New Person', 'password' => 'correct horse']);

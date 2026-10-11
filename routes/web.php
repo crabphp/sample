@@ -15,6 +15,7 @@ use App\Actions\ShowProduct;
 use App\Http\AdminsOnly;
 use App\User;
 use Crab\Auth\TokenAuth;
+use Crab\Http\RateLimit;
 use Crab\Route;
 
 Route::get('/', static fn (): array => ['name' => config('app.name'), 'docs' => 'See README.md for the routes.']);
@@ -24,8 +25,9 @@ Route::get('/products', ListProducts::class);
 Route::get('/products/{id}', ShowProduct::class);
 Route::get('/categories', ListCategories::class);
 
-Route::post('/register', Register::class);
-Route::post('/login', Login::class);
+// A few tries a minute from one address: enough for a person, not for guessing passwords.
+Route::post('/register', Register::class, middleware: [new RateLimit(10, name: 'register')]);
+Route::post('/login', Login::class, middleware: [new RateLimit(10, name: 'login')]);
 
 // For whoever is logged in.
 Route::group(middleware: [TokenAuth::class], routes: static function (): void {

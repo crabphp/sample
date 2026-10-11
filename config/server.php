@@ -16,7 +16,7 @@ return [
     ],
 
     // What `php cua serve` watches, to restart the server when you save. False to serve without watching.
-    'watch' => ['app', 'config', 'routes', '.env'],
+    'watch' => ['app', 'app.php', 'config', 'routes', '.env'],
 
     // The largest request body taken, in bytes, and how many seconds a client has to send one. Raise both for uploads.
     'max_body' => 1024 * 1024,
