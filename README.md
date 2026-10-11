@@ -6,6 +6,8 @@ It is not the skeleton to start a project from; that is [`crab`](../crab).
 
 ## Running it
 
+Use PHP 8.4 with the required extensions and keep the `framework`, `redis` and `clockwerk` package folders beside this application for Composer's path repositories; the defaults need no external database or Redis server.
+
 ```sh
 composer install
 cp .env.example .env
@@ -39,7 +41,7 @@ php cua shop:traffic     # thirty seconds of pretend customers
 
 Open the dashboard at <http://127.0.0.1:8080/clockwerk?token=sample>.
 
-It uses SQLite, so nothing else needs installing. `shop:seed` makes 36 products, 12 people and about two weeks of orders, the same ones every time. Everyone's password is `password`: `ada@example.com` is a customer, `admin@example.com` an administrator.
+It uses SQLite. `shop:seed` makes 36 products, 12 people and about two weeks of orders, the same ones every time. Everyone's password is `password`: `ada@example.com` is a customer, `admin@example.com` an administrator.
 
 ## The API
 
@@ -78,7 +80,7 @@ curl -s -X POST localhost:8080/orders -H "Authorization: Bearer $TOKEN" -H 'Cont
 | Events | `OrderPlaced`, and its two listeners in `app/Actions/` |
 | Queue and supervisors | `app/Actions/`; `config/queue.php` gives mail workers of its own |
 | One command for it all | `server.with` in `config/server.php` says which servers `serve` runs beside HTTP, each switched on from `.env`: here `queue` and `schedule` |
-| Retries and failed jobs | The pretend mail server refuses some messages (`MAIL_FAIL_RATE`) |
+| Retries and failed jobs | The pretend mail server refuses some messages (`mail.fail_rate` in `config/mail.php`) |
 | Scheduling | `AppProvider`: every ten seconds, every minute, daily |
 | HTTP client | `SyncInventory` asks the "warehouse" over HTTP; `shop:traffic` is the customers |
 | Console commands | `app/Console/` |
@@ -91,7 +93,9 @@ What happens when an order is placed:
 2. A listener pushes `SendOrderConfirmation` onto the `mail` queue and `SyncInventory` onto `default`; another forgets the cached categories.
 3. The queue's workers run both. The confirmation is a file in `storage/mail/`. Refused messages are tried again, up to four times.
 4. The scheduler marks the order paid ten seconds or so later. One order in ten is never paid; `orders:cancel-stale` cancels it after two minutes and puts its stock back.
-5. Every minute a "delivery" refills what is running low, so the pretend customers never empty the shop.
+5. Every minute a "delivery" adds 60 to products with stock below 10; customers may find a product out of stock before the next delivery.
+
+After the order commits, a listener failure is logged and the action still returns `201`; some jobs or cache invalidation may be skipped, with no outbox recovery in this sample.
 
 ## Commands
 

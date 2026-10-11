@@ -26,8 +26,8 @@ Route::get('/products/{id}', ShowProduct::class);
 Route::get('/categories', ListCategories::class);
 
 // A few tries a minute from one address: enough for a person, not for guessing passwords.
-Route::post('/register', Register::class, middleware: [new RateLimit(10, name: 'register')]);
-Route::post('/login', Login::class, middleware: [new RateLimit(10, name: 'login')]);
+Route::post('/register', Register::class, middleware: [new RateLimit(config('shop.register_limit'), name: 'register')]);
+Route::post('/login', Login::class, middleware: [new RateLimit(config('shop.login_limit'), name: 'login')]);
 
 // For whoever is logged in.
 Route::group(middleware: [TokenAuth::class], routes: static function (): void {
