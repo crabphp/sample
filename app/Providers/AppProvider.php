@@ -16,8 +16,10 @@ use App\Users;
 use Crab\Contracts\Auth\IdentityResolver;
 use Crab\Contracts\Container\Container;
 use Crab\Contracts\Events\Dispatcher;
+use Crab\Contracts\Http\MiddlewareStack;
 use Crab\Contracts\Provider;
 use Crab\Contracts\Schedule\Schedule;
+use Crab\Http\Concurrency;
 
 /**
  * Where the shop's own services are bound, and where it says what
@@ -29,6 +31,11 @@ final class AppProvider implements Provider
     {
         $container->singleton(IdentityResolver::class, Users::class);
         $container->singleton(Mailer::class, static fn (): Mailer => new FileMailer((string) config('mail.path'), (float) config('mail.fail_rate')));
+
+        $limit = config('shop.max_requests');
+        if ($limit !== null) {
+            $container->get(MiddlewareStack::class)->add(new Concurrency($limit));
+        }
 
         $events = $container->get(Dispatcher::class);
         $events->listen(OrderPlaced::class, QueueOrderWork::class);
