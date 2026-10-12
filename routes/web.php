@@ -12,9 +12,13 @@ use App\Actions\Register;
 use App\Actions\SetStock;
 use App\Actions\ShowOrder;
 use App\Actions\ShowProduct;
+use App\Actions\ShipOrder;
+use App\Actions\WatchOrder;
 use App\Http\AdminsOnly;
 use App\User;
 use Crab\Auth\TokenAuth;
+use Crab\Auth\IssueTicket;
+use Crab\Auth\Ticket;
 use Crab\Http\RateLimit;
 use Crab\Route;
 
@@ -30,7 +34,10 @@ Route::post('/register', Register::class, middleware: [new RateLimit(config('sho
 Route::post('/login', Login::class, middleware: [new RateLimit(config('shop.login_limit'), name: 'login')]);
 
 // For whoever is logged in.
+Route::websocket('/orders/{id}/live', WatchOrder::class, middleware: [Ticket::class]);
+
 Route::group(middleware: [TokenAuth::class], routes: static function (): void {
+    Route::post('/ws/ticket', IssueTicket::class);
     Route::get('/me', static fn (User $user): User => $user);
     Route::get('/orders', ListMyOrders::class);
     Route::post('/orders', PlaceOrder::class);
@@ -40,5 +47,6 @@ Route::group(middleware: [TokenAuth::class], routes: static function (): void {
     Route::group(middleware: [AdminsOnly::class], routes: static function (): void {
         Route::post('/products', CreateProduct::class);
         Route::put('/products/{id}/stock', SetStock::class);
+        Route::put('/orders/{id}/ship', ShipOrder::class);
     });
 });

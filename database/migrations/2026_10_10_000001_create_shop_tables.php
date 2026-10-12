@@ -31,7 +31,7 @@ return new class implements Migration {
         $schema->create('orders', function (Table $table) {
             $table->id();
             $table->foreignId('user_id')->index();
-            // "pending", "paid" or "cancelled".
+            // "pending", "paid", "shipped" or "cancelled".
             $table->string('status', 20)->index();
             $table->integer('total');
             $table->timestamps();

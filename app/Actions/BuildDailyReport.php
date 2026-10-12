@@ -25,10 +25,10 @@ final readonly class BuildDailyReport
         $orders = $this->db->table('orders')
             ->whereBetween('created_at', "{$day} 00:00:00", "{$day} 23:59:59")
             ->get();
-        $report = ['day' => $day, 'orders' => count($orders), 'paid' => 0, 'cancelled' => 0, 'pending' => 0, 'revenue' => 0];
+        $report = ['day' => $day, 'orders' => count($orders), 'paid' => 0, 'shipped' => 0, 'cancelled' => 0, 'pending' => 0, 'revenue' => 0];
         foreach ($orders as $order) {
             ++$report[$order['status']];
-            $report['revenue'] += $order['status'] === 'paid' ? (int) $order['total'] : 0;
+            $report['revenue'] += in_array($order['status'], ['paid', 'shipped'], true) ? (int) $order['total'] : 0;
         }
         $directory = (string) config('shop.reports');
         if (!is_dir($directory)) {

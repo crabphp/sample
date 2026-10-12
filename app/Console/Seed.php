@@ -108,7 +108,7 @@ final readonly class Seed implements Command
                     $total += $prices[$productId] * $quantity;
                 }
                 $orderId = $this->db->table('orders')->insert([
-                    'user_id' => $customers[array_rand($customers)], 'status' => mt_rand(1, 10) === 1 ? 'cancelled' : 'paid', 'total' => $total,
+                    'user_id' => $customers[array_rand($customers)], 'status' => match (mt_rand(1, 10)) { 1 => 'cancelled', 2, 3, 4, 5 => 'shipped', default => 'paid' }, 'total' => $total,
                     'created_at' => $at($placed), 'updated_at' => $at($placed + 30),
                 ]);
                 $this->db->table('order_items')->insertMany(array_map(static fn (array $line): array => ['order_id' => $orderId, ...$line], $lines));
@@ -171,7 +171,7 @@ final readonly class Seed implements Command
                     $total += $prices[$productId] * $quantity;
                 }
                 $placed = date('Y-m-d H:i:s', $now - 3600 - ($id % (14 * 86400)));
-                $orders[] = ['id' => $id, 'user_id' => 2 + ($id - 1) % ($userCount - 1), 'status' => $id % 10 === 0 ? 'cancelled' : 'paid', 'total' => $total, 'created_at' => $placed, 'updated_at' => $placed];
+                $orders[] = ['id' => $id, 'user_id' => 2 + ($id - 1) % ($userCount - 1), 'status' => match ($id % 10) { 0 => 'cancelled', 1, 2, 3, 4 => 'shipped', default => 'paid' }, 'total' => $total, 'created_at' => $placed, 'updated_at' => $placed];
             }
             $this->db->transaction(static function (Connection $db) use ($orders, $items): void {
                 $db->table('orders')->insertMany($orders);

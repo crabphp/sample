@@ -5,15 +5,17 @@ declare(strict_types=1);
 namespace App\Console;
 
 use Crab\Contracts\Cache\Cache;
+use Crab\Contracts\Broadcast\Broadcaster;
 use Crab\Contracts\Console\Command;
 use Crab\Contracts\Console\Input;
 use Crab\Contracts\Console\Output;
 use Crab\Contracts\Database\Connection;
 use Crab\Contracts\Database\Database;
+use Psr\Clock\ClockInterface;
 
 final readonly class CancelStaleOrders implements Command
 {
-    public function __construct(private Database $db, private Cache $cache)
+    public function __construct(private Database $db, private Cache $cache, private Broadcaster $broadcast, private ClockInterface $clock)
     {
     }
 
@@ -24,16 +26,22 @@ final readonly class CancelStaleOrders implements Command
 
     public function handle(Input $input, Output $output): int
     {
-        $before = date('Y-m-d H:i:s', time() - 60 * (int) config('shop.cancel_after'));
-        $cancelled = $this->db->transaction(static function (Connection $db) use ($before): int {
-            $ids = $db->table('orders')->where('status', 'pending')->where('created_at', '<=', $before)->lockForUpdate()->pluck('id');
+        $now = $this->clock->now();
+        $before = $now->modify('-' . (int) config('shop.cancel_after') . ' minutes')->format('Y-m-d H:i:s');
+        $cancelled = $this->db->transaction(function (Connection $db) use ($before, $now): int {
+            $orders = $db->table('orders')->where('status', 'pending')->where('created_at', '<=', $before)->select('id', 'version')->lockForUpdate()->get();
+            $ids = array_column($orders, 'id');
             foreach ($ids as $id) {
                 foreach ($db->table('order_items')->where('order_id', $id)->get() as $line) {
                     $db->table('products')->where('id', $line['product_id'])->increment('stock', (int) $line['quantity']);
                 }
             }
             if ($ids !== []) {
-                $db->table('orders')->whereIn('id', $ids)->update(['status' => 'cancelled', 'updated_at' => date('Y-m-d H:i:s')]);
+                $db->table('orders')->whereIn('id', $ids)->increment('version', 1, ['status' => 'cancelled', 'updated_at' => $now->format('Y-m-d H:i:s')]);
+                foreach ($orders as $order) {
+                    $id = (int) $order['id'];
+                    $this->broadcast->within($db)->to("orders.{$id}")->send(['type' => 'status', 'id' => $id, 'status' => 'cancelled', 'version' => (int) $order['version'] + 1]);
+                }
             }
             return count($ids);
         });

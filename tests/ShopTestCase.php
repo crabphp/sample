@@ -30,12 +30,15 @@ abstract class ShopTestCase extends TestCase
         // The real environment is read before .env, so a test can have a shop of its own.
         foreach ([
             'DB_DSN' => 'sqlite:' . $this->directory . '/shop.sqlite', 'CACHE_STORE' => 'array', 'QUEUE_STORE' => 'database',
+            'BROADCAST_CARRIER' => 'local',
             'LOG_PATH' => $this->directory . '/app.log', 'MAIL_PATH' => $this->directory . '/mail', 'MAIL_FAIL_RATE' => '0',
             'REPORTS_PATH' => $this->directory . '/reports', 'WAREHOUSE_URL' => '', 'CLOCKWERK_TOKEN' => 'test-token',
         ] as $name => $value) {
             putenv("{$name}={$value}");
         }
         $this->app = require dirname(__DIR__) . '/app.php';
+        // The API fixture represents one serving HTTP worker, including local broadcasts.
+        $this->app->container->get(\Crab\Broadcast\Lifecycle::class)->serving = true;
         self::assertSame(0, $this->command('migrate'));
         self::assertSame(0, $this->command('shop:seed'));
         $this->db = $this->app->container->get(Database::class);
@@ -44,6 +47,7 @@ abstract class ShopTestCase extends TestCase
 
     protected function tearDown(): void
     {
+        $this->api->closeSockets();
         foreach ([...(glob($this->directory . '/*/*') ?: []), ...(glob($this->directory . '/*.*') ?: [])] as $file) {
             unlink($file);
         }
