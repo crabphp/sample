@@ -30,13 +30,13 @@ Route::get('/products/{id}', ShowProduct::class);
 Route::get('/categories', ListCategories::class);
 
 // A few tries a minute from one address: enough for a person, not for guessing passwords.
-Route::post('/register', Register::class, middleware: [new RateLimit(config('shop.register_limit'), name: 'register')]);
-Route::post('/login', Login::class, middleware: [new RateLimit(config('shop.login_limit'), name: 'login')]);
+Route::post('/register', Register::class)->middleware(new RateLimit(config('shop.register_limit'), name: 'register'));
+Route::post('/login', Login::class)->middleware(new RateLimit(config('shop.login_limit'), name: 'login'));
 
 // For whoever is logged in.
-Route::websocket('/orders/{id}/live', WatchOrder::class, middleware: [Ticket::class]);
+Route::websocket('/orders/{id}/live', WatchOrder::class)->middleware(Ticket::class);
 
-Route::group(middleware: [TokenAuth::class], routes: static function (): void {
+Route::middleware(TokenAuth::class)->group(static function (): void {
     Route::post('/ws/ticket', IssueTicket::class);
     Route::get('/me', static fn (User $user): User => $user);
     Route::get('/orders', ListMyOrders::class);
@@ -44,7 +44,7 @@ Route::group(middleware: [TokenAuth::class], routes: static function (): void {
     Route::get('/orders/{id}', ShowOrder::class);
 
     // For administrators.
-    Route::group(middleware: [AdminsOnly::class], routes: static function (): void {
+    Route::middleware(AdminsOnly::class)->group(static function (): void {
         Route::post('/products', CreateProduct::class);
         Route::put('/products/{id}/stock', SetStock::class);
         Route::put('/orders/{id}/ship', ShipOrder::class);
