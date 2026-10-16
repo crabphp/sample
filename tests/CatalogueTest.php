@@ -11,13 +11,16 @@ final class CatalogueTest extends ShopTestCase
 {
     public function testTheCatalogueIsPagedSearchedAndCounted(): void
     {
-        $page = $this->api->get('/products', ['perPage' => 5, 'page' => 2])->assertStatus(200);
-        self::assertSame([5, 2, 36, true], [count($page->json('data')), $page->json('current_page'), $page->json('total'), $page->json('has_more')]);
+        $page = $this->api->get('/products', ['perPage' => 2, 'page' => 2])->assertStatus(200);
+        self::assertSame([2, 2, 6, true], [count($page->json('data')), $page->json('current_page'), $page->json('total'), $page->json('has_more')]);
+        self::assertSame(['Grid Notebook', 'Linen Cushion'], array_column($page->json('data'), 'name'));
         self::assertSame(['Stoneware Mug'], array_column($this->api->get('/products', ['q' => 'mug'])->assertStatus(200)->json('data'), 'name'));
-        self::assertCount(7, $this->api->get('/products', ['category' => 'desk'])->assertStatus(200)->json('data'));
+        self::assertCount(2, $this->api->get('/products', ['category' => 'desk'])->assertStatus(200)->json('data'));
 
         $categories = array_column($this->api->get('/categories')->assertStatus(200)->json(), 'products', 'category');
-        self::assertSame(['apparel' => 7, 'desk' => 7, 'home' => 7, 'kitchen' => 8, 'outdoors' => 7], $categories);
+        self::assertSame(['desk' => 2, 'home' => 2, 'kitchen' => 2], $categories);
+        $inStock = array_column($this->api->get('/categories')->json(), 'in_stock', 'category');
+        self::assertSame(['desk' => 2, 'home' => 1, 'kitchen' => 2], $inStock);
 
         $this->api->get('/products/99999')->assertStatus(404);
         // A page size past the limit is refused before the action runs, with the field named.

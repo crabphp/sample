@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace App\Actions;
 
-use Crab\Contracts\Database\Database;
 use Crab\Contracts\HttpClient\Client;
 use Psr\Log\LoggerInterface;
 
@@ -16,8 +15,10 @@ use Psr\Log\LoggerInterface;
  */
 final readonly class SyncInventory
 {
-    public function __construct(private Database $db, private Client $http, private LoggerInterface $log)
-    {
+    public function __construct(
+        private Client $http,
+        private LoggerInterface $log,
+    ) {
     }
 
     /**
@@ -26,13 +27,14 @@ final readonly class SyncInventory
     public function handle(int $orderId, array $productIds): void
     {
         $warehouse = (string) config('shop.warehouse_url');
-        foreach ($productIds as $productId) {
-            if ($warehouse === '') {
-                continue;
+        if ($warehouse !== '') {
+            $http = $this->http->timeout(5);
+            foreach ($productIds as $productId) {
+                // A failed response retries the job, just like a failed connection.
+                $http->get("{$warehouse}/products/{$productId}")->throw();
             }
-            // Throws when the warehouse answers with an error, and the job is tried again.
-            $this->http->timeout(5)->get("{$warehouse}/products/{$productId}")->throw();
         }
+
         $this->log->info('Order {order} was synced with the warehouse.', ['order' => $orderId, 'products' => count($productIds)]);
     }
 }

@@ -11,8 +11,25 @@ use Crab\Contracts\Auth\Identity;
  */
 final readonly class User implements Identity, \JsonSerializable
 {
-    public function __construct(public int|string $id, public string $name, public string $email, public string $role = 'member')
+    public function __construct(
+        public int|string $id,
+        public string $name,
+        public string $email,
+        public string $role = 'member',
+    ) {
+    }
+
+    /**
+     * @param array<string, mixed> $row
+     */
+    public static function from(array $row): self
     {
+        return new self(
+            (int) $row['id'],
+            (string) $row['name'],
+            (string) $row['email'],
+            (string) $row['role'],
+        );
     }
 
     public function isAdmin(): bool
@@ -25,6 +42,11 @@ final readonly class User implements Identity, \JsonSerializable
      */
     public function jsonSerialize(): array
     {
-        return ['id' => $this->id, 'name' => $this->name, 'email' => $this->email, 'role' => $this->role];
+        return [
+            'id' => $this->id,
+            'name' => $this->name,
+            'email' => $this->email,
+            'role' => $this->role,
+        ];
     }
 }

@@ -6,6 +6,7 @@ namespace App\Actions;
 
 use Crab\Contracts\Cache\Cache;
 use Crab\Contracts\Database\Database;
+use Psr\Clock\ClockInterface;
 use Psr\Log\LoggerInterface;
 
 /**
@@ -14,13 +15,20 @@ use Psr\Log\LoggerInterface;
  */
 final readonly class Restock
 {
-    public function __construct(private Database $db, private Cache $cache, private LoggerInterface $log)
-    {
+    public function __construct(
+        private Database $db,
+        private Cache $cache,
+        private LoggerInterface $log,
+        private ClockInterface $clock,
+    ) {
     }
 
     public function handle(): void
     {
-        $filled = $this->db->table('products')->where('stock', '<', 10)->increment('stock', 60, ['updated_at' => date('Y-m-d H:i:s')]);
+        $filled = $this->db->table('products')
+            ->where('stock', '<', 10)
+            ->increment('stock', 60, ['updated_at' => $this->clock->now()->format('Y-m-d H:i:s')]);
+
         if ($filled > 0) {
             $this->cache->delete('categories');
             $this->log->info('A delivery restocked {count} products.', ['count' => $filled]);

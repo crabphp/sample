@@ -11,6 +11,31 @@ use App\Actions\BuildDailyReport;
  */
 final class DailyReportTest extends ShopTestCase
 {
+    public function testTheDefaultReportCoversYesterdayAndCountsOnlyPaidRevenue(): void
+    {
+        $user = $this->user('ada@example.com');
+        foreach ([
+            ['paid', 1000, '2026-01-31 00:00:00'],
+            ['shipped', 2000, '2026-01-31 23:59:59'],
+            ['pending', 3000, '2026-01-31 12:00:00'],
+            ['cancelled', 4000, '2026-01-31 12:00:00'],
+            ['paid', 5000, '2026-01-30 23:59:59'],
+            ['paid', 6000, '2026-02-01 00:00:00'],
+        ] as [$status, $total, $created]) {
+            $this->db->table('orders')->insert([
+                'user_id' => $user->id, 'status' => $status, 'total' => $total,
+                'created_at' => $created, 'updated_at' => $created,
+            ]);
+        }
+
+        $this->app->container->get(BuildDailyReport::class)->handle();
+        $report = json_decode(file_get_contents($this->directory . '/reports/2026-01-31.json'), true, flags: JSON_THROW_ON_ERROR);
+        self::assertSame([
+            'day' => '2026-01-31', 'orders' => 4, 'paid' => 1, 'shipped' => 1,
+            'cancelled' => 1, 'pending' => 1, 'revenue' => 3000,
+        ], $report);
+    }
+
     public function testShippingKeepsThePaymentInTheDailyReport(): void
     {
         $id = (int) $this->db->table('orders')->insert([

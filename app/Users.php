@@ -20,14 +20,7 @@ final readonly class Users implements IdentityResolver
     public function resolve(int|string $id): ?Identity
     {
         $row = $this->db->table('users')->find($id);
-        return $row === null ? null : self::from($row);
-    }
 
-    /**
-     * @param array<string, mixed> $row
-     */
-    public static function from(array $row): User
-    {
-        return new User((int) $row['id'], (string) $row['name'], (string) $row['email'], (string) $row['role']);
+        return $row === null ? null : User::from($row);
     }
 }

@@ -6,6 +6,8 @@ namespace Tests;
 
 use App\Actions\Restock;
 use App\Actions\SettlePayments;
+use App\Events\OrderPlaced;
+use Crab\Contracts\Events\Dispatcher;
 use Crab\Contracts\Queue\Store;
 
 /**
@@ -20,20 +22,15 @@ final class OrderTest extends ShopTestCase
         $user = $this->user('ada@example.com');
         $ada = $this->api->actingAs($user);
 
-        $placed = $ada->post('/orders', ['lines' => [['productId' => 1, 'quantity' => 2], ['productId' => 2], ['productId' => 1, 'quantity' => 1]]])->assertStatus(201);
+        // Missing and explicit-null quantities each mean one.
+        $placed = $ada->post('/orders', ['lines' => [['productId' => 1, 'quantity' => 2], ['productId' => 2], ['productId' => 1, 'quantity' => null]]])->assertStatus(201);
         $order = $placed->json();
         // Three mugs at 14.00 and one kettle at 62.00.
         self::assertSame(['pending', 3 * 1400 + 6200], [$placed->json('status'), $placed->json('total')]);
         $placed->assertHeader('Location', "/orders/{$order['id']}")->assertHeader('Content-Type', 'application/json');
         self::assertSame($user->id, (int) $this->db->table('orders')->where('id', $order['id'])->value('user_id'));
         self::assertSame(2, (int) $this->db->table('products')->where('id', 1)->value('stock'));
-
-        // More than there is: refused, and nothing of the order is kept.
-        $orders = $this->db->table('orders')->count();
-        $this->db->table('products')->where('id', 2)->update(['stock' => 9]);
-        $ada->post('/orders', ['lines' => [['productId' => 2], ['productId' => 1, 'quantity' => 3]]])->assertStatus(409);
-        // Neither the order nor what its other lines had already taken: the kettle is back on the shelf.
-        self::assertSame([$orders, 2, 9], [$this->db->table('orders')->count(), (int) $this->db->table('products')->where('id', 1)->value('stock'), (int) $this->db->table('products')->where('id', 2)->value('stock')]);
+        self::assertSame([3, 1], $this->db->table('order_items')->where('order_id', $order['id'])->orderBy('product_id')->pluck('quantity'));
         $ada->post('/orders', ['lines' => []])->assertStatus(422);
         $ada->post('/orders', ['lines' => [['productId' => 1, 'quantity' => 99]]])->assertStatus(422);
 
@@ -44,11 +41,49 @@ final class OrderTest extends ShopTestCase
         self::assertSame([0, 0], [$queue->size('mail'), $queue->size('default')]);
         $mail = glob($this->directory . '/mail/*.txt') ?: [];
         self::assertCount(1, $mail);
+        self::assertStringStartsWith('20260201-120000-', basename($mail[0]));
         $message = (string) file_get_contents($mail[0]);
         self::assertStringContainsString('To: ada@example.com', $message);
         self::assertStringContainsString("Subject: Your order #{$order['id']}", $message);
         self::assertStringContainsString('3 x Stoneware Mug  $42.00', $message);
         self::assertStringContainsString('Total: $104.00', $message);
+    }
+
+    public function testAFailedLaterLineRestoresTheStockAlreadyTaken(): void
+    {
+        $this->db->table('products')->where('id', 1)->update(['stock' => 5]);
+        $this->db->table('products')->where('id', 2)->update(['stock' => 0]);
+        $orders = $this->db->table('orders')->count();
+        $items = $this->db->table('order_items')->count();
+        $ada = $this->api->actingAs($this->user('ada@example.com'));
+
+        // Products are locked by id: both failures follow the successful
+        // decrement of product 1, so the transaction must restore it.
+        foreach ([2 => 409, 99999 => 422] as $product => $status) {
+            $ada->post('/orders', ['lines' => [['productId' => 1, 'quantity' => 2], ['productId' => $product]]])->assertStatus($status);
+            self::assertSame(5, (int) $this->db->table('products')->where('id', 1)->value('stock'));
+            self::assertSame($orders, $this->db->table('orders')->count());
+            self::assertSame($items, $this->db->table('order_items')->count());
+        }
+        $queue = $this->app->container->get(Store::class);
+        self::assertSame([0, 0], [$queue->size('mail'), $queue->size('default')]);
+    }
+
+    public function testAListenerFailureDoesNotTurnACommittedOrderIntoAnError(): void
+    {
+        $stock = (int) $this->db->table('products')->where('id', 1)->value('stock');
+        $observed = null;
+        $this->app->container->get(Dispatcher::class)->listen(OrderPlaced::class, function (OrderPlaced $event) use (&$observed): void {
+            $observed = $this->db->table('orders')->find($event->orderId);
+            throw new \RuntimeException('The notification service is unavailable.');
+        });
+
+        $placed = $this->api->actingAs($this->user('ada@example.com'))
+            ->post('/orders', ['lines' => [['productId' => 1]]])->assertStatus(201);
+        self::assertSame($placed->json('id'), (int) $observed['id']);
+        self::assertSame('pending', $observed['status']);
+        self::assertSame($stock - 1, (int) $this->db->table('products')->where('id', 1)->value('stock'));
+        self::assertStringContainsString('The notification service is unavailable.', (string) file_get_contents($this->directory . '/app.log'));
     }
 
     public function testOrdersArePaidCancelledAndTheShelvesRefilledByTheClock(): void
@@ -60,7 +95,7 @@ final class OrderTest extends ShopTestCase
             $ids[] = $ada->post('/orders', ['lines' => [['productId' => 3]]])->assertStatus(201)->json('id');
         }
         self::assertCount(12, $ids);
-        $old = date('Y-m-d H:i:s', time() - 3600);
+        $old = $this->clock->now()->modify('-1 hour')->format('Y-m-d H:i:s');
         $this->db->table('orders')->whereIn('id', $ids)->update(['created_at' => $old]);
         $stock = (int) $this->db->table('products')->where('id', 3)->value('stock');
 
@@ -79,5 +114,28 @@ final class OrderTest extends ShopTestCase
         self::assertSame(65, (int) $this->db->table('products')->where('id', 1)->value('stock'));
 
         self::assertSame(0, $this->command('schedule:list'));
+    }
+
+    public function testCancellingSharedProductsRestoresOnlyStaleOrdersOnce(): void
+    {
+        $ada = $this->api->actingAs($this->user('ada@example.com'));
+        $stale = [];
+        foreach ([2, 3] as $quantity) {
+            $stale[] = $ada->post('/orders', ['lines' => [['productId' => 1, 'quantity' => $quantity]]])->assertStatus(201)->json('id');
+        }
+        $recent = $ada->post('/orders', ['lines' => [['productId' => 1, 'quantity' => 4]]])->assertStatus(201)->json('id');
+        $this->db->table('orders')->whereIn('id', $stale)->update([
+            'created_at' => $this->clock->now()->modify('-1 hour')->format('Y-m-d H:i:s'),
+        ]);
+        $stock = (int) $this->db->table('products')->where('id', 1)->value('stock');
+
+        self::assertSame(0, $this->command('orders:cancel-stale'));
+        self::assertSame($stock + 5, (int) $this->db->table('products')->where('id', 1)->value('stock'));
+        self::assertSame(2, $this->db->table('orders')->whereIn('id', $stale)->where('status', 'cancelled')->count());
+        self::assertSame('pending', $this->db->table('orders')->where('id', $recent)->value('status'));
+        self::assertSame('paid', $this->db->table('orders')->where('id', 1)->value('status'), 'Historical paid orders stay paid and keep their stock.');
+
+        self::assertSame(0, $this->command('orders:cancel-stale'));
+        self::assertSame($stock + 5, (int) $this->db->table('products')->where('id', 1)->value('stock'), 'Cancelling again does not return the same stock twice.');
     }
 }

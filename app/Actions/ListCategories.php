@@ -23,15 +23,20 @@ final readonly class ListCategories
      */
     public function handle(): array
     {
-        return $this->cache->remember('categories', 60, fn (): array => array_map(
-            static fn (array $row): array => ['category' => (string) $row['category'], 'products' => (int) $row['products'], 'in_stock' => (int) $row['in_stock']],
-            $this->db->table('products')
+        return $this->cache->remember('categories', 60, function (): array {
+            $categories = $this->db->table('products')
                 ->select('category')
                 ->selectRaw('COUNT(*) AS products')
                 ->selectRaw('SUM(CASE WHEN stock > 0 THEN 1 ELSE 0 END) AS in_stock')
                 ->groupBy('category')
                 ->orderBy('category')
-                ->get(),
-        ));
+                ->get();
+
+            return array_map(static fn (array $row): array => [
+                'category' => (string) $row['category'],
+                'products' => (int) $row['products'],
+                'in_stock' => (int) $row['in_stock'],
+            ], $categories);
+        });
     }
 }

@@ -11,14 +11,18 @@ use Crab\Http\Response;
 use Crab\Validation\Length;
 use Crab\Validation\Pattern;
 use Crab\Validation\Range;
+use Psr\Clock\ClockInterface;
 
 /**
  * Adds a product to the catalogue. For administrators.
  */
 final readonly class CreateProduct
 {
-    public function __construct(private Database $db, private Cache $cache)
-    {
+    public function __construct(
+        private Database $db,
+        private Cache $cache,
+        private ClockInterface $clock,
+    ) {
     }
 
     public function handle(
@@ -37,9 +41,20 @@ final readonly class CreateProduct
         if ($this->db->table('products')->where('sku', $sku)->exists()) {
             throw new HttpException(409, "There is already a product with the SKU {$sku}.");
         }
-        $now = date('Y-m-d H:i:s');
-        $id = $this->db->table('products')->insert(['sku' => $sku, 'name' => $name, 'category' => $category, 'price' => $price, 'stock' => $stock, 'created_at' => $now, 'updated_at' => $now]);
+
+        $now = $this->clock->now()->format('Y-m-d H:i:s');
+        $id = $this->db->table('products')->insert([
+            'sku' => $sku,
+            'name' => $name,
+            'category' => $category,
+            'price' => $price,
+            'stock' => $stock,
+            'created_at' => $now,
+            'updated_at' => $now,
+        ]);
+
         $this->cache->delete('categories');
+
         return Response::created($this->db->table('products')->find($id), "/products/{$id}");
     }
 }

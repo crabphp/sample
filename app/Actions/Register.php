@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Actions;
 
-use App\Users;
+use App\User;
 use Crab\Contracts\Auth\PasswordHasher;
 use Crab\Contracts\Auth\TokenStore;
 use Crab\Contracts\Database\Database;
@@ -12,14 +12,19 @@ use Crab\Http\HttpException;
 use Crab\Http\Response;
 use Crab\Validation\Email;
 use Crab\Validation\Length;
+use Psr\Clock\ClockInterface;
 
 /**
  * Makes an account and logs it in.
  */
 final readonly class Register
 {
-    public function __construct(private Database $db, private PasswordHasher $passwords, private TokenStore $tokens)
-    {
+    public function __construct(
+        private Database $db,
+        private PasswordHasher $passwords,
+        private TokenStore $tokens,
+        private ClockInterface $clock,
+    ) {
     }
 
     public function handle(
@@ -34,15 +39,25 @@ final readonly class Register
         if (strlen($password) > 72) {
             throw new HttpException(422, 'The password is too long: at most 72 bytes.');
         }
+
         if ($this->db->table('users')->where('email', $email)->exists()) {
             throw new HttpException(409, 'There is already an account with this email.');
         }
-        $now = date('Y-m-d H:i:s');
+
+        $now = $this->clock->now()->format('Y-m-d H:i:s');
         $id = $this->db->table('users')->insert([
-            'name' => $name, 'email' => $email, 'password' => $this->passwords->hash($password), 'role' => 'member',
-            'created_at' => $now, 'updated_at' => $now,
+            'name' => $name,
+            'email' => $email,
+            'password' => $this->passwords->hash($password),
+            'role' => 'member',
+            'created_at' => $now,
+            'updated_at' => $now,
         ]);
-        $user = Users::from($this->db->table('users')->find($id) ?? []);
-        return Response::created(['user' => $user, 'token' => $this->tokens->issue($user, 'registration')], '/me');
+        $user = new User((int) $id, $name, $email);
+
+        return Response::created([
+            'user' => $user,
+            'token' => $this->tokens->issue($user, 'registration'),
+        ], '/me');
     }
 }

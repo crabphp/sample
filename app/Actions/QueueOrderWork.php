@@ -5,8 +5,6 @@ declare(strict_types=1);
 namespace App\Actions;
 
 use App\Events\OrderPlaced;
-use App\Actions\SendOrderConfirmation;
-use App\Actions\SyncInventory;
 use Crab\Contracts\Queue\Queue;
 
 /**

@@ -60,10 +60,10 @@ It uses SQLite. `shop:seed` makes 36 products, 12 people and about two weeks of 
 | `PUT` | `/products/{id}/stock` | `{"stock": 40}`. Administrators |
 
 ```sh
-TOKEN=$(curl -s -X POST localhost:8080/login -H 'Content-Type: application/json' \
+TOKEN=$(curl -s -X POST localhost:8080/login -H 'Content-Type: application/json' -H 'Accept: application/json' \
     -d '{"email":"ada@example.com","password":"password"}' | php -r 'echo json_decode(stream_get_contents(STDIN))->token;')
 
-curl -s -X POST localhost:8080/orders -H "Authorization: Bearer $TOKEN" -H 'Content-Type: application/json' \
+curl -s -X POST localhost:8080/orders -H "Authorization: Bearer $TOKEN" -H 'Content-Type: application/json' -H 'Accept: application/json' \
     -d '{"lines":[{"productId":1,"quantity":2}]}'
 ```
 
@@ -71,7 +71,7 @@ curl -s -X POST localhost:8080/orders -H "Authorization: Bearer $TOKEN" -H 'Cont
 
 | Part of the framework | Where to look |
 | --- | --- |
-| Actions and validation by signature | `app/Actions/`; `PlaceOrder` describes a nested body with `#[Fields]`, with no class written for it |
+| Actions and validation by signature | `app/Actions/`; `PlaceOrder` takes `app/Http/OrderInput.php`, with `#[ListOf]` validating each `OrderLineInput` |
 | Routes, groups, middleware | `routes/web.php`, `app/Http/AdminsOnly.php` |
 | Token authentication | `Login`, `Register`, `app/Users.php` |
 | Query builder, transactions, pagination | `PlaceOrder`, `ListProducts`, `ShowOrder` |
@@ -82,10 +82,13 @@ curl -s -X POST localhost:8080/orders -H "Authorization: Bearer $TOKEN" -H 'Cont
 | One command for it all | `server.with` in `config/server.php` says which servers `serve` runs beside HTTP, each switched on from `.env`: here `queue` and `schedule` |
 | Retries and failed jobs | The pretend mail server refuses some messages (`mail.fail_rate` in `config/mail.php`) |
 | Scheduling | `AppProvider`: every ten seconds, every minute, daily |
+| Clock injection | Actions and file mail take `ClockInterface`; tests use `FrozenClock` |
 | HTTP client | `SyncInventory` asks the "warehouse" over HTTP; `shop:traffic` is the customers |
 | Console commands | `app/Console/` |
 | Redis package | Set `CACHE_STORE=redis` or `QUEUE_STORE=redis` in `.env` |
 | Dashboard package | `/clockwerk` |
+
+The order input classes use PHP types for nested fields. An order has 1–20 lines, each with a `productId` and a quantity of 1–20. Leaving out `quantity` or sending it as `null` means one item.
 
 What happens when an order is placed:
 
@@ -111,4 +114,4 @@ After the order commits, a listener failure is logged and the action still retur
 composer test
 ```
 
-Each test has a database of its own with the seeded data, and sends requests as a client would.
+Shop integration tests each use a temporary database, a small set of known records and a frozen clock. They send requests through the real application and do not run the demo seeder. `OrderInputTest` checks the nested input without a database.

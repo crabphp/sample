@@ -6,6 +6,7 @@ namespace App\Actions;
 
 use Crab\Contracts\Database\Database;
 use Crab\Contracts\Database\Page;
+use Crab\Contracts\Database\Query;
 use Crab\Validation\Length;
 use Crab\Validation\Range;
 
@@ -29,8 +30,8 @@ final readonly class ListProducts
     ): Page {
         return $this->db->table('products')
             ->select('id', 'sku', 'name', 'category', 'price', 'stock')
-            ->when($q !== '', static fn ($query) => $query->where('name', 'like', '%' . $q . '%'))
-            ->when($category !== null, static fn ($query) => $query->where('category', $category))
+            ->when($q !== '', static fn (Query $query): Query => $query->where('name', 'like', '%' . $q . '%'))
+            ->when($category !== null, static fn (Query $query): Query => $query->where('category', $category))
             ->orderBy('name')
             ->paginate($perPage, $page);
     }

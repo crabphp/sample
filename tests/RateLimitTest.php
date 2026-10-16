@@ -4,9 +4,8 @@ declare(strict_types=1);
 
 namespace Tests;
 
-use Crab\Testing\FrozenClock;
+use Crab\Contracts\Clock\Clock;
 use PHPUnit\Framework\Attributes\DataProvider;
-use Psr\Clock\ClockInterface;
 
 /**
  * Exercises configurable limits through the real routes, including a
@@ -46,7 +45,7 @@ final class RateLimitTest extends ShopTestCase
         // Routes are already loaded by setUp, so rebuild after setting
         // their environment, using the same isolated fixture database.
         $this->app = require dirname(__DIR__) . '/app.php';
-        $this->app->container->instance(ClockInterface::class, new FrozenClock('2026-01-01 12:00:00'));
+        $this->app->container->instance(Clock::class, $this->clock);
         $this->api = new \Crab\Testing\Api($this->app);
         for ($try = 0; $try < $login; ++$try) {
             $this->api->post('/login', ['email' => 'ada@example.com', 'password' => 'wrong'])->assertStatus(401);

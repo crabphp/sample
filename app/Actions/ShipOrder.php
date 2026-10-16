@@ -16,8 +16,11 @@ use Psr\Clock\ClockInterface;
  */
 final readonly class ShipOrder
 {
-    public function __construct(private Database $db, private Broadcaster $broadcast, private ClockInterface $clock)
-    {
+    public function __construct(
+        private Database $db,
+        private Broadcaster $broadcast,
+        private ClockInterface $clock,
+    ) {
     }
 
     /**
@@ -26,15 +29,31 @@ final readonly class ShipOrder
     public function handle(int $id): array
     {
         $this->db->transaction(function (Connection $transaction) use ($id): void {
-            $order = $transaction->table('orders')->where('id', $id)->lockForUpdate()->first()
+            $order = $transaction->table('orders')
+                ->where('id', $id)
+                ->lockForUpdate()
+                ->first()
                 ?? throw new HttpException(404, 'No such order.');
+
             if ($order['status'] !== 'paid') {
                 throw new HttpException(409, 'Only a paid order can be shipped. Wait for payment before shipping it.');
             }
+
             $version = (int) $order['version'] + 1;
-            $transaction->table('orders')->where('id', $id)->update(['status' => 'shipped', 'version' => $version, 'updated_at' => $this->clock->now()->format('Y-m-d H:i:s')]);
-            $this->broadcast->within($transaction)->to("orders.{$id}")->send(['type' => 'status', 'id' => $id, 'status' => 'shipped', 'version' => $version]);
+            $transaction->table('orders')->where('id', $id)->update([
+                'status' => 'shipped',
+                'version' => $version,
+                'updated_at' => $this->clock->now()->format('Y-m-d H:i:s'),
+            ]);
+
+            $this->broadcast->within($transaction)->to("orders.{$id}")->send([
+                'type' => 'status',
+                'id' => $id,
+                'status' => 'shipped',
+                'version' => $version,
+            ]);
         });
+
         return ['id' => $id, 'status' => 'shipped'];
     }
 }

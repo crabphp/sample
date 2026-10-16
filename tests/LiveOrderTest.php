@@ -5,9 +5,7 @@ declare(strict_types=1);
 namespace Tests;
 
 use App\Actions\SettlePayments;
-use Crab\Testing\FrozenClock;
 use Crab\Testing\WebSocketRefused;
-use Psr\Clock\ClockInterface;
 
 /**
  * A customer watches only their own order through the real socket API,
@@ -61,7 +59,7 @@ final class LiveOrderTest extends ShopTestCase
 
     public function testTheOwnerReceivesScheduledPaymentAndCancellationUpdates(): void
     {
-        $this->app->container->instance(ClockInterface::class, new FrozenClock('2026-01-31 12:00:00'));
+        $this->clock->set('2026-01-31 12:00:00 UTC');
         $owner = $this->user('ada@example.com');
         $api = $this->api->actingAs($owner);
         $ids = [];
