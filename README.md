@@ -18,7 +18,7 @@ php cua shop:seed
 Then one command runs it all: the API on <http://127.0.0.1:8080>, the queue's workers for the jobs orders leave behind, and the scheduler for what runs by the clock. That is `SERVER_QUEUE=true` and `SERVER_SCHEDULE=true` in `.env`; an application of your own serves HTTP alone until it switches them on, as it would in production.
 
 ```sh
-php cua serve
+php cua dev
 ```
 
 ```text
@@ -79,7 +79,7 @@ curl -s -X POST localhost:8080/orders -H "Authorization: Bearer $TOKEN" -H 'Cont
 | Cache | `ListCategories` remembers; an order or a change to the catalogue forgets |
 | Events | `OrderPlaced`, and its two listeners in `app/Actions/` |
 | Queue and supervisors | `app/Actions/`; `config/queue.php` gives mail workers of its own |
-| One command for it all | `server.with` in `config/server.php` says which servers `serve` runs beside HTTP, each switched on from `.env`: here `queue` and `schedule` |
+| One command for it all | `server.with` in `config/server.php` says which servers `start` runs beside HTTP, each switched on from `.env`: here `queue` and `schedule` |
 | Retries and failed jobs | The pretend mail server refuses some messages (`mail.fail_rate` in `config/mail.php`) |
 | Scheduling | `AppProvider`: every ten seconds, every minute, daily |
 | Clock injection | Actions and file mail take `ClockInterface`; tests use `FrozenClock` |

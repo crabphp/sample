@@ -28,7 +28,7 @@ final readonly class Traffic implements Command
               --rate=200                    Requests a second, at most
               --url=http://127.0.0.1:8080   Where the server is
 
-            Start `php cua serve` first: it runs the queue's workers and the scheduler
+            Start `php cua dev` first: it runs the queue's workers and the scheduler
             too, so the orders placed here are worked on.
             TEXT;
     }
