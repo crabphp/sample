@@ -25,6 +25,8 @@ final readonly class ListProducts
             ->select('id', 'sku', 'name', 'category', 'price', 'stock')
             ->when($search->q !== '', static fn (Query $query): Query => $query->where('name', 'like', '%' . $search->q . '%'))
             ->when($search->category !== null, static fn (Query $query): Query => $query->where('category', $search->category))
+            ->when($search->minPrice !== null, static fn (Query $query): Query => $query->where('price', '>=', $search->minPrice))
+            ->when($search->maxPrice !== null, static fn (Query $query): Query => $query->where('price', '<=', $search->maxPrice))
             ->orderBy('name')
             ->paginate($search->perPage, $search->page);
     }

@@ -28,6 +28,29 @@ final class CatalogueTest extends ShopTestCase
         self::assertArrayHasKey('perPage', $refused->json('error.query'));
     }
 
+    public function testTheCatalogueIsFilteredByPriceAndRefusesFiltersItDoesNotHave(): void
+    {
+        $prices = array_column($this->api->get('/products', ['perPage' => 50])->json('data'), 'price');
+        sort($prices);
+        $cheap = $this->api->get('/products', ['maxPrice' => $prices[1], 'perPage' => 50])->assertStatus(200)->json('data');
+        $cheapPrices = array_column($cheap, 'price');
+        sort($cheapPrices);
+        self::assertSame(array_slice($prices, 0, count($cheapPrices)), $cheapPrices);
+        self::assertGreaterThanOrEqual(2, count($cheapPrices));
+        self::assertLessThan(count($prices), count($cheapPrices));
+
+        // The two ends of the range are checked together, once each is a valid price.
+        self::assertSame(
+            ['maxPrice' => ['must be at least the minimum price']],
+            $this->api->get('/products', ['minPrice' => 5000, 'maxPrice' => 1000])->assertStatus(422)->json('error.query'),
+        );
+        // A filter the catalogue does not have is refused, not quietly ignored.
+        self::assertSame(
+            ['sort' => ['is not expected']],
+            $this->api->get('/products', ['sort' => 'price'])->assertStatus(422)->json('error.query'),
+        );
+    }
+
     public function testTheCatalogueIsChangedOnlyByAdministrators(): void
     {
         $product = ['sku' => 'DSK-900', 'name' => 'Standing Desk', 'category' => 'desk', 'price' => 45000, 'stock' => 3];

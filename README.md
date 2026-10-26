@@ -47,7 +47,7 @@ It uses SQLite. `shop:seed` makes 36 products, 12 people and about two weeks of 
 
 | | | |
 | --- | --- | --- |
-| `GET` | `/products` | The catalogue, a page at a time: `?q=mug&category=kitchen&page=2&perPage=12` |
+| `GET` | `/products` | The catalogue, a page at a time: `?q=mug&category=kitchen&minPrice=1000&maxPrice=5000&page=2&perPage=12`. An unknown filter, or a range the wrong way round, is a `422` |
 | `GET` | `/products/{id}` | One product |
 | `GET` | `/categories` | Each category with its counts, remembered for a minute |
 | `POST` | `/register` | `email`, `name`, `password`; answers with a token |
