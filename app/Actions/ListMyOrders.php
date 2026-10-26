@@ -7,6 +7,7 @@ namespace App\Actions;
 use App\User;
 use Crab\Contracts\Database\Database;
 use Crab\Contracts\Database\Page;
+use Crab\Routing\FromQuery;
 use Crab\Validation\Range;
 
 /**
@@ -18,7 +19,7 @@ final readonly class ListMyOrders
     {
     }
 
-    public function handle(User $user, #[Range(min: 1)] int $page = 1): Page
+    public function handle(User $user, #[FromQuery, Range(min: 1)] int $page = 1): Page
     {
         return $this->db->table('orders')
             ->where('user_id', $user->id)

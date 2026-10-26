@@ -9,7 +9,9 @@ use Crab\Contracts\Auth\PasswordHasher;
 use Crab\Contracts\Auth\TokenStore;
 use Crab\Contracts\Database\Database;
 use Crab\Http\HttpException;
+use Crab\Validation\Data;
 use Crab\Validation\Email;
+use Crab\Validation\Fields;
 
 final readonly class Login
 {
@@ -23,10 +25,13 @@ final readonly class Login
     /**
      * @return array{user: User, token: string}
      */
-    public function handle(#[Email] string $email, string $password): array
-    {
-        $row = $this->db->table('users')->where('email', $email)->first();
-        if ($row === null || !$this->passwords->verify($password, (string) $row['password'])) {
+    public function handle(
+        // A small body: its two fields described here, in place of a class.
+        #[Fields(['email' => ['string', new Email()], 'password' => 'string'])]
+        Data $credentials,
+    ): array {
+        $row = $this->db->table('users')->where('email', $credentials->email)->first();
+        if ($row === null || !$this->passwords->verify($credentials->password, (string) $row['password'])) {
             throw new HttpException(401, 'These credentials do not match.');
         }
 

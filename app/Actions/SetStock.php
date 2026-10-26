@@ -7,6 +7,8 @@ namespace App\Actions;
 use Crab\Contracts\Cache\Cache;
 use Crab\Contracts\Database\Database;
 use Crab\Http\HttpException;
+use Crab\Validation\Data;
+use Crab\Validation\Fields;
 use Crab\Validation\Range;
 use Psr\Clock\ClockInterface;
 
@@ -26,10 +28,10 @@ final readonly class SetStock
     /**
      * @return array<string, mixed>
      */
-    public function handle(int $id, #[Range(min: 0, max: 100_000)] int $stock): array
+    public function handle(int $id, #[Fields(['stock' => ['int', new Range(min: 0, max: 100_000)]])] Data $change): array
     {
         $updated = $this->db->table('products')->where('id', $id)->update([
-            'stock' => $stock,
+            'stock' => $change->stock,
             'updated_at' => $this->clock->now()->format('Y-m-d H:i:s'),
         ]);
 

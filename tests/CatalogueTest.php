@@ -23,9 +23,9 @@ final class CatalogueTest extends ShopTestCase
         self::assertSame(['desk' => 2, 'home' => 1, 'kitchen' => 2], $inStock);
 
         $this->api->get('/products/99999')->assertStatus(404);
-        // A page size past the limit is refused before the action runs, with the field named.
+        // A page size past the limit is refused before the action runs, with the field named where it was: the query string.
         $refused = $this->api->get('/products', ['perPage' => 500])->assertStatus(422);
-        self::assertArrayHasKey('perPage', $refused->json('error.fields'));
+        self::assertArrayHasKey('perPage', $refused->json('error.query'));
     }
 
     public function testTheCatalogueIsChangedOnlyByAdministrators(): void
