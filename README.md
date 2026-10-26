@@ -47,13 +47,13 @@ It uses SQLite. `shop:seed` makes 36 products, 12 people and about two weeks of 
 
 | | | |
 | --- | --- | --- |
-| `GET` | `/products` | The catalogue, a page at a time: `?q=mug&category=kitchen&minPrice=1000&maxPrice=5000&page=2&perPage=12`. An unknown filter, or a range the wrong way round, is a `422` |
+| `GET` | `/products` | The catalogue, a page at a time: `?q=mug&category=kitchen&colour=blue&minPrice=1000&maxPrice=5000&page=2&perPage=12`; the colour is read from each product's JSON details. An unknown filter, or a range the wrong way round, is a `422` |
 | `GET` | `/products/{id}` | One product |
 | `GET` | `/categories` | Each category with its counts, remembered for a minute |
 | `POST` | `/register` | `email`, `name`, `password`; answers with a token |
 | `POST` | `/login` | `email`, `password`; answers with a token |
 | `GET` | `/me` | Whoever the token belongs to |
-| `GET` | `/orders` | Your orders |
+| `GET` | `/orders` | Your orders, newest first, with how many things each holds; ten at a time, then `?cursor=` with the `next_cursor` of the page before |
 | `POST` | `/orders` | `{"lines": [{"productId": 1, "quantity": 2}]}` |
 | `GET` | `/orders/{id}` | One of your orders, with its lines |
 | `POST` | `/products` | Add a product. Administrators |

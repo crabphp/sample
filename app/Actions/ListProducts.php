@@ -11,7 +11,7 @@ use Crab\Contracts\Database\Query;
 use Crab\Routing\FromQuery;
 
 /**
- * The catalogue, a page at a time: GET /products?q=mug&category=kitchen&page=2
+ * The catalogue, a page at a time: GET /products?q=mug&category=kitchen&colour=blue&page=2
  */
 final readonly class ListProducts
 {
@@ -25,6 +25,7 @@ final readonly class ListProducts
             ->select('id', 'sku', 'name', 'category', 'price', 'stock')
             ->when($search->q !== '', static fn (Query $query): Query => $query->where('name', 'like', '%' . $search->q . '%'))
             ->when($search->category !== null, static fn (Query $query): Query => $query->where('category', $search->category))
+            ->when($search->colour !== null, static fn (Query $query): Query => $query->where('details->colour', $search->colour))
             ->when($search->minPrice !== null, static fn (Query $query): Query => $query->where('price', '>=', $search->minPrice))
             ->when($search->maxPrice !== null, static fn (Query $query): Query => $query->where('price', '<=', $search->maxPrice))
             ->orderBy('name')

@@ -94,12 +94,12 @@ abstract class ShopTestCase extends TestCase
             ['id' => 3, 'name' => 'Grace', 'email' => 'grace@example.com', 'password' => $password, 'role' => 'member', ...$timestamps],
         ]);
         $this->db->table('products')->insertMany([
-            ['id' => 1, 'sku' => 'KIT-001', 'name' => 'Stoneware Mug', 'category' => 'kitchen', 'price' => 1400, 'stock' => 30, ...$timestamps],
-            ['id' => 2, 'sku' => 'KIT-002', 'name' => 'Pour-over Kettle', 'category' => 'kitchen', 'price' => 6200, 'stock' => 20, ...$timestamps],
-            ['id' => 3, 'sku' => 'DSK-001', 'name' => 'Grid Notebook', 'category' => 'desk', 'price' => 800, 'stock' => 50, ...$timestamps],
-            ['id' => 4, 'sku' => 'DSK-002', 'name' => 'Desk Lamp', 'category' => 'desk', 'price' => 4200, 'stock' => 10, ...$timestamps],
-            ['id' => 5, 'sku' => 'HOM-001', 'name' => 'Cotton Blanket', 'category' => 'home', 'price' => 8900, 'stock' => 12, ...$timestamps],
-            ['id' => 6, 'sku' => 'HOM-002', 'name' => 'Linen Cushion', 'category' => 'home', 'price' => 2500, 'stock' => 0, ...$timestamps],
+            ['id' => 1, 'sku' => 'KIT-001', 'name' => 'Stoneware Mug', 'category' => 'kitchen', 'price' => 1400, 'stock' => 30, 'details' => '{"colour": "blue", "dishwasherSafe": true}', ...$timestamps],
+            ['id' => 2, 'sku' => 'KIT-002', 'name' => 'Pour-over Kettle', 'category' => 'kitchen', 'price' => 6200, 'stock' => 20, 'details' => '{"colour": "black"}', ...$timestamps],
+            ['id' => 3, 'sku' => 'DSK-001', 'name' => 'Grid Notebook', 'category' => 'desk', 'price' => 800, 'stock' => 50, 'details' => null, ...$timestamps],
+            ['id' => 4, 'sku' => 'DSK-002', 'name' => 'Desk Lamp', 'category' => 'desk', 'price' => 4200, 'stock' => 10, 'details' => '{"colour": "black"}', ...$timestamps],
+            ['id' => 5, 'sku' => 'HOM-001', 'name' => 'Cotton Blanket', 'category' => 'home', 'price' => 8900, 'stock' => 12, 'details' => '{"colour": "blue"}', ...$timestamps],
+            ['id' => 6, 'sku' => 'HOM-002', 'name' => 'Linen Cushion', 'category' => 'home', 'price' => 2500, 'stock' => 0, 'details' => '{"colour": null}', ...$timestamps],
         ]);
         $this->db->table('orders')->insertMany([
             ['id' => 1, 'user_id' => 2, 'status' => 'paid', 'total' => 1400, ...$timestamps],

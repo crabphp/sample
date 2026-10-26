@@ -16,6 +16,31 @@ use Crab\Contracts\Queue\Store;
  */
 final class OrderTest extends ShopTestCase
 {
+    public function testYourOrdersArePagedByACursorThatAnOrderPlacedMeanwhileDoesNotShift(): void
+    {
+        $at = ['created_at' => '2026-01-02 12:00:00', 'updated_at' => '2026-01-02 12:00:00'];
+        foreach (range(10, 21) as $id) {
+            $this->db->table('orders')->insert(['id' => $id, 'user_id' => 2, 'status' => 'paid', 'total' => 1400, ...$at]);
+            $this->db->table('order_items')->insertMany([
+                ['order_id' => $id, 'product_id' => 1, 'quantity' => 2, 'price' => 700],
+                ['order_id' => $id, 'product_id' => 3, 'quantity' => 1, 'price' => 0],
+            ]);
+        }
+        $ada = $this->api->actingAs($this->user('ada@example.com'));
+
+        $first = $ada->get('/orders')->assertStatus(200);
+        self::assertSame(range(21, 12, -1), array_column($first->json('data'), 'id'));
+        self::assertSame([3, true], [$first->json('data.0.items'), $first->json('has_more')]);
+
+        // Placed between the two pages, it is newer than where the first ended, so it is on neither.
+        $this->db->table('orders')->insert(['id' => 30, 'user_id' => 2, 'status' => 'pending', 'total' => 1400, ...$at]);
+        $second = $ada->get('/orders', ['cursor' => $first->json('next_cursor')])->assertStatus(200);
+        self::assertSame([11, 10, 1], array_column($second->json('data'), 'id'));
+        self::assertSame([1, false, null], [$second->json('data.2.items'), $second->json('has_more'), $second->json('next_cursor')]);
+
+        $ada->get('/orders', ['cursor' => 'made-up'])->assertStatus(422);
+    }
+
     public function testAnOrderTakesStockAndItsWorkIsDoneByTheQueue(): void
     {
         $this->db->table('products')->where('id', 1)->update(['stock' => 5]);

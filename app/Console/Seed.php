@@ -22,6 +22,8 @@ final readonly class Seed implements Command
         'apparel' => [['Merino Beanie', 3200], ['Canvas Apron', 4100], ['Wool Socks', 1800], ['Chore Jacket', 14500], ['Cotton Tote', 1300], ['Leather Belt', 5600], ['Rain Shell', 17800]],
     ];
 
+    private const COLOURS = ['black', 'blue', 'green', 'natural', 'red', 'white'];
+
     private const PEOPLE = ['Ada Lovelace', 'Grace Hopper', 'Alan Turing', 'Katherine Johnson', 'Linus Torvalds', 'Margaret Hamilton', 'Dennis Ritchie', 'Barbara Liskov', 'Ken Thompson', 'Radia Perlman', 'Tim Berners-Lee'];
 
     public function __construct(private Database $db, private PasswordHasher $passwords, private Cache $cache)
@@ -86,7 +88,8 @@ final readonly class Seed implements Command
             foreach ($items as $index => [$name, $price]) {
                 // A few are sold out, so that an order for them is refused.
                 $stock = mt_rand(1, 12) === 1 ? 0 : mt_rand(8, 120);
-                $products[] = ['sku' => strtoupper(substr($category, 0, 3)) . '-' . str_pad((string) ($index + 1), 3, '0', STR_PAD_LEFT), 'name' => $name, 'category' => $category, 'price' => $price, 'stock' => $stock, 'created_at' => $at($now - 30 * 86400), 'updated_at' => $at($now)];
+                $details = json_encode(['colour' => self::COLOURS[mt_rand(0, count(self::COLOURS) - 1)]]);
+                $products[] = ['sku' => strtoupper(substr($category, 0, 3)) . '-' . str_pad((string) ($index + 1), 3, '0', STR_PAD_LEFT), 'name' => $name, 'category' => $category, 'price' => $price, 'stock' => $stock, 'details' => $details, 'created_at' => $at($now - 30 * 86400), 'updated_at' => $at($now)];
             }
         }
         $this->db->table('products')->insertMany($products);

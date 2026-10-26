@@ -11,7 +11,7 @@ use Crab\Validation\RejectUnknown;
 
 /**
  * The catalogue's filters, read from the query string:
- * ?q=mug&category=kitchen&minPrice=1000&maxPrice=5000&page=2&perPage=12
+ * ?q=mug&category=kitchen&colour=blue&minPrice=1000&maxPrice=5000&page=2&perPage=12
  *
  * A name it does not know, ?sort=price, is refused rather than ignored, so
  * a client learns that the filter it meant does not exist.
@@ -23,6 +23,9 @@ final readonly class ProductSearch
         #[Length(max: 60)]
         public string $q = '',
         public ?string $category = null,
+        // Read from the product's JSON details.
+        #[Length(max: 30)]
+        public ?string $colour = null,
         // In cents.
         #[Range(min: 0)]
         public ?int $minPrice = null,

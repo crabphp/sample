@@ -44,6 +44,10 @@ final class CatalogueTest extends ShopTestCase
             ['maxPrice' => ['must be at least the minimum price']],
             $this->api->get('/products', ['minPrice' => 5000, 'maxPrice' => 1000])->assertStatus(422)->json('error.query'),
         );
+        // A colour is read from the product's JSON details; one that has none, or a null colour, is not any colour.
+        self::assertSame(['Cotton Blanket', 'Stoneware Mug'], array_column($this->api->get('/products', ['colour' => 'blue'])->assertStatus(200)->json('data'), 'name'));
+        self::assertSame([], $this->api->get('/products', ['colour' => 'null'])->assertStatus(200)->json('data'));
+
         // A filter the catalogue does not have is refused, not quietly ignored.
         self::assertSame(
             ['sort' => ['is not expected']],

@@ -70,7 +70,7 @@ final class SnapshotDatabase implements Database
     public function acquire(): Connection { return $this->db->acquire(); }
     public function release(Connection $connection): void { $this->db->release($connection); }
     public function run(\Closure $callback): mixed { return $this->db->run($callback); }
-    public function table(string $table): Query { return new QueryBuilder($this, $table); }
+    public function table(string|Query $table, ?string $as = null): Query { return new QueryBuilder($this, $table, as: $as); }
     public function driver(): string { return $this->db->driver(); }
     public function select(string $sql, array $bindings = []): array { return $this->db->select($sql, $bindings); }
     public function first(string $sql, array $bindings = []): ?array
