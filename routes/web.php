@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use App\Actions\CreateProduct;
+use App\Actions\ExportProducts;
 use App\Actions\ListCategories;
 use App\Actions\ListMyOrders;
 use App\Actions\ListProducts;
@@ -30,6 +31,7 @@ Route::get('/ready', Ready::class);
 
 // The catalogue, open to all.
 Route::get('/products', ListProducts::class);
+Route::get('/products.csv', ExportProducts::class);
 Route::get('/products/{id}', ShowProduct::class);
 Route::get('/categories', ListCategories::class);
 

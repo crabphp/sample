@@ -35,7 +35,7 @@ abstract class ShopTestCase extends TestCase
             'DB_DSN' => 'sqlite:' . $this->directory . '/shop.sqlite', 'CACHE_STORE' => 'array', 'QUEUE_STORE' => 'database',
             'BROADCAST_CARRIER' => 'local',
             'LOG_PATH' => $this->directory . '/app.log', 'MAIL_PATH' => $this->directory . '/mail', 'MAIL_FAIL_RATE' => '0',
-            'REPORTS_PATH' => $this->directory . '/reports', 'WAREHOUSE_URL' => '', 'CLOCKWERK_TOKEN' => 'test-token',
+            'REPORTS_PATH' => $this->directory . '/reports', 'CATALOGUE_PATH' => $this->directory . '/catalogue.csv', 'WAREHOUSE_URL' => '', 'CLOCKWERK_TOKEN' => 'test-token',
         ] as $name => $value) {
             $this->environment[$name] = getenv($name);
             putenv("{$name}={$value}");

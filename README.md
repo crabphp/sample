@@ -49,6 +49,7 @@ It uses SQLite. `shop:seed` makes 36 products, 12 people and about two weeks of 
 | --- | --- | --- |
 | `GET` | `/up`, `/ready` | Whether a worker answers, and whether it reaches the database and the cache: a liveness and a readiness probe |
 | `GET` | `/products` | The catalogue, a page at a time: `?q=mug&category=kitchen&colour=blue&minPrice=1000&maxPrice=5000&page=2&perPage=12`; the colour is read from each product's JSON details. An unknown filter, or a range the wrong way round, is a `422` |
+| `GET` | `/products.csv` | The whole catalogue as a spreadsheet, the feed `shop:mirror-catalogue` downloads |
 | `GET` | `/products/{id}` | One product |
 | `GET` | `/categories` | Each category with its counts, remembered for a minute |
 | `POST` | `/register` | `email`, `name`, `password`; answers with a token |
@@ -84,7 +85,7 @@ curl -s -X POST localhost:8080/orders -H "Authorization: Bearer $TOKEN" -H 'Cont
 | Retries and failed jobs | The pretend mail server refuses some messages (`mail.fail_rate` in `config/mail.php`) |
 | Scheduling | `AppProvider`: every ten seconds, every minute, daily |
 | Clock injection | Actions and file mail take `ClockInterface`; tests use `FrozenClock` |
-| HTTP client | `SyncInventory` asks the "warehouse" over HTTP; `shop:traffic` is the customers |
+| HTTP client | `SyncInventory` asks the "warehouse" over HTTP; `shop:traffic` is the customers; `shop:mirror-catalogue` downloads a feed into a file with `sink:`, `maxBytes:` and `decode: false` |
 | Console commands | `app/Console/` |
 | Redis package | Set `CACHE_STORE=redis` or `QUEUE_STORE=redis` in `.env` |
 | Dashboard package | `/clockwerk` |
@@ -109,6 +110,7 @@ After the order commits, a listener failure is logged and the action still retur
 | `shop:seed` | Fill the shop; `--fresh` empties it first |
 | `shop:traffic` | Pretend customers; `--seconds=30`, `--rate=200`, `--url=` |
 | `orders:cancel-stale` | Cancel orders never paid; the scheduler runs it every minute |
+| `shop:mirror-catalogue` | Download `/products.csv` into `storage/catalogue.csv`; `--url=` |
 
 ## Tests
 
