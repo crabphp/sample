@@ -61,9 +61,9 @@ final class OrderTest extends ShopTestCase
 
         // The event's listener queued a confirmation on "mail" and the warehouse on "default".
         $queue = $this->app->container->get(Store::class);
-        self::assertSame([1, 1], [$queue->size('mail'), $queue->size('default')]);
+        self::assertSame([1, 1], [$queue->size('mail'), $queue->size('warehouse')]);
         self::assertSame(0, $this->command('queue:work', '--stop-when-empty'));
-        self::assertSame([0, 0], [$queue->size('mail'), $queue->size('default')]);
+        self::assertSame([0, 0], [$queue->size('mail'), $queue->size('warehouse')]);
         $mail = glob($this->directory . '/mail/*.txt') ?: [];
         self::assertCount(1, $mail);
         self::assertStringStartsWith('20260201-120000-', basename($mail[0]));
@@ -91,7 +91,7 @@ final class OrderTest extends ShopTestCase
             self::assertSame($items, $this->db->table('order_items')->count());
         }
         $queue = $this->app->container->get(Store::class);
-        self::assertSame([0, 0], [$queue->size('mail'), $queue->size('default')]);
+        self::assertSame([0, 0], [$queue->size('mail'), $queue->size('warehouse')]);
     }
 
     public function testAListenerFailureDoesNotTurnACommittedOrderIntoAnError(): void

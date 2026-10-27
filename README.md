@@ -27,7 +27,7 @@ Crab Shop server running on http://127.0.0.1:8080
   Server    Workers  Runs
   --------  -------  -------------------------------
   http      2        http://127.0.0.1:8080
-  queue     3        queue:work: mail x1, default x2
+  queue     4        queue:work: mail x1, warehouse x1, default x2
   schedule  1        schedule:work
 
 Press Ctrl+C to stop
@@ -78,7 +78,7 @@ curl -s -X POST localhost:8080/orders -H "Authorization: Bearer $TOKEN" -H 'Cont
 | Migrations | `database/migrations/` |
 | Cache | `ListCategories` remembers; an order or a change to the catalogue forgets |
 | Events | `OrderPlaced`, and its two listeners in `app/Actions/` |
-| Queue and supervisors | `app/Actions/`; `config/queue.php` gives mail workers of its own |
+| Queue and supervisors | `app/Actions/`; `config/queue.php` gives mail and the warehouse workers of their own; `SyncInventory` has a `#[Timeout]` and passes its `Cancellation` to the HTTP client |
 | One command for it all | `server.with` in `config/server.php` says which servers `start` runs beside HTTP, each switched on from `.env`: here `queue` and `schedule` |
 | Retries and failed jobs | The pretend mail server refuses some messages (`mail.fail_rate` in `config/mail.php`) |
 | Scheduling | `AppProvider`: every ten seconds, every minute, daily |
@@ -93,7 +93,7 @@ The order input classes use PHP types for nested fields. An order has 1–20 lin
 What happens when an order is placed:
 
 1. `PlaceOrder` takes the stock and saves the order in one transaction, and dispatches `OrderPlaced`.
-2. A listener pushes `SendOrderConfirmation` onto the `mail` queue and `SyncInventory` onto `default`; another forgets the cached categories.
+2. A listener pushes `SendOrderConfirmation` onto the `mail` queue and `SyncInventory` onto `warehouse`; another forgets the cached categories.
 3. The queue's workers run both. The confirmation is a file in `storage/mail/`. Refused messages are tried again, up to four times.
 4. The scheduler marks the order paid ten seconds or so later. One order in ten is never paid; `orders:cancel-stale` cancels it after two minutes and puts its stock back.
 5. Every minute a "delivery" adds 60 to products with stock below 10; customers may find a product out of stock before the next delivery.
