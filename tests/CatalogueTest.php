@@ -28,6 +28,12 @@ final class CatalogueTest extends ShopTestCase
         self::assertArrayHasKey('perPage', $refused->json('error.query'));
     }
 
+    public function testTheShopSaysItIsReadyAndEveryServiceItNamesCanBeMade(): void
+    {
+        self::assertSame(['status' => 'ready'], $this->api->get('/ready')->assertStatus(200)->json());
+        self::assertSame([], $this->app->unmade());
+    }
+
     public function testTheCatalogueIsFilteredByPriceAndRefusesFiltersItDoesNotHave(): void
     {
         $prices = array_column($this->api->get('/products', ['perPage' => 50])->json('data'), 'price');

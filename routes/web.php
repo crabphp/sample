@@ -8,6 +8,7 @@ use App\Actions\ListMyOrders;
 use App\Actions\ListProducts;
 use App\Actions\Login;
 use App\Actions\PlaceOrder;
+use App\Actions\Ready;
 use App\Actions\Register;
 use App\Actions\SetStock;
 use App\Actions\ShowOrder;
@@ -23,6 +24,9 @@ use Crab\Http\RateLimit;
 use Crab\Route;
 
 Route::get('/', static fn (): array => ['name' => config('app.name'), 'docs' => 'See README.md for the routes.']);
+
+// For a load balancer: /up says a worker answers, /ready that it reaches the database and the cache.
+Route::get('/ready', Ready::class);
 
 // The catalogue, open to all.
 Route::get('/products', ListProducts::class);

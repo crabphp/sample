@@ -47,6 +47,7 @@ It uses SQLite. `shop:seed` makes 36 products, 12 people and about two weeks of 
 
 | | | |
 | --- | --- | --- |
+| `GET` | `/up`, `/ready` | Whether a worker answers, and whether it reaches the database and the cache: a liveness and a readiness probe |
 | `GET` | `/products` | The catalogue, a page at a time: `?q=mug&category=kitchen&colour=blue&minPrice=1000&maxPrice=5000&page=2&perPage=12`; the colour is read from each product's JSON details. An unknown filter, or a range the wrong way round, is a `422` |
 | `GET` | `/products/{id}` | One product |
 | `GET` | `/categories` | Each category with its counts, remembered for a minute |
@@ -87,6 +88,7 @@ curl -s -X POST localhost:8080/orders -H "Authorization: Bearer $TOKEN" -H 'Cont
 | Console commands | `app/Console/` |
 | Redis package | Set `CACHE_STORE=redis` or `QUEUE_STORE=redis` in `.env` |
 | Dashboard package | `/clockwerk` |
+| Deploying | `/up` and `Ready` for probes. `start` refuses a route, listener or task whose services cannot be made, and `php cua describe app` lists them; break `app.php` and `php cua status` and `stop` still reach the running server |
 
 The order input classes use PHP types for nested fields. An order has 1–20 lines, each with a `productId` and a quantity of 1–20. Leaving out `quantity` or sending it as `null` means one item.
 
