@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Actions;
 
+use App\Order;
+use App\OrderStatus;
 use Crab\Contracts\Broadcast\Broadcaster;
 use Crab\Contracts\Database\Connection;
 use Crab\Contracts\Database\Database;
@@ -29,21 +31,24 @@ final readonly class ShipOrder
     public function handle(int $id): array
     {
         $this->db->transaction(function (Connection $transaction) use ($id): void {
-            $order = $transaction->table('orders')
+            $orders = $transaction->table('orders')->into(Order::class);
+            /** @var Order $order */
+            $order = (clone $orders)
                 ->where('id', $id)
                 ->lockForUpdate()
                 ->first()
                 ?? throw new HttpException(404, 'No such order.');
 
-            if ($order['status'] !== 'paid') {
+            if ($order->status !== OrderStatus::Paid) {
                 throw new HttpException(409, 'Only a paid order can be shipped. Wait for payment before shipping it.');
             }
 
-            $version = (int) $order['version'] + 1;
-            $transaction->table('orders')->where('id', $id)->update([
-                'status' => 'shipped',
+            // Through the record's map: the enum is written as its value, the date as the column holds one.
+            $version = $order->version + 1;
+            $orders->where('id', $id)->update([
+                'status' => OrderStatus::Shipped,
                 'version' => $version,
-                'updated_at' => $this->clock->now()->format('Y-m-d H:i:s'),
+                'updated_at' => $this->clock->now(),
             ]);
 
             $this->broadcast->within($transaction)->to("orders.{$id}")->send([

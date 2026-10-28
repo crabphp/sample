@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Actions;
 
+use App\OrderSummary;
 use App\User;
 use Crab\Contracts\Database\CursorPage;
 use Crab\Contracts\Database\Database;
@@ -12,7 +13,8 @@ use Crab\Routing\FromQuery;
 /**
  * The orders of whoever asks, the newest first, with how many things each
  * holds. A client scrolls through them, so they are paged by a cursor: an
- * order placed meanwhile does not push one onto the next page twice.
+ * order placed meanwhile does not push one onto the next page twice. Each
+ * is read into an OrderSummary, so the page holds typed records.
  * GET /orders, then GET /orders?cursor=<next_cursor>
  */
 final readonly class ListMyOrders
@@ -31,6 +33,7 @@ final readonly class ListMyOrders
             ->where('user_id', $user->id)
             ->select('id', 'status', 'total', 'created_at')
             ->selectSub($items, 'items')
+            ->into(OrderSummary::class)
             ->orderByDesc('id')
             ->cursorPaginate(10, $cursor);
     }
