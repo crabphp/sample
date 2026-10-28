@@ -14,6 +14,8 @@ return [
     'with' => [
         'queue' => env('SERVER_QUEUE', false),
         'schedule' => env('SERVER_SCHEDULE', false),
+        // Ships paid orders by itself, and is kept across reloads; see AppProvider.
+        'dispatch' => env('SERVER_DISPATCH', false),
     ],
 
     // What `php cua dev` watches, to restart the server when you save.
