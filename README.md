@@ -51,6 +51,7 @@ It uses SQLite. `shop:seed` makes 36 products, 12 people and about two weeks of 
 | `GET` | `/products` | The catalogue, a page at a time: `?q=mug&category=kitchen&colour=blue&minPrice=1000&maxPrice=5000&page=2&perPage=12`; the colour is read from each product's JSON details. An unknown filter, or a range the wrong way round, is a `422` |
 | `GET` | `/products.csv` | The whole catalogue as a spreadsheet, the feed `shop:mirror-catalogue` downloads |
 | `GET` | `/products/{id}` | One product |
+| `GET` | `/products/{id}/stock` | Its stock live, as server-sent events: `curl -N` it and change the stock |
 | `GET` | `/categories` | Each category with its counts, remembered for a minute |
 | `POST` | `/register` | `email`, `name`, `password`; answers with a token |
 | `POST` | `/login` | `email`, `password`; answers with a token |
@@ -60,6 +61,7 @@ It uses SQLite. `shop:seed` makes 36 products, 12 people and about two weeks of 
 | `GET` | `/orders/{id}` | One of your orders, with its lines |
 | `POST` | `/products` | Add a product. Administrators |
 | `PUT` | `/products/{id}/stock` | `{"stock": 40}`. Administrators |
+| `PUT` | `/orders/{id}/ship` | Ship a paid order. Administrators |
 
 ```sh
 TOKEN=$(curl -s -X POST localhost:8080/login -H 'Content-Type: application/json' -H 'Accept: application/json' \
@@ -82,6 +84,8 @@ curl -s -X POST localhost:8080/orders -H "Authorization: Bearer $TOKEN" -H 'Cont
 | Events | `OrderPlaced`, and its two listeners in `app/Actions/` |
 | Queue and supervisors | `app/Actions/`; `config/queue.php` gives mail and the warehouse workers of their own; `SyncInventory` has a `#[Timeout]` and passes its `Cancellation` to the HTTP client |
 | One command for it all | `server.with` in `config/server.php` says which servers `start` runs beside HTTP, each switched on from `.env`: here `queue` and `schedule` |
+| Streaming | `WatchStock` returns a generator, and each value it yields is a server-sent event, sent at once |
+| Runs | `FollowUpOrder` waits for its order to ship, sleeps three days, then asks for a review; `ShipOrder` signals it. `php cua runs:list` |
 | Retries and failed jobs | The pretend mail server refuses some messages (`mail.fail_rate` in `config/mail.php`) |
 | Scheduling | `AppProvider`: every ten seconds, every minute, daily |
 | Clock injection | Actions and file mail take `ClockInterface`; tests use `FrozenClock` |
@@ -100,6 +104,7 @@ What happens when an order is placed:
 3. The queue's workers run both. The confirmation is a file in `storage/mail/`. Refused messages are tried again, up to four times.
 4. The scheduler marks the order paid ten seconds or so later. One order in ten is never paid; `orders:cancel-stale` cancels it after two minutes and puts its stock back.
 5. Every minute a "delivery" adds 60 to products with stock below 10; customers may find a product out of stock before the next delivery.
+6. The listener also starts a `FollowUpOrder` run. It waits, holding no worker, until an administrator ships the order, then three days for it to arrive, and then writes to ask for a review.
 
 After the order commits, a listener failure is logged and the action still returns `201`; some jobs or cache invalidation may be skipped, with no outbox recovery in this sample.
 

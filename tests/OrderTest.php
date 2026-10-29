@@ -9,6 +9,8 @@ use App\Actions\SettlePayments;
 use App\Events\OrderPlaced;
 use Crab\Contracts\Events\Dispatcher;
 use Crab\Contracts\Queue\Store;
+use Crab\Contracts\Runs\Runs;
+use Crab\Contracts\Runs\Status;
 
 /**
  * Checks stock, transactional orders and the queue and scheduled work
@@ -72,6 +74,36 @@ final class OrderTest extends ShopTestCase
         self::assertStringContainsString("Subject: Your order #{$order['id']}", $message);
         self::assertStringContainsString('3 x Stoneware Mug  $42.00', $message);
         self::assertStringContainsString('Total: $104.00', $message);
+    }
+
+    public function testAnOrderIsFollowedUpByARunThatWaitsForItToShipAndThenForItToArrive(): void
+    {
+        $ada = $this->api->actingAs($this->user('ada@example.com'));
+        $id = $ada->post('/orders', ['lines' => [['productId' => 3]]])->assertStatus(201)->json('id');
+        $runs = $this->app->container->get(Runs::class);
+        $run = (int) $this->db->table('orders')->where('id', $id)->value('follow_up_run');
+
+        self::assertSame(0, $this->command('queue:work', '--stop-when-empty'));
+        self::assertSame(Status::Waiting, $runs->find($run)?->status, 'It waits for the order to ship, holding no worker.');
+
+        $this->db->table('orders')->where('id', $id)->update(['status' => 'paid']);
+        // Back to serving HTTP after the worker command, so that shipping's broadcast is heard.
+        $this->app->container->get(\Crab\Broadcast\Lifecycle::class)->serving = true;
+        $this->api->actingAs($this->user('admin@example.com'))->put("/orders/{$id}/ship")->assertStatus(200);
+        self::assertSame(0, $this->command('queue:work', '--stop-when-empty'));
+        self::assertSame(Status::Sleeping, $runs->find($run)?->status, 'Shipped, it gives the order three days to arrive.');
+
+        $this->clock->advance('+3 days');
+        self::assertSame(0, $this->command('queue:work', '--stop-when-empty'));
+        $done = $runs->find($run);
+        self::assertSame(Status::Completed, $done?->status);
+        self::assertSame(['order' => $id, 'shipped' => '2026-02-01T12:00:00+00:00', 'asked' => true], $done?->result);
+        self::assertSame(['shipped', 'arrival', 'ask-for-review'], $done?->steps);
+        $subjects = array_map(
+            static fn(string $file): string => (string) preg_replace('/.*^Subject: (.*?)$.*/ms', '$1', (string) file_get_contents($file)),
+            glob($this->directory . '/mail/*.txt') ?: [],
+        );
+        self::assertContains("How is your order #{$id}?", $subjects);
     }
 
     public function testAFailedLaterLineRestoresTheStockAlreadyTaken(): void
