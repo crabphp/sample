@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use App\Actions\AskAssistant;
+use App\Actions\ChatWithAssistant;
 use App\Actions\CreateProduct;
 use App\Actions\ExportProducts;
 use App\Actions\ListCategories;
@@ -53,6 +54,7 @@ Route::websocket('/orders/{id}/live', WatchOrder::class)->middleware(Ticket::cla
 Route::middleware(TokenAuth::class)->group(static function (): void {
     Route::post('/ws/ticket', IssueTicket::class);
     Route::get('/me', static fn (User $user): User => $user);
+    Route::post('/assistant/chat', ChatWithAssistant::class);   // your own assistant, an actor that remembers
     Route::get('/orders', ListMyOrders::class);
     Route::post('/orders', PlaceOrder::class);
     Route::get('/orders/{id}', ShowOrder::class);

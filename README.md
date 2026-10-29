@@ -15,7 +15,7 @@ php cua migrate
 php cua shop:seed
 ```
 
-Then one command runs it all: the API on <http://127.0.0.1:8080>, the queue's workers for the jobs orders leave behind, and the scheduler for what runs by the clock. That is `SERVER_QUEUE=true` and `SERVER_SCHEDULE=true` in `.env`; an application of your own serves HTTP alone until it switches them on, as it would in production.
+Then one command runs it all: the API on <http://127.0.0.1:8080>, the queue's workers for the jobs orders leave behind, and the scheduler for what runs by the clock. That is `SERVER_QUEUE=true` and `SERVER_SCHEDULE=true` in `.env`, and `SERVER_ACTORS=true` for the customers' assistants, which run in the `actors` server since the broadcast carrier is Redis; an application of your own serves HTTP alone until it switches them on, as it would in production.
 
 ```sh
 php cua dev
@@ -29,6 +29,7 @@ Crab Shop server running on http://127.0.0.1:8080
   http      2        http://127.0.0.1:8080
   queue     4        queue:work: mail x1, warehouse x1, default x2
   schedule  1        schedule:work
+  actors    2        actors:work
 
 Press Ctrl+C to stop
 ```
@@ -57,6 +58,7 @@ It uses SQLite. `shop:seed` makes 36 products, 12 people and about two weeks of 
 | `GET` | `/categories` | Each category with its counts, remembered for a minute |
 | `POST` | `/register` | `email`, `name`, `password`; answers with a token |
 | `POST` | `/login` | `email`, `password`; answers with a token |
+| `POST` | `/assistant/chat` | `{"question": "a mug"}`, then `{"question": "another one?"}`: your own assistant, which remembers what it showed you and stays on the same shelf; answers with `answer`, `products` and `turn` |
 | `GET` | `/me` | Whoever the token belongs to |
 | `GET` | `/orders` | Your orders, newest first, with how many things each holds; ten at a time, then `?cursor=` with the `next_cursor` of the page before |
 | `POST` | `/orders` | `{"lines": [{"productId": 1, "quantity": 2}]}` |
@@ -88,6 +90,7 @@ curl -s -X POST localhost:8080/orders -H "Authorization: Bearer $TOKEN" -H 'Cont
 | One command for it all | `server.with` in `config/server.php` says which servers `start` runs beside HTTP, each switched on from `.env`: here `queue` and `schedule` |
 | Streaming | `WatchStock` returns a generator, and each value it yields is a server-sent event, sent at once |
 | Client streaming | `AskAssistant` reads the pretend model's answer with `$http->stream()` and `events()`, and relays each word as it comes; `PretendModel` stands in for a language model's API (`shop.model_url`). `tests/AssistantTest.php` fakes the model with `FakeClient` |
+| Actors | `app/Actors/ShoppingAssistant` is an actor: one per customer, `ChatWithAssistant` asks it, and it keeps the conversation in its variables until a minute without a question. With Redis it runs in the `actors` server, so a customer has one assistant whichever HTTP worker their request lands on. `tests/AssistantChatTest.php` |
 | Runs | `FollowUpOrder` waits for its order to ship, sleeps three days, then asks for a review; `ShipOrder` signals it. `php cua runs:list` |
 | Retries and failed jobs | The pretend mail server refuses some messages (`mail.fail_rate` in `config/mail.php`) |
 | Scheduling | `AppProvider`: every ten seconds, every minute, daily |

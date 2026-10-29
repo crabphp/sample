@@ -16,6 +16,8 @@ return [
         'schedule' => env('SERVER_SCHEDULE', false),
         // Ships paid orders by itself, and is kept across reloads; see AppProvider.
         'dispatch' => env('SERVER_DISPATCH', false),
+        // Runs each customer's ShoppingAssistant, with BROADCAST_CARRIER=redis; with the local carrier they run in the HTTP workers.
+        'actors' => env('SERVER_ACTORS', false),
     ],
 
     // What `php cua dev` watches, to restart the server when you save.
