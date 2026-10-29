@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Actions\AskAssistant;
 use App\Actions\CreateProduct;
 use App\Actions\ExportProducts;
 use App\Actions\ListCategories;
@@ -9,6 +10,7 @@ use App\Actions\ListMyOrders;
 use App\Actions\ListProducts;
 use App\Actions\Login;
 use App\Actions\PlaceOrder;
+use App\Actions\PretendModel;
 use App\Actions\Ready;
 use App\Actions\Register;
 use App\Actions\SetStock;
@@ -36,6 +38,10 @@ Route::get('/products.csv', ExportProducts::class);
 Route::get('/products/{id}', ShowProduct::class);
 Route::get('/products/{id}/stock', WatchStock::class);  // server-sent events, live
 Route::get('/categories', ListCategories::class);
+
+// The assistant streams a model's answer as it comes; the model is pretend, as the warehouse is.
+Route::post('/assistant', AskAssistant::class);
+Route::post('/model/chat', PretendModel::class);
 
 // A few tries a minute from one address: enough for a person, not for guessing passwords.
 Route::post('/register', Register::class)->middleware(new RateLimit(config('shop.register_limit'), name: 'register'));
