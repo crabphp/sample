@@ -16,6 +16,7 @@ use App\Actions\ShowOrder;
 use App\Actions\ShowProduct;
 use App\Actions\ShipOrder;
 use App\Actions\WatchOrder;
+use App\Actions\WatchStock;
 use App\Http\AdminsOnly;
 use App\User;
 use Crab\Auth\TokenAuth;
@@ -33,6 +34,7 @@ Route::get('/ready', Ready::class);
 Route::get('/products', ListProducts::class);
 Route::get('/products.csv', ExportProducts::class);
 Route::get('/products/{id}', ShowProduct::class);
+Route::get('/products/{id}/stock', WatchStock::class);  // server-sent events, live
 Route::get('/categories', ListCategories::class);
 
 // A few tries a minute from one address: enough for a person, not for guessing passwords.
