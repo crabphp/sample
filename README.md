@@ -6,7 +6,7 @@ It is not the skeleton to start a project from; that is [`crab`](../crab).
 
 ## Running it
 
-Use PHP 8.4 with the required extensions and keep the `framework`, `redis` and `clockwerk` package folders beside this application for Composer's path repositories; the defaults need no external database or Redis server.
+Use PHP 8.4 with the required extensions and keep the `framework`, `redis` and `clockwerk` package folders beside this application for Composer's path repositories. The database is SQLite, so none needs installing, but `.env.example` carries broadcasts and actors over Redis, at `redis://127.0.0.1:6379`: start one (`docker run -d -p 6379:6379 redis:7-alpine`), or run without it by setting `BROADCAST_CARRIER=local`, `SERVER_ACTORS=false` and `SERVER_WORKERS=1` in `.env`, the local carrier serving one HTTP process.
 
 ```sh
 composer install
@@ -83,6 +83,7 @@ curl -s -X POST localhost:8080/orders -H "Authorization: Bearer $TOKEN" -H 'Cont
 | Routes, groups, middleware | `routes/web.php`, `app/Http/AdminsOnly.php` |
 | Token authentication | `Login`, `Register`, `app/Users.php` |
 | Query builder, transactions, pagination | `PlaceOrder`, `ListProducts`, `ShowOrder` |
+| Rows as records | `app/Order.php` is read with `->into(Order::class)`, its status a backed enum (`OrderStatus`) and its times dates; `ListMyOrders` and `ShipOrder` read orders that way |
 | Migrations | `database/migrations/` |
 | Cache | `ListCategories` remembers; an order or a change to the catalogue forgets |
 | Events | `OrderPlaced`, and its two listeners in `app/Actions/` |
