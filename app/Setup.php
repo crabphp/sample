@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace App\Plugins;
+namespace App;
 
 use App\Actions\BuildDailyReport;
 use App\Actions\ForgetProductCache;
@@ -27,7 +27,7 @@ use Psr\Clock\ClockInterface;
  * Where the shop's own services are bound, and where it says what
  * follows from an event and what runs by the clock.
  */
-final class AppPlugin implements Plugin
+final class Setup implements Plugin
 {
     public function register(Container $container): void
     {

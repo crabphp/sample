@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-use App\Plugins\AppPlugin;
+use App\Setup;
 use Crab\Actors\ActorsPlugin;
 use Crab\App;
 use Crab\Auth\TokenAuthPlugin;
@@ -16,7 +16,7 @@ use Crab\Schedule\SchedulePlugin;
 
 // A small shop's API with token authentication, Redis and a dashboard, for trying things out.
 // It uses every optional plugin. Redis comes after the queue and broadcast, whose store and carrier it replaces,
-// and before Clockwerk, which observes them; AppPlugin adds listeners and tasks last.
+// and before Clockwerk, which observes them; its Setup adds listeners and tasks after them all.
 return App::configure(__DIR__)
     ->withPlugins([
         QueuePlugin::class,
@@ -28,8 +28,8 @@ return App::configure(__DIR__)
         RedisPlugin::class,
         ClockwerkPlugin::class,
         OpenApiPlugin::class,
-        AppPlugin::class,
     ])
+    ->withSetup(Setup::class)
     ->withRouting(
         routes: 'routes/web.php',
         commands: 'routes/console.php',
