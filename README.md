@@ -6,7 +6,7 @@ It is not the skeleton to start a project from; that is [`crab`](../crab).
 
 ## Running it
 
-Use PHP 8.4 with the required extensions and keep the `framework`, `redis`, `clockwerk` and `openapi` package folders beside this application for Composer's path repositories. The database is SQLite, so none needs installing, but `.env.example` carries broadcasts and actors over Redis, at `redis://127.0.0.1:6379`: start one (`docker run -d -p 6379:6379 redis:7-alpine`), or run without it by setting `BROADCAST_CARRIER=local`, `SERVER_ACTORS=false` and `SERVER_WORKERS=1` in `.env`, the local carrier serving one HTTP process.
+Use PHP 8.4 with the required extensions and keep the `framework`, `redis`, `clockwerk` and `openapi` package folders beside this application for Composer's path repositories. The database is SQLite, so none needs installing, but `.env.example` carries broadcasts and actors over Redis, at `redis://127.0.0.1:6379`: start one (`docker run -d -p 6379:6379 redis:7-alpine`). `php cua start` needs it: the queue and the scheduler run in processes of their own, and their broadcasts reach the sockets only through Redis, so the local carrier is refused. The tests run without it.
 
 ```sh
 composer install
@@ -15,7 +15,7 @@ php cua migrate
 php cua shop:seed
 ```
 
-Then one command runs it all: the API on <http://127.0.0.1:8080>, the queue's workers for the jobs orders leave behind, and the scheduler for what runs by the clock. That is `SERVER_QUEUE=true` and `SERVER_SCHEDULE=true` in `.env`, and `SERVER_ACTORS=true` for the customers' assistants, which run in the `actors` server since the broadcast carrier is Redis; an application of your own serves HTTP alone until it switches them on, as it would in production.
+Then one command runs it all: the API on <http://127.0.0.1:8080>, the queue's workers for the jobs orders leave behind, and the scheduler for what runs by the clock. Each runs because its plugin is listed in `app.php`, as do the customers' assistants, in the `actors` server since the broadcast carrier is Redis, and the dispatch desk `app/Setup.php` registers; an application that lists none of them serves HTTP alone.
 
 ```sh
 php cua dev
@@ -97,7 +97,7 @@ curl -s -X POST localhost:8080/orders -H "Authorization: Bearer $TOKEN" -H 'Cont
 | Cache | `ListCategories` remembers; an order or a change to the catalogue forgets |
 | Events | `OrderPlaced`, and its two listeners in `app/Actions/` |
 | Queue and supervisors | `app/Actions/`; `config/queue.php` gives mail and the warehouse workers of their own; `SyncInventory` has a `#[Timeout]` and passes its `Cancellation` to the HTTP client |
-| One command for it all | `server.with` in `config/server.php` says which servers `start` runs beside HTTP, each switched on from `.env`: here `queue` and `schedule` |
+| One command for it all | `start` runs, beside HTTP, the server of every plugin listed in `app.php`: here `queue`, `schedule` and `actors`, and `dispatch` from `app/Setup.php` |
 | Streaming | `WatchStock` returns a generator, and each value it yields is a server-sent event, sent at once |
 | Client streaming | `AskAssistant` reads the pretend model's answer with `$http->stream()` and `events()`, and relays each word as it comes; `PretendModel` stands in for a language model's API (`shop.model_url`). `tests/AssistantTest.php` fakes the model with `FakeClient` |
 | Actors | `app/Actors/ShoppingAssistant` is an actor: one per customer, `ChatWithAssistant` asks it, and it keeps the conversation in its variables until a minute without a question. With Redis it runs in the `actors` server, so a customer has one assistant whichever HTTP worker their request lands on. `tests/AssistantChatTest.php` |

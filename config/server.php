@@ -8,18 +8,6 @@ return [
     // Worker processes. More than one needs PHP's pcntl and posix extensions.
     'workers' => (int) env('SERVER_WORKERS', 1),
 
-    // Servers `start` runs beside HTTP, each switched on from .env. Off while you develop, when you
-    // start `queue:work` or `schedule:work` only as you need them; on in production, where one command
-    // and one reload then cover everything.
-    'with' => [
-        'queue' => env('SERVER_QUEUE', false),
-        'schedule' => env('SERVER_SCHEDULE', false),
-        // Ships paid orders by itself, and is kept across reloads; see app/Setup.php.
-        'dispatch' => env('SERVER_DISPATCH', false),
-        // Runs each customer's ShoppingAssistant, with BROADCAST_CARRIER=redis; with the local carrier they run in the HTTP workers.
-        'actors' => env('SERVER_ACTORS', false),
-    ],
-
     // What `php cua dev` watches, to restart the server when you save.
     'watch' => ['app', 'app.php', 'config', 'routes', '.env'],
 
