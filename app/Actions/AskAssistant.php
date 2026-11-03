@@ -7,6 +7,7 @@ namespace App\Actions;
 use Crab\Contracts\Database\Database;
 use Crab\Contracts\HttpClient\Client;
 use Crab\Http\Request;
+use Crab\OpenApi\Attributes\Response;
 use Crab\Validation\Data;
 use Crab\Validation\Fields;
 use Crab\Validation\Length;
@@ -28,6 +29,13 @@ final readonly class AskAssistant
     ) {
     }
 
+    #[Response(
+        200,
+        body: ['type' => 'string'],
+        description: 'Answer tokens as server-sent events; the final event names the products used.',
+        contentType: 'text/event-stream',
+    )]
+    #[Response(502, description: 'The assistant model is unavailable.')]
     public function handle(#[Fields(['question' => ['string', new Length(1, 200)]])] Data $input, Request $request): \Generator
     {
         $words = array_filter(

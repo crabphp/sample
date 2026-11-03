@@ -4,9 +4,11 @@ declare(strict_types=1);
 
 namespace App\Actions;
 
+use App\Http\OpenApiSchemas;
 use App\User;
 use Crab\Contracts\Database\Database;
 use Crab\Http\HttpException;
+use Crab\OpenApi\Attributes\Response;
 
 /**
  * One order with its lines. An administrator may see anyone's; everyone
@@ -21,6 +23,8 @@ final readonly class ShowOrder
     /**
      * @return array<string, mixed>
      */
+    #[Response(200, body: OpenApiSchemas::ORDER)]
+    #[Response(404, description: 'No such order, or it belongs to another customer.')]
     public function handle(User $user, int $id): array
     {
         $order = $this->db->table('orders')->find($id);

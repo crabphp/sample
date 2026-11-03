@@ -4,8 +4,10 @@ declare(strict_types=1);
 
 namespace App\Actions;
 
+use App\Http\OpenApiSchemas;
 use Crab\Contracts\Cache\Cache;
 use Crab\Contracts\Database\Database;
+use Crab\OpenApi\Attributes\Response;
 
 /**
  * Each category with how many products it has and how many are in
@@ -21,6 +23,7 @@ final readonly class ListCategories
     /**
      * @return list<array{category: string, products: int, in_stock: int}>
      */
+    #[Response(200, body: ['type' => 'array', 'items' => OpenApiSchemas::CATEGORY])]
     public function handle(): array
     {
         return $this->cache->remember('categories', 60, function (): array {

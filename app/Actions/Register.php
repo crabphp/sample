@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Actions;
 
+use App\Http\OpenApiSchemas;
 use App\Http\Registration;
 use App\User;
 use Crab\Contracts\Auth\PasswordHasher;
@@ -11,6 +12,7 @@ use Crab\Contracts\Auth\TokenStore;
 use Crab\Contracts\Database\Database;
 use Crab\Http\HttpException;
 use Crab\Http\Response;
+use Crab\OpenApi\Attributes\Response as ApiResponse;
 use Psr\Clock\ClockInterface;
 
 /**
@@ -26,6 +28,8 @@ final readonly class Register
     ) {
     }
 
+    #[ApiResponse(201, body: OpenApiSchemas::AUTH_RESULT, description: 'Account created and logged in.', headers: ['Location'])]
+    #[ApiResponse(409, description: 'An account with this email already exists.')]
     public function handle(Registration $registration): Response
     {
         // The hasher reads 72 bytes and no more: a longer password would be one that its first 72 bytes open.

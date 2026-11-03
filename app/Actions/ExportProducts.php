@@ -6,6 +6,7 @@ namespace App\Actions;
 
 use Crab\Contracts\Database\Database;
 use Crab\Http\Response;
+use Crab\OpenApi\Attributes\Response as ApiResponse;
 
 /**
  * The whole catalogue as a spreadsheet: GET /products.csv. It is what
@@ -17,6 +18,13 @@ final readonly class ExportProducts
     {
     }
 
+    #[ApiResponse(
+        200,
+        body: ['type' => 'string'],
+        description: 'The catalogue as CSV.',
+        contentType: 'text/csv; charset=utf-8',
+        headers: ['Content-Disposition' => 'Attachment; filename="products.csv"'],
+    )]
     public function handle(): Response
     {
         $csv = fopen('php://temp', 'w+b');

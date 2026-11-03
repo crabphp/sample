@@ -8,7 +8,7 @@ return [
     'connections' => [
         'main' => [
             // "sqlite:/path/to/file.sqlite", or "mysql:host=127.0.0.1;dbname=shop".
-            'dsn' => env('DB_DSN', 'sqlite:' . dirname(__DIR__) . '/storage/database.sqlite'),
+            'dsn' => env('DB_DSN', 'sqlite:' . storage_path('database.sqlite')),
             'username' => env('DB_USERNAME'),
             'password' => env('DB_PASSWORD'),
             // MySQL only: queries that do not hold the worker while they wait.

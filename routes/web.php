@@ -6,6 +6,7 @@ use App\Actions\AskAssistant;
 use App\Actions\ChatWithAssistant;
 use App\Actions\CreateProduct;
 use App\Actions\ExportProducts;
+use App\Actions\IssueTicket;
 use App\Actions\ListCategories;
 use App\Actions\ListMyOrders;
 use App\Actions\ListProducts;
@@ -21,14 +22,18 @@ use App\Actions\ShipOrder;
 use App\Actions\WatchOrder;
 use App\Actions\WatchStock;
 use App\Http\AdminsOnly;
+use App\Http\OpenApiSchemas;
 use App\User;
 use Crab\Auth\TokenAuth;
-use Crab\Auth\IssueTicket;
 use Crab\Auth\Ticket;
 use Crab\Http\RateLimit;
+use Crab\OpenApi\Attributes\Response;
 use Crab\Route;
 
-Route::get('/', static fn (): array => ['name' => config('app.name'), 'docs' => 'See README.md for the routes.']);
+Route::get('/', #[Response(200, body: OpenApiSchemas::HOME)] static fn (): array => [
+    'name' => config('app.name'),
+    'docs' => 'See README.md for the routes.',
+]);
 
 // For a load balancer: /up says a worker answers, /ready that it reaches the database and the cache.
 Route::get('/ready', Ready::class);
@@ -53,7 +58,7 @@ Route::websocket('/orders/{id}/live', WatchOrder::class)->middleware(Ticket::cla
 
 Route::middleware(TokenAuth::class)->group(static function (): void {
     Route::post('/ws/ticket', IssueTicket::class);
-    Route::get('/me', static fn (User $user): User => $user);
+    Route::get('/me', #[Response(200, body: OpenApiSchemas::USER)] static fn (User $user): User => $user);
     Route::post('/assistant/chat', ChatWithAssistant::class);   // your own assistant, an actor that remembers
     Route::get('/orders', ListMyOrders::class);
     Route::post('/orders', PlaceOrder::class);

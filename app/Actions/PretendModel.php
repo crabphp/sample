@@ -7,6 +7,7 @@ namespace App\Actions;
 use Crab\Engine\Async\Async;
 use Crab\Engine\EventLoop;
 use Crab\Http\Request;
+use Crab\OpenApi\Attributes\Response;
 use Crab\Validation\Data;
 use Crab\Validation\Fields;
 use Crab\Validation\Length;
@@ -24,6 +25,12 @@ final readonly class PretendModel
 {
     private const PACE = 0.04;
 
+    #[Response(
+        200,
+        body: ['type' => 'string'],
+        description: 'Answer tokens as server-sent events, then [DONE].',
+        contentType: 'text/event-stream',
+    )]
     public function handle(#[Fields(['prompt' => ['string', new Length(1, 4000)]])] Data $input, Request $request): \Generator
     {
         preg_match_all('/^- (.+)$/m', (string) $input->prompt, $products);

@@ -5,9 +5,11 @@ declare(strict_types=1);
 namespace App\Actions;
 
 use App\Http\ProductSearch;
+use App\Http\OpenApiSchemas;
 use Crab\Contracts\Database\Database;
 use Crab\Contracts\Database\Page;
 use Crab\Contracts\Database\Query;
+use Crab\OpenApi\Attributes\Response;
 use Crab\Routing\FromQuery;
 
 /**
@@ -19,6 +21,7 @@ final readonly class ListProducts
     {
     }
 
+    #[Response(200, body: OpenApiSchemas::PRODUCT_PAGE)]
     public function handle(#[FromQuery] ProductSearch $search): Page
     {
         return $this->db->table('products')

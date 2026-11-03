@@ -4,11 +4,13 @@ declare(strict_types=1);
 
 namespace App\Actions;
 
+use App\Http\OpenApiSchemas;
 use App\OrderSummary;
 use App\User;
 use Crab\Contracts\Database\CursorPage;
 use Crab\Contracts\Database\Database;
 use Crab\Routing\FromQuery;
+use Crab\OpenApi\Attributes\Response;
 
 /**
  * The orders of whoever asks, the newest first, with how many things each
@@ -23,6 +25,7 @@ final readonly class ListMyOrders
     {
     }
 
+    #[Response(200, body: OpenApiSchemas::ORDER_CURSOR_PAGE)]
     public function handle(User $user, #[FromQuery] ?string $cursor = null): CursorPage
     {
         $items = $this->db->table('order_items')

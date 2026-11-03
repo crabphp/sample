@@ -1,0 +1,2203 @@
+{
+    "openapi": "3.1.0",
+    "info": {
+        "title": "Crab Shop API",
+        "version": "1.0.0",
+        "description": "The shop catalogue, orders, assistant, and administration API.",
+        "license": {
+            "name": "MIT",
+            "identifier": "MIT"
+        }
+    },
+    "security": [],
+    "servers": [
+        {
+            "url": "http://127.0.0.1:8080"
+        }
+    ],
+    "paths": {
+        "/": {
+            "get": {
+                "summary": "GET /",
+                "operationId": "get.root",
+                "tags": [
+                    "default"
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "name": {
+                                            "type": "string"
+                                        },
+                                        "docs": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "required": [
+                                        "name",
+                                        "docs"
+                                    ],
+                                    "additionalProperties": false
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/assistant": {
+            "post": {
+                "summary": "AskAssistant",
+                "operationId": "AskAssistant",
+                "tags": [
+                    "assistant"
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "question": {
+                                        "type": "string",
+                                        "minLength": 1,
+                                        "maxLength": 200
+                                    }
+                                },
+                                "required": [
+                                    "question"
+                                ]
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Answer tokens as server-sent events; the final event names the products used.",
+                        "content": {
+                            "text/event-stream": {
+                                "schema": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "The request is invalid.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            },
+                            "text/plain": {
+                                "schema": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
+                    "502": {
+                        "description": "The assistant model is unavailable.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            },
+                            "text/plain": {
+                                "schema": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/assistant/chat": {
+            "post": {
+                "summary": "ChatWithAssistant",
+                "operationId": "ChatWithAssistant",
+                "tags": [
+                    "assistant"
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "question": {
+                                        "type": "string",
+                                        "minLength": 1,
+                                        "maxLength": 200
+                                    }
+                                },
+                                "required": [
+                                    "question"
+                                ]
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearer": []
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "answer": {
+                                            "type": "string"
+                                        },
+                                        "products": {
+                                            "type": "array",
+                                            "items": {
+                                                "type": "integer"
+                                            }
+                                        },
+                                        "turn": {
+                                            "type": "integer",
+                                            "minimum": 1
+                                        }
+                                    },
+                                    "required": [
+                                        "answer",
+                                        "products",
+                                        "turn"
+                                    ],
+                                    "additionalProperties": false
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Authentication is required.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            },
+                            "text/plain": {
+                                "schema": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "The request is invalid.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            },
+                            "text/plain": {
+                                "schema": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
+                    "503": {
+                        "description": "The assistant is unavailable.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            },
+                            "text/plain": {
+                                "schema": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/categories": {
+            "get": {
+                "summary": "ListCategories",
+                "operationId": "ListCategories",
+                "tags": [
+                    "categories"
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "type": "object",
+                                        "properties": {
+                                            "category": {
+                                                "type": "string"
+                                            },
+                                            "products": {
+                                                "type": "integer",
+                                                "minimum": 0
+                                            },
+                                            "in_stock": {
+                                                "type": "integer",
+                                                "minimum": 0
+                                            }
+                                        },
+                                        "required": [
+                                            "category",
+                                            "products",
+                                            "in_stock"
+                                        ],
+                                        "additionalProperties": false
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/login": {
+            "post": {
+                "summary": "Login",
+                "operationId": "Login",
+                "tags": [
+                    "login"
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "email": {
+                                        "type": "string",
+                                        "format": "email"
+                                    },
+                                    "password": {
+                                        "type": "string"
+                                    }
+                                },
+                                "required": [
+                                    "email",
+                                    "password"
+                                ]
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "The account and a new bearer token.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "user": {
+                                            "type": "object",
+                                            "properties": {
+                                                "id": {
+                                                    "type": [
+                                                        "integer",
+                                                        "string"
+                                                    ]
+                                                },
+                                                "name": {
+                                                    "type": "string"
+                                                },
+                                                "email": {
+                                                    "type": "string",
+                                                    "format": "email"
+                                                },
+                                                "role": {
+                                                    "type": "string",
+                                                    "enum": [
+                                                        "member",
+                                                        "admin"
+                                                    ]
+                                                }
+                                            },
+                                            "required": [
+                                                "id",
+                                                "name",
+                                                "email",
+                                                "role"
+                                            ],
+                                            "additionalProperties": false
+                                        },
+                                        "token": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "required": [
+                                        "user",
+                                        "token"
+                                    ],
+                                    "additionalProperties": false
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "These credentials do not match.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            },
+                            "text/plain": {
+                                "schema": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "The request is invalid.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            },
+                            "text/plain": {
+                                "schema": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
+                    "429": {
+                        "description": "Too Many Requests",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            },
+                            "text/plain": {
+                                "schema": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/me": {
+            "get": {
+                "summary": "GET /me",
+                "operationId": "get.me",
+                "tags": [
+                    "me"
+                ],
+                "security": [
+                    {
+                        "bearer": []
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "id": {
+                                            "type": [
+                                                "integer",
+                                                "string"
+                                            ]
+                                        },
+                                        "name": {
+                                            "type": "string"
+                                        },
+                                        "email": {
+                                            "type": "string",
+                                            "format": "email"
+                                        },
+                                        "role": {
+                                            "type": "string",
+                                            "enum": [
+                                                "member",
+                                                "admin"
+                                            ]
+                                        }
+                                    },
+                                    "required": [
+                                        "id",
+                                        "name",
+                                        "email",
+                                        "role"
+                                    ],
+                                    "additionalProperties": false
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Authentication is required.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            },
+                            "text/plain": {
+                                "schema": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/model/chat": {
+            "post": {
+                "summary": "PretendModel",
+                "operationId": "PretendModel",
+                "tags": [
+                    "model"
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "prompt": {
+                                        "type": "string",
+                                        "minLength": 1,
+                                        "maxLength": 4000
+                                    }
+                                },
+                                "required": [
+                                    "prompt"
+                                ]
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Answer tokens as server-sent events, then [DONE].",
+                        "content": {
+                            "text/event-stream": {
+                                "schema": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "The request is invalid.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            },
+                            "text/plain": {
+                                "schema": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/orders": {
+            "get": {
+                "summary": "ListMyOrders",
+                "operationId": "ListMyOrders",
+                "tags": [
+                    "orders"
+                ],
+                "parameters": [
+                    {
+                        "name": "cursor",
+                        "in": "query",
+                        "required": false,
+                        "schema": {
+                            "type": [
+                                "string",
+                                "null"
+                            ],
+                            "default": null
+                        },
+                        "style": "form",
+                        "explode": true
+                    }
+                ],
+                "security": [
+                    {
+                        "bearer": []
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "type": "object",
+                                                "properties": {
+                                                    "id": {
+                                                        "type": "integer"
+                                                    },
+                                                    "status": {
+                                                        "type": "string",
+                                                        "enum": [
+                                                            "pending",
+                                                            "paid",
+                                                            "shipped",
+                                                            "cancelled"
+                                                        ]
+                                                    },
+                                                    "total": {
+                                                        "type": "integer",
+                                                        "description": "Total in cents."
+                                                    },
+                                                    "created_at": {
+                                                        "type": [
+                                                            "string",
+                                                            "null"
+                                                        ],
+                                                        "format": "date-time"
+                                                    },
+                                                    "items": {
+                                                        "type": "integer",
+                                                        "minimum": 0
+                                                    }
+                                                },
+                                                "required": [
+                                                    "id",
+                                                    "status",
+                                                    "total",
+                                                    "created_at",
+                                                    "items"
+                                                ],
+                                                "additionalProperties": false
+                                            }
+                                        },
+                                        "per_page": {
+                                            "type": "integer",
+                                            "minimum": 1
+                                        },
+                                        "next_cursor": {
+                                            "type": [
+                                                "string",
+                                                "null"
+                                            ]
+                                        },
+                                        "has_more": {
+                                            "type": "boolean"
+                                        }
+                                    },
+                                    "required": [
+                                        "data",
+                                        "per_page",
+                                        "next_cursor",
+                                        "has_more"
+                                    ],
+                                    "additionalProperties": false
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Authentication is required.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            },
+                            "text/plain": {
+                                "schema": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "The request is invalid.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            },
+                            "text/plain": {
+                                "schema": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "post": {
+                "summary": "PlaceOrder",
+                "operationId": "PlaceOrder",
+                "tags": [
+                    "orders"
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/App.Http.OrderInput"
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearer": []
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Order placed.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "id": {
+                                            "type": "integer"
+                                        },
+                                        "status": {
+                                            "type": "string",
+                                            "enum": [
+                                                "pending",
+                                                "paid",
+                                                "shipped",
+                                                "cancelled"
+                                            ]
+                                        },
+                                        "total": {
+                                            "type": "integer",
+                                            "description": "Total in cents."
+                                        }
+                                    },
+                                    "required": [
+                                        "id",
+                                        "status",
+                                        "total"
+                                    ],
+                                    "additionalProperties": false
+                                }
+                            }
+                        },
+                        "headers": {
+                            "Location": {
+                                "schema": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Authentication is required.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            },
+                            "text/plain": {
+                                "schema": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
+                    "409": {
+                        "description": "There is not enough stock to place the order.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            },
+                            "text/plain": {
+                                "schema": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "The request is invalid.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            },
+                            "text/plain": {
+                                "schema": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/orders/{id}": {
+            "get": {
+                "summary": "ShowOrder",
+                "operationId": "ShowOrder",
+                "tags": [
+                    "orders"
+                ],
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "security": [
+                    {
+                        "bearer": []
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "id": {
+                                            "type": "integer"
+                                        },
+                                        "user_id": {
+                                            "type": "integer"
+                                        },
+                                        "status": {
+                                            "type": "string",
+                                            "enum": [
+                                                "pending",
+                                                "paid",
+                                                "shipped",
+                                                "cancelled"
+                                            ]
+                                        },
+                                        "total": {
+                                            "type": "integer",
+                                            "description": "Total in cents."
+                                        },
+                                        "version": {
+                                            "type": "integer"
+                                        },
+                                        "created_at": {
+                                            "type": [
+                                                "string",
+                                                "null"
+                                            ],
+                                            "format": "date-time"
+                                        },
+                                        "updated_at": {
+                                            "type": [
+                                                "string",
+                                                "null"
+                                            ],
+                                            "format": "date-time"
+                                        },
+                                        "follow_up_run": {
+                                            "type": [
+                                                "integer",
+                                                "null"
+                                            ]
+                                        },
+                                        "lines": {
+                                            "type": "array",
+                                            "items": {
+                                                "type": "object",
+                                                "properties": {
+                                                    "id": {
+                                                        "type": "integer"
+                                                    },
+                                                    "sku": {
+                                                        "type": "string"
+                                                    },
+                                                    "name": {
+                                                        "type": "string"
+                                                    },
+                                                    "quantity": {
+                                                        "type": "integer",
+                                                        "minimum": 1
+                                                    },
+                                                    "price": {
+                                                        "type": "integer",
+                                                        "description": "Unit price in cents when ordered."
+                                                    }
+                                                },
+                                                "required": [
+                                                    "id",
+                                                    "sku",
+                                                    "name",
+                                                    "quantity",
+                                                    "price"
+                                                ],
+                                                "additionalProperties": false
+                                            }
+                                        }
+                                    },
+                                    "required": [
+                                        "id",
+                                        "user_id",
+                                        "status",
+                                        "total",
+                                        "version",
+                                        "created_at",
+                                        "updated_at",
+                                        "lines"
+                                    ],
+                                    "additionalProperties": false
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Authentication is required.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            },
+                            "text/plain": {
+                                "schema": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "No such order, or it belongs to another customer.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            },
+                            "text/plain": {
+                                "schema": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "The request is invalid.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            },
+                            "text/plain": {
+                                "schema": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/orders/{id}/ship": {
+            "put": {
+                "summary": "ShipOrder",
+                "operationId": "ShipOrder",
+                "tags": [
+                    "orders"
+                ],
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "security": [
+                    {
+                        "bearer": []
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "id": {
+                                            "type": "integer"
+                                        },
+                                        "status": {
+                                            "type": "string",
+                                            "const": "shipped"
+                                        }
+                                    },
+                                    "required": [
+                                        "id",
+                                        "status"
+                                    ],
+                                    "additionalProperties": false
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Authentication is required.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            },
+                            "text/plain": {
+                                "schema": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            },
+                            "text/plain": {
+                                "schema": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "No such order.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            },
+                            "text/plain": {
+                                "schema": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
+                    "409": {
+                        "description": "Only a paid order can be shipped.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            },
+                            "text/plain": {
+                                "schema": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "The request is invalid.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            },
+                            "text/plain": {
+                                "schema": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/products": {
+            "get": {
+                "summary": "ListProducts",
+                "operationId": "ListProducts",
+                "tags": [
+                    "products"
+                ],
+                "parameters": [
+                    {
+                        "name": "q",
+                        "in": "query",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "maxLength": 60,
+                            "default": ""
+                        },
+                        "style": "form",
+                        "explode": true
+                    },
+                    {
+                        "name": "category",
+                        "in": "query",
+                        "required": false,
+                        "schema": {
+                            "type": [
+                                "string",
+                                "null"
+                            ],
+                            "default": null
+                        },
+                        "style": "form",
+                        "explode": true
+                    },
+                    {
+                        "name": "colour",
+                        "in": "query",
+                        "required": false,
+                        "schema": {
+                            "type": [
+                                "string",
+                                "null"
+                            ],
+                            "maxLength": 30,
+                            "default": null
+                        },
+                        "style": "form",
+                        "explode": true
+                    },
+                    {
+                        "name": "minPrice",
+                        "in": "query",
+                        "required": false,
+                        "schema": {
+                            "type": [
+                                "integer",
+                                "null"
+                            ],
+                            "minimum": 0,
+                            "default": null
+                        },
+                        "style": "form",
+                        "explode": true
+                    },
+                    {
+                        "name": "maxPrice",
+                        "in": "query",
+                        "required": false,
+                        "schema": {
+                            "type": [
+                                "integer",
+                                "null"
+                            ],
+                            "minimum": 0,
+                            "default": null
+                        },
+                        "style": "form",
+                        "explode": true
+                    },
+                    {
+                        "name": "page",
+                        "in": "query",
+                        "required": false,
+                        "schema": {
+                            "type": "integer",
+                            "minimum": 1,
+                            "default": 1
+                        },
+                        "style": "form",
+                        "explode": true
+                    },
+                    {
+                        "name": "perPage",
+                        "in": "query",
+                        "required": false,
+                        "schema": {
+                            "type": "integer",
+                            "minimum": 1,
+                            "maximum": 50,
+                            "default": 12
+                        },
+                        "style": "form",
+                        "explode": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "type": "object",
+                                                "properties": {
+                                                    "id": {
+                                                        "type": "integer"
+                                                    },
+                                                    "sku": {
+                                                        "type": "string"
+                                                    },
+                                                    "name": {
+                                                        "type": "string"
+                                                    },
+                                                    "category": {
+                                                        "type": "string"
+                                                    },
+                                                    "price": {
+                                                        "type": "integer",
+                                                        "description": "Price in cents."
+                                                    },
+                                                    "stock": {
+                                                        "type": "integer",
+                                                        "minimum": 0
+                                                    }
+                                                },
+                                                "required": [
+                                                    "id",
+                                                    "sku",
+                                                    "name",
+                                                    "category",
+                                                    "price",
+                                                    "stock"
+                                                ],
+                                                "additionalProperties": false
+                                            }
+                                        },
+                                        "current_page": {
+                                            "type": "integer",
+                                            "minimum": 1
+                                        },
+                                        "per_page": {
+                                            "type": "integer",
+                                            "minimum": 1
+                                        },
+                                        "from": {
+                                            "type": [
+                                                "integer",
+                                                "null"
+                                            ]
+                                        },
+                                        "to": {
+                                            "type": [
+                                                "integer",
+                                                "null"
+                                            ]
+                                        },
+                                        "has_more": {
+                                            "type": "boolean"
+                                        },
+                                        "total": {
+                                            "type": "integer",
+                                            "minimum": 0
+                                        },
+                                        "last_page": {
+                                            "type": "integer",
+                                            "minimum": 1
+                                        }
+                                    },
+                                    "required": [
+                                        "data",
+                                        "current_page",
+                                        "per_page",
+                                        "from",
+                                        "to",
+                                        "has_more",
+                                        "total",
+                                        "last_page"
+                                    ],
+                                    "additionalProperties": false
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "The request is invalid.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            },
+                            "text/plain": {
+                                "schema": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "post": {
+                "summary": "CreateProduct",
+                "operationId": "CreateProduct",
+                "tags": [
+                    "products"
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/App.Http.NewProduct"
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearer": []
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Product created.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "id": {
+                                            "type": "integer"
+                                        },
+                                        "sku": {
+                                            "type": "string"
+                                        },
+                                        "name": {
+                                            "type": "string"
+                                        },
+                                        "category": {
+                                            "type": "string"
+                                        },
+                                        "price": {
+                                            "type": "integer",
+                                            "description": "Price in cents."
+                                        },
+                                        "stock": {
+                                            "type": "integer",
+                                            "minimum": 0
+                                        },
+                                        "details": {
+                                            "type": [
+                                                "object",
+                                                "null"
+                                            ],
+                                            "additionalProperties": true
+                                        },
+                                        "created_at": {
+                                            "type": [
+                                                "string",
+                                                "null"
+                                            ],
+                                            "format": "date-time"
+                                        },
+                                        "updated_at": {
+                                            "type": [
+                                                "string",
+                                                "null"
+                                            ],
+                                            "format": "date-time"
+                                        }
+                                    },
+                                    "required": [
+                                        "id",
+                                        "sku",
+                                        "name",
+                                        "category",
+                                        "price",
+                                        "stock",
+                                        "details",
+                                        "created_at",
+                                        "updated_at"
+                                    ],
+                                    "additionalProperties": false
+                                }
+                            }
+                        },
+                        "headers": {
+                            "Location": {
+                                "schema": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Authentication is required.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            },
+                            "text/plain": {
+                                "schema": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            },
+                            "text/plain": {
+                                "schema": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
+                    "409": {
+                        "description": "A product with this SKU already exists.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            },
+                            "text/plain": {
+                                "schema": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "The request is invalid.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            },
+                            "text/plain": {
+                                "schema": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/products.csv": {
+            "get": {
+                "summary": "ExportProducts",
+                "operationId": "ExportProducts",
+                "tags": [
+                    "products.csv"
+                ],
+                "responses": {
+                    "200": {
+                        "description": "The catalogue as CSV.",
+                        "content": {
+                            "text/csv; charset=utf-8": {
+                                "schema": {
+                                    "type": "string"
+                                }
+                            }
+                        },
+                        "headers": {
+                            "Content-Disposition": {
+                                "description": "Attachment; filename=\"products.csv\"",
+                                "schema": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/products/{id}": {
+            "get": {
+                "summary": "ShowProduct",
+                "operationId": "ShowProduct",
+                "tags": [
+                    "products"
+                ],
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "id": {
+                                            "type": "integer"
+                                        },
+                                        "sku": {
+                                            "type": "string"
+                                        },
+                                        "name": {
+                                            "type": "string"
+                                        },
+                                        "category": {
+                                            "type": "string"
+                                        },
+                                        "price": {
+                                            "type": "integer",
+                                            "description": "Price in cents."
+                                        },
+                                        "stock": {
+                                            "type": "integer",
+                                            "minimum": 0
+                                        },
+                                        "details": {
+                                            "type": [
+                                                "object",
+                                                "null"
+                                            ],
+                                            "additionalProperties": true
+                                        },
+                                        "created_at": {
+                                            "type": [
+                                                "string",
+                                                "null"
+                                            ],
+                                            "format": "date-time"
+                                        },
+                                        "updated_at": {
+                                            "type": [
+                                                "string",
+                                                "null"
+                                            ],
+                                            "format": "date-time"
+                                        }
+                                    },
+                                    "required": [
+                                        "id",
+                                        "sku",
+                                        "name",
+                                        "category",
+                                        "price",
+                                        "stock",
+                                        "details",
+                                        "created_at",
+                                        "updated_at"
+                                    ],
+                                    "additionalProperties": false
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "No such product.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            },
+                            "text/plain": {
+                                "schema": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "The request is invalid.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            },
+                            "text/plain": {
+                                "schema": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/products/{id}/stock": {
+            "get": {
+                "summary": "WatchStock",
+                "operationId": "WatchStock",
+                "tags": [
+                    "products"
+                ],
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Stock changes as named server-sent events. The stream ends after about a minute.",
+                        "content": {
+                            "text/event-stream": {
+                                "schema": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "No such product.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            },
+                            "text/plain": {
+                                "schema": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "The request is invalid.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            },
+                            "text/plain": {
+                                "schema": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "put": {
+                "summary": "SetStock",
+                "operationId": "SetStock",
+                "tags": [
+                    "products"
+                ],
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "stock": {
+                                        "type": "integer",
+                                        "minimum": 0,
+                                        "maximum": 100000
+                                    }
+                                },
+                                "required": [
+                                    "stock"
+                                ]
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearer": []
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "id": {
+                                            "type": "integer"
+                                        },
+                                        "sku": {
+                                            "type": "string"
+                                        },
+                                        "name": {
+                                            "type": "string"
+                                        },
+                                        "category": {
+                                            "type": "string"
+                                        },
+                                        "price": {
+                                            "type": "integer",
+                                            "description": "Price in cents."
+                                        },
+                                        "stock": {
+                                            "type": "integer",
+                                            "minimum": 0
+                                        },
+                                        "details": {
+                                            "type": [
+                                                "object",
+                                                "null"
+                                            ],
+                                            "additionalProperties": true
+                                        },
+                                        "created_at": {
+                                            "type": [
+                                                "string",
+                                                "null"
+                                            ],
+                                            "format": "date-time"
+                                        },
+                                        "updated_at": {
+                                            "type": [
+                                                "string",
+                                                "null"
+                                            ],
+                                            "format": "date-time"
+                                        }
+                                    },
+                                    "required": [
+                                        "id",
+                                        "sku",
+                                        "name",
+                                        "category",
+                                        "price",
+                                        "stock",
+                                        "details",
+                                        "created_at",
+                                        "updated_at"
+                                    ],
+                                    "additionalProperties": false
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Authentication is required.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            },
+                            "text/plain": {
+                                "schema": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            },
+                            "text/plain": {
+                                "schema": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "No such product.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            },
+                            "text/plain": {
+                                "schema": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "The request is invalid.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            },
+                            "text/plain": {
+                                "schema": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/ready": {
+            "get": {
+                "summary": "Ready",
+                "operationId": "Ready",
+                "tags": [
+                    "ready"
+                ],
+                "responses": {
+                    "200": {
+                        "description": "The database and cache are reachable.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "status": {
+                                            "type": "string",
+                                            "const": "ready"
+                                        }
+                                    },
+                                    "required": [
+                                        "status"
+                                    ],
+                                    "additionalProperties": false
+                                }
+                            }
+                        }
+                    },
+                    "503": {
+                        "description": "The database or cache is unavailable.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            },
+                            "text/plain": {
+                                "schema": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/register": {
+            "post": {
+                "summary": "Register",
+                "operationId": "Register",
+                "tags": [
+                    "register"
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/App.Http.Registration"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Account created and logged in.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "user": {
+                                            "type": "object",
+                                            "properties": {
+                                                "id": {
+                                                    "type": [
+                                                        "integer",
+                                                        "string"
+                                                    ]
+                                                },
+                                                "name": {
+                                                    "type": "string"
+                                                },
+                                                "email": {
+                                                    "type": "string",
+                                                    "format": "email"
+                                                },
+                                                "role": {
+                                                    "type": "string",
+                                                    "enum": [
+                                                        "member",
+                                                        "admin"
+                                                    ]
+                                                }
+                                            },
+                                            "required": [
+                                                "id",
+                                                "name",
+                                                "email",
+                                                "role"
+                                            ],
+                                            "additionalProperties": false
+                                        },
+                                        "token": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "required": [
+                                        "user",
+                                        "token"
+                                    ],
+                                    "additionalProperties": false
+                                }
+                            }
+                        },
+                        "headers": {
+                            "Location": {
+                                "schema": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
+                    "409": {
+                        "description": "An account with this email already exists.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            },
+                            "text/plain": {
+                                "schema": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "The request is invalid.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            },
+                            "text/plain": {
+                                "schema": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
+                    "429": {
+                        "description": "Too Many Requests",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            },
+                            "text/plain": {
+                                "schema": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/ws/ticket": {
+            "post": {
+                "summary": "IssueTicket",
+                "operationId": "IssueTicket",
+                "tags": [
+                    "ws"
+                ],
+                "security": [
+                    {
+                        "bearer": []
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "ticket": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "required": [
+                                        "ticket"
+                                    ],
+                                    "additionalProperties": false
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Authentication is required.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            },
+                            "text/plain": {
+                                "schema": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    },
+    "components": {
+        "schemas": {
+            "App.Http.NewProduct": {
+                "type": "object",
+                "properties": {
+                    "sku": {
+                        "type": "string",
+                        "pattern": "^[A-Z0-9-]{3,40}$"
+                    },
+                    "name": {
+                        "type": "string",
+                        "minLength": 2,
+                        "maxLength": 120
+                    },
+                    "category": {
+                        "type": "string",
+                        "minLength": 2,
+                        "maxLength": 40
+                    },
+                    "price": {
+                        "type": "integer",
+                        "minimum": 1,
+                        "maximum": 100000000
+                    },
+                    "stock": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 100000,
+                        "default": 0
+                    }
+                },
+                "required": [
+                    "sku",
+                    "name",
+                    "category",
+                    "price"
+                ]
+            },
+            "App.Http.OrderInput": {
+                "type": "object",
+                "properties": {
+                    "lines": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/App.Http.OrderLineInput"
+                        },
+                        "minItems": 1,
+                        "maxItems": 20
+                    }
+                },
+                "required": [
+                    "lines"
+                ]
+            },
+            "App.Http.OrderLineInput": {
+                "type": "object",
+                "properties": {
+                    "productId": {
+                        "type": "integer"
+                    },
+                    "quantity": {
+                        "type": [
+                            "integer",
+                            "null"
+                        ],
+                        "minimum": 1,
+                        "maximum": 20,
+                        "default": 1
+                    }
+                },
+                "required": [
+                    "productId"
+                ]
+            },
+            "App.Http.Registration": {
+                "type": "object",
+                "properties": {
+                    "email": {
+                        "type": "string",
+                        "format": "email"
+                    },
+                    "name": {
+                        "type": "string",
+                        "minLength": 2,
+                        "maxLength": 60
+                    },
+                    "password": {
+                        "type": "string",
+                        "minLength": 8,
+                        "maxLength": 72
+                    }
+                },
+                "required": [
+                    "email",
+                    "name",
+                    "password"
+                ]
+            },
+            "Error": {
+                "type": "object",
+                "properties": {
+                    "error": {
+                        "type": "object",
+                        "properties": {
+                            "status": {
+                                "type": "integer"
+                            },
+                            "message": {
+                                "type": "string"
+                            },
+                            "fields": {
+                                "type": "object",
+                                "additionalProperties": {
+                                    "type": "array",
+                                    "items": {
+                                        "type": "string"
+                                    }
+                                }
+                            },
+                            "query": {
+                                "type": "object",
+                                "additionalProperties": {
+                                    "type": "array",
+                                    "items": {
+                                        "type": "string"
+                                    }
+                                }
+                            },
+                            "path": {
+                                "type": "object",
+                                "additionalProperties": {
+                                    "type": "array",
+                                    "items": {
+                                        "type": "string"
+                                    }
+                                }
+                            }
+                        },
+                        "required": [
+                            "status",
+                            "message"
+                        ],
+                        "additionalProperties": true
+                    }
+                },
+                "required": [
+                    "error"
+                ],
+                "additionalProperties": false
+            }
+        },
+        "securitySchemes": {
+            "bearer": {
+                "type": "http",
+                "scheme": "bearer"
+            }
+        }
+    }
+}

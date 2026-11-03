@@ -6,11 +6,13 @@ namespace App\Actions;
 
 use App\Events\OrderPlaced;
 use App\Http\OrderInput;
+use App\Http\OpenApiSchemas;
 use App\User;
 use Crab\Contracts\Database\Connection;
 use Crab\Contracts\Database\Database;
 use Crab\Http\HttpException;
 use Crab\Http\Response;
+use Crab\OpenApi\Attributes\Response as ApiResponse;
 use Psr\Clock\ClockInterface;
 use Psr\EventDispatcher\EventDispatcherInterface;
 use Psr\Log\LoggerInterface;
@@ -31,6 +33,8 @@ final readonly class PlaceOrder
     ) {
     }
 
+    #[ApiResponse(201, body: OpenApiSchemas::CREATED_ORDER, description: 'Order placed.', headers: ['Location'])]
+    #[ApiResponse(409, description: 'There is not enough stock to place the order.')]
     public function handle(User $user, OrderInput $order): Response
     {
         $quantities = [];

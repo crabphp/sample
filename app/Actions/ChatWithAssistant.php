@@ -5,11 +5,13 @@ declare(strict_types=1);
 namespace App\Actions;
 
 use App\Actors\ShoppingAssistant;
+use App\Http\OpenApiSchemas;
 use App\User;
 use Crab\Contracts\Actors\Actors;
 use Crab\Contracts\Actors\NoReply;
 use Crab\Http\HttpException;
 use Crab\Http\Request;
+use Crab\OpenApi\Attributes\Response;
 use Crab\Validation\Data;
 use Crab\Validation\Fields;
 use Crab\Validation\Length;
@@ -25,6 +27,8 @@ final readonly class ChatWithAssistant
     {
     }
 
+    #[Response(200, body: OpenApiSchemas::ASSISTANT_REPLY)]
+    #[Response(503, description: 'The assistant is unavailable.')]
     public function handle(User $user, #[Fields(['question' => ['string', new Length(1, 200)]])] Data $input, Request $request): array
     {
         try {

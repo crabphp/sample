@@ -4,9 +4,11 @@ declare(strict_types=1);
 
 namespace App\Actions;
 
+use App\Http\OpenApiSchemas;
 use Crab\Contracts\Cache\Cache;
 use Crab\Contracts\Database\Database;
 use Crab\Http\HttpException;
+use Crab\OpenApi\Attributes\Response;
 
 /**
  * Whether this server can take traffic: it reaches the database and the
@@ -24,6 +26,8 @@ final readonly class Ready
     /**
      * @return array{status: string}
      */
+    #[Response(200, body: OpenApiSchemas::READY, description: 'The database and cache are reachable.')]
+    #[Response(503, description: 'The database or cache is unavailable.')]
     public function handle(): array
     {
         try {

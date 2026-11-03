@@ -4,11 +4,13 @@ declare(strict_types=1);
 
 namespace App\Actions;
 
+use App\Http\OpenApiSchemas;
 use App\User;
 use Crab\Contracts\Auth\PasswordHasher;
 use Crab\Contracts\Auth\TokenStore;
 use Crab\Contracts\Database\Database;
 use Crab\Http\HttpException;
+use Crab\OpenApi\Attributes\Response;
 use Crab\Validation\Data;
 use Crab\Validation\Email;
 use Crab\Validation\Fields;
@@ -25,6 +27,8 @@ final readonly class Login
     /**
      * @return array{user: User, token: string}
      */
+    #[Response(200, body: OpenApiSchemas::AUTH_RESULT, description: 'The account and a new bearer token.')]
+    #[Response(401, description: 'These credentials do not match.')]
     public function handle(
         // A small body: its two fields described here, in place of a class.
         #[Fields(['email' => ['string', new Email()], 'password' => 'string'])]

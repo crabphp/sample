@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Actions;
 
+use App\Http\OpenApiSchemas;
 use App\Order;
 use App\OrderStatus;
 use Crab\Contracts\Broadcast\Broadcaster;
@@ -11,6 +12,7 @@ use Crab\Contracts\Database\Connection;
 use Crab\Contracts\Database\Database;
 use Crab\Contracts\Runs\Runs;
 use Crab\Http\HttpException;
+use Crab\OpenApi\Attributes\Response;
 use Psr\Clock\ClockInterface;
 
 /**
@@ -31,6 +33,9 @@ final readonly class ShipOrder
     /**
      * @return array{id: int, status: string}
      */
+    #[Response(200, body: OpenApiSchemas::SHIPPED_ORDER)]
+    #[Response(404, description: 'No such order.')]
+    #[Response(409, description: 'Only a paid order can be shipped.')]
     public function handle(int $id): array
     {
         $this->db->transaction(function (Connection $transaction) use ($id): void {

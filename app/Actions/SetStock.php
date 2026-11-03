@@ -4,9 +4,11 @@ declare(strict_types=1);
 
 namespace App\Actions;
 
+use App\Http\OpenApiSchemas;
 use Crab\Contracts\Cache\Cache;
 use Crab\Contracts\Database\Database;
 use Crab\Http\HttpException;
+use Crab\OpenApi\Attributes\Response;
 use Crab\Validation\Data;
 use Crab\Validation\Fields;
 use Crab\Validation\Range;
@@ -28,6 +30,8 @@ final readonly class SetStock
     /**
      * @return array<string, mixed>
      */
+    #[Response(200, body: OpenApiSchemas::PRODUCT)]
+    #[Response(404, description: 'No such product.')]
     public function handle(int $id, #[Fields(['stock' => ['int', new Range(min: 0, max: 100_000)]])] Data $change): array
     {
         $updated = $this->db->table('products')->where('id', $id)->update([

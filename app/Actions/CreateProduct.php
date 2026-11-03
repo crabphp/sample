@@ -5,10 +5,12 @@ declare(strict_types=1);
 namespace App\Actions;
 
 use App\Http\NewProduct;
+use App\Http\OpenApiSchemas;
 use Crab\Contracts\Cache\Cache;
 use Crab\Contracts\Database\Database;
 use Crab\Http\HttpException;
 use Crab\Http\Response;
+use Crab\OpenApi\Attributes\Response as ApiResponse;
 use Psr\Clock\ClockInterface;
 
 /**
@@ -23,6 +25,8 @@ final readonly class CreateProduct
     ) {
     }
 
+    #[ApiResponse(201, body: OpenApiSchemas::PRODUCT, description: 'Product created.', headers: ['Location'])]
+    #[ApiResponse(409, description: 'A product with this SKU already exists.')]
     public function handle(NewProduct $product): Response
     {
         if ($this->db->table('products')->where('sku', $product->sku)->exists()) {

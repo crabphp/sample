@@ -6,7 +6,7 @@ It is not the skeleton to start a project from; that is [`crab`](../crab).
 
 ## Running it
 
-Use PHP 8.4 with the required extensions and keep the `framework`, `redis` and `clockwerk` package folders beside this application for Composer's path repositories. The database is SQLite, so none needs installing, but `.env.example` carries broadcasts and actors over Redis, at `redis://127.0.0.1:6379`: start one (`docker run -d -p 6379:6379 redis:7-alpine`), or run without it by setting `BROADCAST_CARRIER=local`, `SERVER_ACTORS=false` and `SERVER_WORKERS=1` in `.env`, the local carrier serving one HTTP process.
+Use PHP 8.4 with the required extensions and keep the `framework`, `redis`, `clockwerk` and `openapi` package folders beside this application for Composer's path repositories. The database is SQLite, so none needs installing, but `.env.example` carries broadcasts and actors over Redis, at `redis://127.0.0.1:6379`: start one (`docker run -d -p 6379:6379 redis:7-alpine`), or run without it by setting `BROADCAST_CARRIER=local`, `SERVER_ACTORS=false` and `SERVER_WORKERS=1` in `.env`, the local carrier serving one HTTP process.
 
 ```sh
 composer install
@@ -67,6 +67,15 @@ It uses SQLite. `shop:seed` makes 36 products, 12 people and about two weeks of 
 | `PUT` | `/products/{id}/stock` | `{"stock": 40}`. Administrators |
 | `PUT` | `/orders/{id}/ship` | Ship a paid order. Administrators |
 
+The checked-in [OpenAPI 3.1 document](openapi.json) describes the same routes, their input validation, authentication, errors and typed responses. Generate it without starting a server, then check that the committed copy is current:
+
+```sh
+php cua openapi:generate --strict
+php cua openapi:generate --strict --check
+```
+
+Response DTOs are inferred directly. Database-row actions declare their exact schemas with `#[Response]`; the shared shapes are in `app/Http/OpenApiSchemas.php`. The `openapi.security` and `openapi.middleware` settings in `config/openapi.php` document bearer authentication, rate limits and administrator-only responses.
+
 ```sh
 TOKEN=$(curl -s -X POST localhost:8080/login -H 'Content-Type: application/json' -H 'Accept: application/json' \
     -d '{"email":"ada@example.com","password":"password"}' | php -r 'echo json_decode(stream_get_contents(STDIN))->token;')
@@ -100,6 +109,7 @@ curl -s -X POST localhost:8080/orders -H "Authorization: Bearer $TOKEN" -H 'Cont
 | Console commands | `app/Console/` |
 | Redis package | Set `CACHE_STORE=redis` or `QUEUE_STORE=redis` in `.env` |
 | Dashboard package | `/clockwerk` |
+| OpenAPI package | `config/openapi.php`, `#[Response]` on actions, and the committed `openapi.json` |
 | Deploying | `/up` and `Ready` for probes. `start` refuses a route, listener or task whose services cannot be made, and `php cua describe app` lists them; break `app.php` and `php cua status` and `stop` still reach the running server |
 
 The order input classes use PHP types for nested fields. An order has 1–20 lines, each with a `productId` and a quantity of 1–20. Leaving out `quantity` or sending it as `null` means one item.
