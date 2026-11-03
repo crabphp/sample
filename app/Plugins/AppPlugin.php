@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace App\Providers;
+namespace App\Plugins;
 
 use App\Actions\BuildDailyReport;
 use App\Actions\ForgetProductCache;
@@ -17,7 +17,7 @@ use Crab\Contracts\Auth\IdentityResolver;
 use Crab\Contracts\Container\Container;
 use Crab\Contracts\Events\Dispatcher;
 use Crab\Contracts\Http\MiddlewareStack;
-use Crab\Contracts\Provider;
+use Crab\Contracts\Plugin;
 use Crab\Contracts\Schedule\Schedule;
 use Crab\Contracts\Servers;
 use Crab\Http\Concurrency;
@@ -27,7 +27,7 @@ use Psr\Clock\ClockInterface;
  * Where the shop's own services are bound, and where it says what
  * follows from an event and what runs by the clock.
  */
-final class AppProvider implements Provider
+final class AppPlugin implements Plugin
 {
     public function register(Container $container): void
     {

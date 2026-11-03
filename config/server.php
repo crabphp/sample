@@ -14,7 +14,7 @@ return [
     'with' => [
         'queue' => env('SERVER_QUEUE', false),
         'schedule' => env('SERVER_SCHEDULE', false),
-        // Ships paid orders by itself, and is kept across reloads; see AppProvider.
+        // Ships paid orders by itself, and is kept across reloads; see AppPlugin.
         'dispatch' => env('SERVER_DISPATCH', false),
         // Runs each customer's ShoppingAssistant, with BROADCAST_CARRIER=redis; with the local carrier they run in the HTTP workers.
         'actors' => env('SERVER_ACTORS', false),

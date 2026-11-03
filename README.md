@@ -103,7 +103,7 @@ curl -s -X POST localhost:8080/orders -H "Authorization: Bearer $TOKEN" -H 'Cont
 | Actors | `app/Actors/ShoppingAssistant` is an actor: one per customer, `ChatWithAssistant` asks it, and it keeps the conversation in its variables until a minute without a question. With Redis it runs in the `actors` server, so a customer has one assistant whichever HTTP worker their request lands on. `tests/AssistantChatTest.php` |
 | Runs | `FollowUpOrder` waits for its order to ship, sleeps three days, then asks for a review; `ShipOrder` signals it. `php cua runs:list` |
 | Retries and failed jobs | The pretend mail server refuses some messages (`mail.fail_rate` in `config/mail.php`) |
-| Scheduling | `AppProvider`: every ten seconds, every minute, daily |
+| Scheduling | `AppPlugin`: every ten seconds, every minute, daily |
 | Clock injection | Actions and file mail take `ClockInterface`; tests use `FrozenClock` |
 | HTTP client | `SyncInventory` asks the "warehouse" over HTTP; `shop:traffic` is the customers; `shop:mirror-catalogue` downloads a feed into a file with `sink:`, `maxBytes:` and `decode: false` |
 | Console commands | `app/Console/` |
