@@ -53,6 +53,8 @@ final class Setup implements Plugin
         $schedule->command('orders:cancel-stale')->everyMinute();
         $schedule->call(Restock::class)->everyMinute()->name('restock');
         $schedule->job(BuildDailyReport::class)->daily('06:00')->name('daily-report');
+        // A run whose job was lost, to a process that died between keeping its state and the push, gets one.
+        $schedule->command('runs:recover')->everyMinute()->onOneServer();
 
         // A server kept across reloads: a deploy's `reload` leaves the dispatch desk in the middle of
         // its handoff, on the code it started with; `restart` and `stop` end it.
