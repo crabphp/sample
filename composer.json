@@ -6,6 +6,8 @@
     "require": {
         "php": "^8.4",
         "crabphp/framework": "@dev",
+        "crabphp/runs": "@dev",
+        "crabphp/actors": "@dev",
         "crabphp/redis": "@dev",
         "crabphp/clockwerk": "@dev",
         "crabphp/openapi": "@dev"
@@ -30,6 +32,8 @@
     },
     "repositories": [
         {"type": "path", "url": "../framework", "options": {"symlink": true}},
+        {"type": "path", "url": "../runs", "options": {"symlink": true}},
+        {"type": "path", "url": "../actors", "options": {"symlink": true}},
         {"type": "path", "url": "../redis", "options": {"symlink": true}},
         {"type": "path", "url": "../clockwerk", "options": {"symlink": true}},
         {"type": "path", "url": "../openapi", "options": {"symlink": true}}
