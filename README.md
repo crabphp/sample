@@ -134,6 +134,8 @@ After the order commits, a listener failure is logged and the action still retur
 | `orders:cancel-stale` | Cancel orders never paid; the scheduler runs it every minute |
 | `shop:mirror-catalogue` | Download `/products.csv` into `storage/catalogue.csv`; `--url=` |
 
+Stop every server and worker before `shop:seed --fresh`, including any started separately. It discards tokens, WebSocket tickets, cached values, runs and queued work before replacing the shop. Sized fixtures (`--products=36 --users=12 --orders=200`) reuse IDs, so old credentials and jobs must not survive the reset. The queue is cleared through its store, including when it uses Redis.
+
 ## Tests
 
 ```sh

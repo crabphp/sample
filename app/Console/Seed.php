@@ -11,6 +11,8 @@ use Crab\Contracts\Console\Input;
 use Crab\Contracts\Console\Output;
 use Crab\Contracts\Database\Connection;
 use Crab\Contracts\Database\Database;
+use Crab\Contracts\Queue\Store;
+use Psr\Clock\ClockInterface;
 
 final readonly class Seed implements Command
 {
@@ -83,6 +85,8 @@ final readonly class Seed implements Command
         private Database $db,
         private PasswordHasher $passwords,
         private Cache $cache,
+        private Store $jobs,
+        private ClockInterface $clock,
     ) {}
 
     public function description(): string
@@ -90,7 +94,7 @@ final readonly class Seed implements Command
         return <<<'TEXT'
             Fill the shop with products, customers and two weeks of orders
             Options:
-              --fresh   Empty the shop's tables first
+              --fresh   Empty the shop, credentials, cache and queued work first; stop every server before using it
               --products=36 --users=12 --orders=200   Make sized data in batches
 
             Everyone's password is "password". admin@example.com is an administrator;
@@ -127,8 +131,21 @@ final readonly class Seed implements Command
             $output->line('The shop already has data. Run it with --fresh to start again.');
             return 0;
         }
-        // Whatever is there, a customer who registered before any product was added included.
-        foreach (['order_items', 'orders', 'products', 'users'] as $table) {
+        // Sized fixtures reuse ids. Nothing from the old shop may authenticate or act on the new one.
+        // All servers must be stopped: an in-flight request or job holds state outside these stores.
+        $this->cache->clear();
+        $now = $this->clock->now()->getTimestamp();
+        foreach ($this->jobs->queues() as $queue) {
+            foreach (['pending', 'delayed', 'processing'] as $state) {
+                while (($jobs = $this->jobs->jobs($queue, $state, $now, 100)) !== []) {
+                    foreach ($jobs as $job) {
+                        $this->jobs->complete($job);
+                    }
+                }
+            }
+        }
+        $this->jobs->forget(null);
+        foreach (['auth_tokens', 'run_steps', 'runs', 'order_items', 'orders', 'products', 'users'] as $table) {
             $this->db->table($table)->delete();
         }
         if ($sized) {
