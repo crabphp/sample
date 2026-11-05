@@ -20,7 +20,7 @@ final class DashboardTest extends ShopTestCase
             ->assertJson('app', 'Crab Shop');
         self::assertSame(['mail', 'warehouse', 'default'], array_column($state->json('jobs.supervisors'), 'name'));
         self::assertSame(
-            ['settle-payments', 'command orders:cancel-stale', 'restock', 'daily-report', 'command runs:recover'],
+            ['settle-payments', 'command order:cancel-stale', 'restock', 'daily-report', 'command runs:recover'],
             array_column($state->json('tasks.rows'), 'name'),
         );
     }

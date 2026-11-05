@@ -14,7 +14,7 @@ use Psr\Log\LoggerInterface;
  * Marks the orders whose payment has come through as paid. The sample
  * has no payment provider: an order is taken as paid a few seconds after
  * it was placed, except one in ten, which is never paid and is cancelled
- * later by `orders:cancel-stale`. The scheduler runs this every ten seconds.
+ * later by `order:cancel-stale`. The scheduler runs this every ten seconds.
  */
 final readonly class SettlePayments
 {

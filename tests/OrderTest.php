@@ -224,7 +224,7 @@ final class OrderTest extends ShopTestCase
         self::assertNotSame([], $unpaid);
 
         // Every minute: those are cancelled, and what they took is back in stock.
-        self::assertSame(0, $this->command('orders:cancel-stale'));
+        self::assertSame(0, $this->command('order:cancel-stale'));
         self::assertSame(
             count($unpaid),
             $this->db->table('orders')->whereIn('id', $ids)->where('status', 'cancelled')->count(),
@@ -259,7 +259,7 @@ final class OrderTest extends ShopTestCase
             ]);
         $stock = (int) $this->db->table('products')->where('id', 1)->value('stock');
 
-        self::assertSame(0, $this->command('orders:cancel-stale'));
+        self::assertSame(0, $this->command('order:cancel-stale'));
         self::assertSame($stock + 5, (int) $this->db->table('products')->where('id', 1)->value('stock'));
         self::assertSame(2, $this->db->table('orders')->whereIn('id', $stale)->where('status', 'cancelled')->count());
         self::assertSame('pending', $this->db->table('orders')->where('id', $recent)->value('status'));
@@ -269,7 +269,7 @@ final class OrderTest extends ShopTestCase
             'Historical paid orders stay paid and keep their stock.',
         );
 
-        self::assertSame(0, $this->command('orders:cancel-stale'));
+        self::assertSame(0, $this->command('order:cancel-stale'));
         self::assertSame(
             $stock + 5,
             (int) $this->db->table('products')->where('id', 1)->value('stock'),

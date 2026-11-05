@@ -12,7 +12,7 @@ use Crab\Command;
 
 Command::add('shop:seed', Seed::class);
 Command::add('shop:traffic', Traffic::class);
-Command::add('orders:cancel-stale', CancelStaleOrders::class);
+Command::add('order:cancel-stale', CancelStaleOrders::class);
 Command::add('shop:mirror-catalogue', MirrorCatalogue::class);
 Command::add('shop:dispatch', DispatchOrders::class);
 Command::add('shop:report', Report::class);

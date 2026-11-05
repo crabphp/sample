@@ -86,10 +86,10 @@ final class Setup implements Plugin
 
         $schedule = $container->get(Schedule::class);
         // Every ten seconds: closer than cron can come.
-        $schedule->call(SettlePayments::class)->everySeconds(10)->name('settle-payments');
-        $schedule->command('orders:cancel-stale')->everyMinute();
-        $schedule->call(Restock::class)->everyMinute()->name('restock');
-        $schedule->job(BuildDailyReport::class)->daily('06:00')->name('daily-report');
+        $schedule->call(SettlePayments::class)->everySeconds(10)->onOneServer()->name('settle-payments');
+        $schedule->command('order:cancel-stale')->everyMinute()->onOneServer();
+        $schedule->call(Restock::class)->everyMinute()->onOneServer()->name('restock');
+        $schedule->job(BuildDailyReport::class)->daily('06:00')->onOneServer()->name('daily-report');
         // A run whose job was lost, to a process that died between keeping its state and the push, gets one.
         $schedule->command('runs:recover')->everyMinute()->onOneServer();
 

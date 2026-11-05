@@ -92,7 +92,7 @@ final class LiveOrderTest extends ShopTestCase
         $this->app->container->get(SettlePayments::class)->handle();
         $paymentSocket->assertReceived(['type' => 'status', 'id' => $paid, 'status' => 'paid', 'version' => 2]);
         $paidAt = $this->db->table('orders')->where('id', $paid)->value('updated_at');
-        self::assertSame(0, $this->command('orders:cancel-stale'));
+        self::assertSame(0, $this->command('order:cancel-stale'));
         $cancelSocket->assertReceived([
             'type' => 'status',
             'id' => $cancelled,
