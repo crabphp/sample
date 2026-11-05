@@ -9,7 +9,7 @@ return [
     'workers' => env('SERVER_WORKERS', 1),
 
     // What `php cua dev` watches, to restart the server when you save.
-    'watch' => ['app', 'app.php', 'config', 'routes', '.env'],
+    'watch' => ['app', 'app.php', 'config', 'routes', 'resources', '.env'],
 
     // The largest request body taken, in bytes, and how many seconds a client has to send one. Raise both for uploads.
     'max_body' => 1024 * 1024,

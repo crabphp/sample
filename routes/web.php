@@ -17,6 +17,11 @@ use App\Actions\Ready;
 use App\Actions\Register;
 use App\Actions\SetStock;
 use App\Actions\ShipOrder;
+use App\Actions\ShopCart;
+use App\Actions\ShopCatalogue;
+use App\Actions\ShopCheckout;
+use App\Actions\ShopOrder;
+use App\Actions\ShopProduct;
 use App\Actions\ShowOrder;
 use App\Actions\ShowProduct;
 use App\Actions\WatchOrder;
@@ -35,6 +40,14 @@ static fn(): array => [
     'name' => config('app.name'),
     'docs' => 'See README.md for the routes.',
 ]);
+
+// The public Arc-rendered shop. The JSON API below remains unchanged.
+Route::get('/shop', ShopCatalogue::class);
+Route::get('/shop/products/{id}', ShopProduct::class);
+Route::get('/shop/cart', ShopCart::class);
+Route::get('/shop/checkout', [ShopCheckout::class, 'show']);
+Route::post('/shop/checkout', ShopCheckout::class);
+Route::get('/shop/orders/{id}', ShopOrder::class);
 
 // For a load balancer: /up says a worker answers, /ready that it reaches the database and the cache.
 Route::get('/ready', Ready::class);

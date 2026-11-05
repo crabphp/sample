@@ -5,6 +5,7 @@
     "license": "MIT",
     "require": {
         "php": "^8.4",
+        "crabphp/arc": "@dev",
         "crabphp/framework": "@dev",
         "crabphp/runs": "@dev",
         "crabphp/actors": "@dev",
@@ -39,6 +40,13 @@
         {
             "type": "path",
             "url": "../framework",
+            "options": {
+                "symlink": true
+            }
+        },
+        {
+            "type": "path",
+            "url": "../arc",
             "options": {
                 "symlink": true
             }

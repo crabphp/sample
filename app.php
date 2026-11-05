@@ -5,6 +5,7 @@ declare(strict_types=1);
 use App\Setup;
 use Crab\Actors\ActorsPlugin;
 use Crab\App;
+use Crab\Arc\ArcPlugin;
 use Crab\Auth\TokenAuthPlugin;
 use Crab\Broadcast\BroadcastPlugin;
 use Crab\Clockwerk\ClockwerkPlugin;
@@ -20,6 +21,7 @@ use Crab\Schedule\SchedulePlugin;
 // and before Clockwerk, which observes them; its Setup adds listeners and tasks after them all.
 return App::configure(__DIR__)
     ->withPlugins([
+        ArcPlugin::class,
         QueuePlugin::class,
         SchedulePlugin::class,
         RunsPlugin::class,
