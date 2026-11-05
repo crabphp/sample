@@ -30,15 +30,16 @@ final readonly class DispatchOrders implements Command
         return <<<'TEXT'
             Hand paid orders to the courier, one at a time, until stopped
             Options:
-              --pause=3   Seconds a handoff takes
+              --pause=3   Seconds a handoff takes, from 0 to 3600
             TEXT;
     }
 
     public function handle(Input $input, Output $output): int
     {
-        $pause = $input->option('pause') ?? '3';
-        if (!is_string($pause) || preg_match('/^[0-9]+$/D', $pause) !== 1) {
-            $output->error('--pause takes whole seconds; use --pause=3.');
+        $pause = $input->value('pause', '3') ?? '3';
+        $pause = filter_var($pause, FILTER_VALIDATE_INT, ['options' => ['min_range' => 0, 'max_range' => 3600]]);
+        if ($pause === false) {
+            $output->error('--pause takes whole seconds from 0 to 3600; use --pause=3.');
             return 1;
         }
         $stopping = false;
@@ -60,7 +61,7 @@ final readonly class DispatchOrders implements Command
             }
             $output->line("Handing order {$order['id']} to the courier.");
             // The handoff; a SIGTERM meanwhile waits for it.
-            $left = (int) $pause;
+            $left = $pause;
             while ($left > 0) {
                 $left = sleep($left);
             }

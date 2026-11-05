@@ -40,7 +40,7 @@ final readonly class MirrorCatalogue implements Command
 
     public function handle(Input $input, Output $output): int
     {
-        $url = rtrim((string) $input->option('url', (string) config('shop.warehouse_url')), '/');
+        $url = rtrim($input->value('url', 'http://127.0.0.1:8080') ?? (string) config('shop.warehouse_url'), '/');
         if ($url === '') {
             $output->error('There is no shop to download from: give --url= or set WAREHOUSE_URL.');
             return 1;

@@ -51,8 +51,10 @@ Route::post('/assistant', AskAssistant::class);
 Route::post('/model/chat', PretendModel::class);
 
 // A few tries a minute from one address: enough for a person, not for guessing passwords.
-Route::post('/register', Register::class)->middleware(new RateLimit(config('shop.register_limit'), name: 'register'));
-Route::post('/login', Login::class)->middleware(new RateLimit(config('shop.login_limit'), name: 'login'));
+Route::post('/register', Register::class)->middleware(
+    new RateLimit((int) config('shop.register_limit'), name: 'register'),
+);
+Route::post('/login', Login::class)->middleware(new RateLimit((int) config('shop.login_limit'), name: 'login'));
 
 // For whoever is logged in.
 Route::websocket('/orders/{id}/live', WatchOrder::class)->middleware(Ticket::class);

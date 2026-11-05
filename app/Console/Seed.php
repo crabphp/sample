@@ -104,14 +104,16 @@ final readonly class Seed implements Command
 
     public function handle(Input $input, Output $output): int
     {
-        $sized =
-            $input->option('products') !== null
-            || $input->option('users') !== null
-            || $input->option('orders') !== null;
+        $values = [
+            'products' => $input->value('products', '36'),
+            'users' => $input->value('users', '12'),
+            'orders' => $input->value('orders', '200'),
+        ];
+        $sized = $values['products'] !== null || $values['users'] !== null || $values['orders'] !== null;
         $counts = [];
         if ($sized) {
             foreach (['products' => 36, 'users' => 12, 'orders' => 200] as $name => $default) {
-                $value = $input->option($name, (string) $default);
+                $value = $values[$name] ?? (string) $default;
                 $count = is_string($value) ? filter_var($value, FILTER_VALIDATE_INT) : false;
                 if ($count === false || $count < ($name === 'users' ? 2 : 1)) {
                     $output->error(

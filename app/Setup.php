@@ -11,6 +11,7 @@ use App\Actions\Restock;
 use App\Actions\SettlePayments;
 use App\Events\OrderPlaced;
 use Crab\Contracts\Auth\IdentityResolver;
+use Crab\Contracts\Config\Config;
 use Crab\Contracts\Container\Container;
 use Crab\Contracts\Events\Dispatcher;
 use Crab\Contracts\Http\MiddlewareStack;
@@ -28,6 +29,42 @@ final class Setup implements Plugin
 {
     public function register(Container $container): void
     {
+        $config = $container->get(Config::class);
+        $config->defaults(
+            'shop',
+            [
+                'login_limit' => 10,
+                'register_limit' => 10,
+                'max_requests' => null,
+                'reports' => storage_path('reports'),
+                'catalogue' => storage_path('catalogue.csv'),
+                'warehouse_url' => 'http://127.0.0.1:8080',
+                'model_url' => 'http://127.0.0.1:8080',
+                'settle_after' => 5,
+                'cancel_after' => 2,
+            ],
+            [
+                'login_limit' => ['type' => 'integer', 'minimum' => 1],
+                'register_limit' => ['type' => 'integer', 'minimum' => 1],
+                'max_requests' => ['type' => ['integer', 'null'], 'minimum' => 1],
+                'reports' => ['type' => 'string', 'minLength' => 1],
+                'catalogue' => ['type' => 'string', 'minLength' => 1],
+                'warehouse_url' => ['type' => 'string'],
+                'model_url' => ['type' => 'string', 'minLength' => 1],
+                'settle_after' => ['type' => 'integer', 'minimum' => 0],
+                'cancel_after' => ['type' => 'integer', 'minimum' => 1],
+            ],
+        );
+        $config->defaults(
+            'mail',
+            ['path' => storage_path('mail'), 'fail_rate' => 0.15],
+            [
+                'path' => ['type' => 'string', 'minLength' => 1],
+                'fail_rate' => ['type' => 'number', 'minimum' => 0, 'maximum' => 1],
+            ],
+        );
+        // These settings construct middleware while the routes are declared, before runtime().
+        $config->check('shop', 'mail');
         $container->singleton(IdentityResolver::class, Users::class);
         $container->singleton(
             Mailer::class,
@@ -40,7 +77,7 @@ final class Setup implements Plugin
 
         $limit = config('shop.max_requests');
         if ($limit !== null) {
-            $container->get(MiddlewareStack::class)->add(new Concurrency($limit));
+            $container->get(MiddlewareStack::class)->add(new Concurrency((int) $limit));
         }
 
         $events = $container->get(Dispatcher::class);

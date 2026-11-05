@@ -24,8 +24,8 @@ final readonly class Traffic implements Command
         return <<<'TEXT'
             Send the running server the requests of pretend customers
             Options:
-              --seconds=30                  How long to keep going
-              --rate=200                    Requests a second, at most
+              --seconds=30                  How long to keep going, 1 to 86400 seconds
+              --rate=200                    Requests a second, 1 to 1000000 at most
               --url=http://127.0.0.1:8080   Where the server is
 
             Start `php cua dev` first: it runs the queue's workers and the scheduler
@@ -35,8 +35,19 @@ final readonly class Traffic implements Command
 
     public function handle(Input $input, Output $output): int
     {
-        $url = rtrim((string) $input->option('url', 'http://127.0.0.1:8080'), '/');
-        $until = microtime(true) + max(1, (int) $input->option('seconds', '30'));
+        $url = rtrim($input->value('url', 'http://127.0.0.1:8080') ?? 'http://127.0.0.1:8080', '/');
+        $seconds = $input->value('seconds', '30') ?? '30';
+        $rate = $input->value('rate', '200') ?? '200';
+        $seconds = filter_var($seconds, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1, 'max_range' => 86_400]]);
+        $rate = filter_var($rate, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1, 'max_range' => 1_000_000]]);
+        if ($seconds === false) {
+            $output->error('--seconds takes whole seconds from 1 to 86400; use --seconds=30.');
+            return 1;
+        }
+        if ($rate === false) {
+            $output->error('--rate takes a whole number from 1 to 1000000; use --rate=200.');
+            return 1;
+        }
         $http = $this->http->timeout(10);
         $tokens = [];
         foreach (['ada', 'grace', 'alan', 'katherine', 'linus'] as $name) {
@@ -50,7 +61,8 @@ final readonly class Traffic implements Command
             $tokens[] = $login->json()['token'];
         }
         $products = array_column($http->get("{$url}/products", ['perPage' => 50])->json()['data'], 'id');
-        $pause = (int) (1_000_000 / max(1, (int) $input->option('rate', '200')));
+        $pause = (int) (1_000_000 / $rate);
+        $until = microtime(true) + $seconds;
         $sent = $orders = 0;
         while (microtime(true) < $until) {
             $started = microtime(true);

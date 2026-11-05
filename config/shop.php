@@ -3,10 +3,10 @@
 declare(strict_types=1);
 
 return [
-    'login_limit' => (int) env('LOGIN_LIMIT', 10),
-    'register_limit' => (int) env('REGISTER_LIMIT', 10),
+    'login_limit' => env('LOGIN_LIMIT', 10),
+    'register_limit' => env('REGISTER_LIMIT', 10),
     // Requests one worker works on at once; the rest wait their turn. Null for no limit.
-    'max_requests' => env('MAX_REQUESTS') === null ? null : (int) env('MAX_REQUESTS'),
+    'max_requests' => env('MAX_REQUESTS'),
     'reports' => env('REPORTS_PATH', storage_path('reports')),
     // Where shop:mirror-catalogue keeps the feed it downloads.
     'catalogue' => env('CATALOGUE_PATH', storage_path('catalogue.csv')),

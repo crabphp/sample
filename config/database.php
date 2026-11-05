@@ -12,7 +12,7 @@ return [
             'username' => env('DB_USERNAME'),
             'password' => env('DB_PASSWORD'),
             // MySQL only: queries that do not hold the worker while they wait.
-            'async' => (bool) env('DB_ASYNC', false),
+            'async' => env('DB_ASYNC', false),
             // Connections each worker may hold. Unset, 1 for SQLite and 10 for MySQL.
             'pool' => env('DB_POOL'),
             'migrations' => dirname(__DIR__) . '/database/migrations',

@@ -138,6 +138,8 @@ With the Redis queue, jobs are pushed after the transaction commits. A process t
 
 Stop every server and worker before `shop:seed --fresh`, including any started separately. It discards tokens, WebSocket tickets, cached values, runs and queued work before replacing the shop. Sized fixtures (`--products=36 --users=12 --orders=200`) reuse IDs, so old credentials and jobs must not survive the reset. The queue is cleared through its store, including when it uses Redis.
 
+Options with values use `--name=value`. Traffic takes 1–86400 whole seconds and a rate of 1–1000000 requests per second; the dispatch desk takes `--pause=0` through `--pause=3600`. Invalid options are rejected before requests or writes. `Setup` declares rules for `shop` and `mail` settings, and checks them before declaring middleware. Environment values stay uncast until checked, so a typo such as `SERVER_WORKERS=2workers` is refused.
+
 ## Tests
 
 ```sh
