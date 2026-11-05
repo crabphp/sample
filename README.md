@@ -6,9 +6,10 @@ It is not the skeleton to start a project from; that is [`crab`](../crab).
 
 ## Running it
 
-Use PHP 8.4 with the required extensions and keep the `framework`, `runs`, `actors`, `redis`, `clockwerk` and `openapi` package folders beside this application for Composer's path repositories. The database is SQLite, so none needs installing, but `.env.example` carries broadcasts and actors over Redis, at `redis://127.0.0.1:6379`: start one (`docker run -d -p 6379:6379 redis:7-alpine`). `php cua start` needs it: the queue and the scheduler run in processes of their own, and their broadcasts reach the sockets only through Redis, so the local carrier is refused. The tests run without it.
+Use PHP 8.4 with `mbstring`, `pdo_sqlite`, `pcntl`, `posix` and `simplexml`. Keep the `framework`, `runs`, `actors`, `redis`, `s3`, `clockwerk` and `openapi` package folders beside this application for Composer's path repositories. The database is SQLite, so none needs installing, but `.env.example` carries broadcasts and actors over Redis, at `redis://127.0.0.1:6379`: start one (`docker run -d -p 6379:6379 redis:7-alpine`). `php cua start` needs it: the queue and the scheduler run in processes of their own, and their broadcasts reach the sockets only through Redis, so the local carrier is refused. The tests run without it.
 
 ```sh
+set -e
 composer install
 cp .env.example .env
 php cua migrate
@@ -108,6 +109,7 @@ curl -s -X POST localhost:8080/orders -H "Authorization: Bearer $TOKEN" -H 'Cont
 | HTTP client | `SyncInventory` asks the "warehouse" over HTTP; `shop:traffic` is the customers; `shop:mirror-catalogue` downloads a feed into a file with `sink:`, `maxBytes:` and `decode: false` |
 | Console commands | `app/Console/` |
 | Redis package | Set `CACHE_STORE=redis` or `QUEUE_STORE=redis` in `.env` |
+| Storage and S3 package | `BuildDailyReport` writes whole JSON files through `Storage`; `config/storage.php` selects a local folder, memory or an S3 bucket. `ReportStorageTest` checks the signed S3 upload with `FakeClient` |
 | Dashboard package | `/clockwerk` |
 | OpenAPI package | `config/openapi.php`, `#[Response]` on actions, and the committed `openapi.json` |
 | Deploying | `/up` and `Ready` for probes. `start` refuses a route, listener or task whose services cannot be made, and `php cua describe app` lists them; break `app.php` and `php cua status` and `stop` still reach the running server |
@@ -135,10 +137,29 @@ With the Redis queue, jobs are pushed after the transaction commits. A process t
 | `shop:traffic` | Pretend customers; `--seconds=30`, `--rate=200`, `--url=` |
 | `orders:cancel-stale` | Cancel orders never paid; the scheduler runs it every minute |
 | `shop:mirror-catalogue` | Download `/products.csv` into `storage/catalogue.csv`; `--url=` |
+| `shop:report` | Write yesterday's report, or `--day=2026-01-31`, to the configured report disk |
+| `shop:dispatch` | Ship paid orders until stopped; `--pause=3` seconds per handoff. `start` also runs it as the `dispatch` server |
 
 Stop every server and worker before `shop:seed --fresh`, including any started separately. It discards tokens, WebSocket tickets, cached values, runs and queued work before replacing the shop. Sized fixtures (`--products=36 --users=12 --orders=200`) reuse IDs, so old credentials and jobs must not survive the reset. The queue is cleared through its store, including when it uses Redis.
 
 Options with values use `--name=value`. Traffic takes 1–86400 whole seconds and a rate of 1–1000000 requests per second; the dispatch desk takes `--pause=0` through `--pause=3600`. Invalid options are rejected before requests or writes. `Setup` declares rules for `shop` and `mail` settings, and checks them before declaring middleware. Environment values stay uncast until checked, so a typo such as `SERVER_WORKERS=2workers` is refused.
+
+## Reports and S3
+
+The daily job and `shop:report` write `YYYY-MM-DD.json` to `shop.report_disk`, named `reports` by default. Its local root is `REPORTS_PATH`, or `storage/reports`. This replaces the old `shop.reports` path setting; `REPORTS_PATH` still works. Dates must be real calendar dates. Local writes refuse symlinks and replace a file only when all its bytes are written.
+
+To write reports to an existing S3 bucket, set these values in `.env` and restart the application:
+
+```dotenv
+REPORTS_DRIVER=s3
+S3_KEY=your-access-key
+S3_SECRET=your-secret
+S3_BUCKET=your-bucket
+S3_REGION=us-east-1
+# S3_ENDPOINT=http://127.0.0.1:9000
+```
+
+Reports go under `reports/` in the bucket. Set `S3_ENDPOINT` for MinIO or another S3 service; setting an endpoint selects path-style URLs. `REPORTS_DRIVER=memory` keeps reports only until the process ends and is for tests. Local reports need no S3 credentials or service.
 
 ## Tests
 

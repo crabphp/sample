@@ -7,7 +7,7 @@ use Crab\Contracts\Database\Schema;
 use Crab\Contracts\Database\Table;
 
 /**
- * Which worker's claim holds a run, which crabphp/framework 0.4.1 checks before a run is renewed or ended.
+ * Which worker holds a run, fenced since framework 0.5.0 and now checked by crabphp/runs.
  */
 return new class implements Migration {
     public function up(Schema $schema): void

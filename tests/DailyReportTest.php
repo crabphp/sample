@@ -5,12 +5,52 @@ declare(strict_types=1);
 namespace Tests;
 
 use App\Actions\BuildDailyReport;
+use PHPUnit\Framework\Attributes\DataProvider;
 
 /**
  * Shipping changes the status count, but keeps the payment in revenue.
  */
 final class DailyReportTest extends ShopTestCase
 {
+    #[DataProvider('invalidDays')]
+    public function testAnInvalidDayCannotOverwriteAnotherFile(string $day): void
+    {
+        $outside = $this->directory . '/outside.json';
+        file_put_contents($outside, 'Keep this file.');
+        $error = null;
+        try {
+            $this->app->container->get(BuildDailyReport::class)->handle($day);
+        } catch (\InvalidArgumentException $caught) {
+            $error = $caught;
+        }
+        self::assertSame('Keep this file.', file_get_contents($outside));
+        self::assertInstanceOf(\InvalidArgumentException::class, $error);
+        self::assertDirectoryDoesNotExist($this->directory . '/reports');
+    }
+
+    public static function invalidDays(): iterable
+    {
+        yield 'parent directory' => ['../outside'];
+        yield 'impossible date' => ['2026-02-30'];
+        yield 'relative date' => ['yesterday'];
+    }
+
+    public function testAReportCannotFollowASymlinkOverAnotherFile(): void
+    {
+        mkdir($this->directory . '/reports');
+        $outside = $this->directory . '/outside.json';
+        file_put_contents($outside, 'Keep this file.');
+        symlink($outside, $this->directory . '/reports/2026-01-31.json');
+        $error = null;
+        try {
+            $this->app->container->get(BuildDailyReport::class)->handle('2026-01-31');
+        } catch (\Crab\Contracts\Storage\StorageException $caught) {
+            $error = $caught;
+        }
+        self::assertSame('Keep this file.', file_get_contents($outside));
+        self::assertInstanceOf(\Crab\Contracts\Storage\StorageException::class, $error);
+    }
+
     public function testTheDefaultReportCoversYesterdayAndCountsOnlyPaidRevenue(): void
     {
         $user = $this->user('ada@example.com');

@@ -10,7 +10,8 @@
         "crabphp/actors": "@dev",
         "crabphp/redis": "@dev",
         "crabphp/clockwerk": "@dev",
-        "crabphp/openapi": "@dev"
+        "crabphp/openapi": "@dev",
+        "crabphp/s3": "@dev"
     },
     "require-dev": {
         "phpunit/phpunit": "^13.4.4",
@@ -73,6 +74,13 @@
         {
             "type": "path",
             "url": "../openapi",
+            "options": {
+                "symlink": true
+            }
+        },
+        {
+            "type": "path",
+            "url": "../s3",
             "options": {
                 "symlink": true
             }

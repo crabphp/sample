@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Actions;
 
 use Crab\Contracts\Database\Database;
+use Crab\Contracts\Storage\Storage;
 use Psr\Clock\ClockInterface;
 
 /**
@@ -16,6 +17,7 @@ final readonly class BuildDailyReport
     public function __construct(
         private Database $db,
         private ClockInterface $clock,
+        private Storage $storage,
     ) {}
 
     /**
@@ -24,6 +26,12 @@ final readonly class BuildDailyReport
     public function handle(?string $day = null): void
     {
         $day ??= $this->clock->now()->modify('-1 day')->format('Y-m-d');
+        $date = preg_match('/^\d{4}-\d{2}-\d{2}$/D', $day) === 1
+            ? \DateTimeImmutable::createFromFormat('!Y-m-d', $day)
+            : false;
+        if ($date === false || $date->format('Y-m-d') !== $day) {
+            throw new \InvalidArgumentException('The report day must be a valid date in YYYY-MM-DD form.');
+        }
         $totals = $this->db
             ->table('orders')
             ->select('status')
@@ -52,15 +60,7 @@ final readonly class BuildDailyReport
             }
         }
 
-        $directory = (string) config('shop.reports');
-        if (!is_dir($directory) && !@mkdir($directory, 0o775, true) && !is_dir($directory)) {
-            throw new \RuntimeException("The report folder {$directory} cannot be created.");
-        }
-
-        $file = "{$directory}/{$day}.json";
         $contents = json_encode($report, JSON_PRETTY_PRINT | JSON_THROW_ON_ERROR) . "\n";
-        if (@file_put_contents($file, $contents) !== strlen($contents)) {
-            throw new \RuntimeException("The report {$file} could not be written.");
-        }
+        $this->storage->disk(config('shop.report_disk'))->write("{$day}.json", $contents, 'application/json');
     }
 }

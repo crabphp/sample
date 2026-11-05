@@ -40,6 +40,8 @@ abstract class ShopTestCase extends TestCase
             'MAIL_PATH' => $this->directory . '/mail',
             'MAIL_FAIL_RATE' => '0',
             'REPORTS_PATH' => $this->directory . '/reports',
+            'REPORTS_DRIVER' => 'local',
+            'REPORTS_DISK' => 'reports',
             'CATALOGUE_PATH' => $this->directory . '/catalogue.csv',
             'WAREHOUSE_URL' => '',
             'CLOCKWERK_TOKEN' => 'test-token',

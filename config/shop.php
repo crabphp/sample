@@ -7,7 +7,7 @@ return [
     'register_limit' => env('REGISTER_LIMIT', 10),
     // Requests one worker works on at once; the rest wait their turn. Null for no limit.
     'max_requests' => env('MAX_REQUESTS'),
-    'reports' => env('REPORTS_PATH', storage_path('reports')),
+    'report_disk' => env('REPORTS_DISK', 'reports'),
     // Where shop:mirror-catalogue keeps the feed it downloads.
     'catalogue' => env('CATALOGUE_PATH', storage_path('catalogue.csv')),
     // Where the "warehouse" is that an order is synced with: this application itself. Empty to skip the call.

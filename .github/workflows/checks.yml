@@ -42,10 +42,15 @@ jobs:
           repository: crabphp/openapi
           ref: main
           path: openapi
+      - uses: actions/checkout@v4
+        with:
+          repository: crabphp/s3
+          ref: main
+          path: s3
       - uses: shivammathur/setup-php@v2
         with:
           php-version: '8.4'
-          extensions: mbstring, pdo_sqlite, pcntl, posix
+          extensions: mbstring, pdo_sqlite, pcntl, posix, simplexml
           coverage: none
           tools: composer:v2
       - run: composer install --no-interaction --prefer-dist

@@ -12,6 +12,7 @@ use Crab\OpenApi\OpenApiPlugin;
 use Crab\Queue\QueuePlugin;
 use Crab\Redis\RedisPlugin;
 use Crab\Runs\RunsPlugin;
+use Crab\S3\S3Plugin;
 use Crab\Schedule\SchedulePlugin;
 
 // A small shop's API with token authentication, Redis and a dashboard, for trying things out.
@@ -26,6 +27,7 @@ return App::configure(__DIR__)
         ActorsPlugin::class,
         TokenAuthPlugin::class,
         RedisPlugin::class,
+        S3Plugin::class,
         ClockwerkPlugin::class,
         OpenApiPlugin::class,
     ])
