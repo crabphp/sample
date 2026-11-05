@@ -27,6 +27,7 @@ abstract class ShopTestCase extends TestCase
     private array $environment = [];
     private ?\PDO $mysql = null;
     private ?string $mysqlDatabase = null;
+    private ?string $redisPrefix = null;
 
     protected function setUp(): void
     {
@@ -43,14 +44,18 @@ abstract class ShopTestCase extends TestCase
             $this->mysql->exec('CREATE DATABASE ' . $this->mysqlDatabase . ' CHARACTER SET utf8mb4');
             $dsn = $server . ';dbname=' . $this->mysqlDatabase;
         }
+        $redis = getenv('SAMPLE_TEST_REDIS_URL');
+        $this->redisPrefix = $redis === false ? null : 'sample-test:' . bin2hex(random_bytes(8)) . ':';
         // The real environment is read before .env, so a test can have a shop of its own.
         foreach ([
             'DB_DSN' => $dsn,
             'DB_USERNAME' => $this->mysql === null ? '' : (getenv('SAMPLE_TEST_MYSQL_USER') ?: 'root'),
             'DB_PASSWORD' => $this->mysql === null ? '' : (getenv('SAMPLE_TEST_MYSQL_PASSWORD') ?: ''),
             'DB_ASYNC' => 'false',
-            'CACHE_STORE' => 'array',
-            'QUEUE_STORE' => 'database',
+            'CACHE_STORE' => $redis === false ? 'array' : 'redis',
+            'QUEUE_STORE' => $redis === false ? 'database' : 'redis',
+            'REDIS_URL' => $redis === false ? 'redis://127.0.0.1:6379' : $redis,
+            'REDIS_PREFIX' => $this->redisPrefix ?? 'shop:',
             'BROADCAST_CARRIER' => 'local',
             'LOG_PATH' => $this->directory . '/app.log',
             'MAIL_PATH' => $this->directory . '/mail',
@@ -73,12 +78,23 @@ abstract class ShopTestCase extends TestCase
         self::assertSame(0, $this->command('migrate'));
         $this->db = $this->app->container->get(Database::class);
         $this->createFixtures();
-        $this->api = new Api($this->app);
+        $this->api = new Api($this->redisPrefix === null ? $this->app : new WorkerHandler($this->app));
     }
 
     protected function tearDown(): void
     {
         $this->api->closeSockets();
+        if ($this->redisPrefix !== null) {
+            $redis = $this->app->container->get(\Crab\Redis\Client::class);
+            $cursor = '0';
+            do {
+                [$cursor, $keys] = $redis->command('SCAN', $cursor, 'MATCH', $this->redisPrefix . '*', 'COUNT', 100);
+                if ($keys !== []) {
+                    $redis->command('DEL', ...$keys);
+                }
+            } while ((string) $cursor !== '0');
+            $redis->close();
+        }
         if ($this->mysql !== null) {
             $this->mysql->exec('DROP DATABASE ' . $this->mysqlDatabase);
             $this->mysql = null;
@@ -230,6 +246,9 @@ abstract class ShopTestCase extends TestCase
     {
         $stream = fopen('php://memory', 'w+');
         try {
+            if ($this->redisPrefix !== null && $words[0] !== 'queue:work') {
+                return WorkerHandler::run(fn(): int => $this->app->console->run($words, new Output($stream, $stream)));
+            }
             return $this->app->console->run($words, new Output($stream, $stream));
         } finally {
             fclose($stream);

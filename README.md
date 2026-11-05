@@ -180,6 +180,12 @@ SQLite is the default. To run the same suite on MySQL, give it a server DSN and 
 SAMPLE_TEST_MYSQL_DSN='mysql:host=127.0.0.1;port=3306' SAMPLE_TEST_MYSQL_USER=root SAMPLE_TEST_MYSQL_PASSWORD='' composer test
 ```
 
+To exercise Redis cache and queues, set `SAMPLE_TEST_REDIS_URL`. Each test uses and removes its own random Redis key prefix. Socket broadcasts stay local in these in-process tests, and HTTP requests run in fibers as they do in a worker:
+
+```sh
+SAMPLE_TEST_REDIS_URL=redis://127.0.0.1:6379 composer test
+```
+
 Existing shops must run `php cua migrate` before starting the updated application. The new migration widens MySQL order totals to hold every accepted order; SQLite already uses 64-bit integers. Rolling that migration back refuses to narrow the column when a total would be lost.
 
 `composer format` applies the shared Mago formatting rules. CI checks out the framework and packages on `main` beside the sample and runs these checks on PHP 8.4, with both SQLite and MySQL. The application keeps its dependencies at `@dev` through path repositories; the packages require framework `^0.6`, which the framework's `0.6.x-dev` branch alias satisfies.
