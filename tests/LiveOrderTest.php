@@ -28,7 +28,7 @@ final class LiveOrderTest extends ShopTestCase
         $socket->assertReceived(['type' => 'status', 'id' => $id, 'status' => 'shipped', 'version' => 2]);
         self::assertSame(2, (int) $this->db->table('orders')->where('id', $id)->value('version'));
         $this->api->actingAs($owner)->put("/orders/{$id}/ship")->assertStatus(403);
-        $this->api->actingAs($this->user('admin@example.com'))->put("/orders/{$id}/ship")->assertStatus(409);
+        $this->api->actingAs($this->user('admin@example.com'))->put("/orders/{$id}/ship")->assertStatus(200);
         $socket->assertNothingReceived();
         $this->api->actingAs($this->user('admin@example.com'))->put('/orders/999999/ship')->assertStatus(404);
     }

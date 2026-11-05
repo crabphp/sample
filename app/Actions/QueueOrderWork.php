@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Actions;
 
 use App\Events\OrderPlaced;
+use Crab\Contracts\Database\Connection;
 use Crab\Contracts\Database\Database;
 use Crab\Contracts\Queue\Queue;
 use Crab\Contracts\Runs\Runs;
@@ -24,14 +25,25 @@ final readonly class QueueOrderWork
 
     public function handle(OrderPlaced $event): void
     {
-        $this->queue->on('mail')->push(SendOrderConfirmation::class, orderId: $event->orderId);
-        $this->queue->on('warehouse')->push(
-            SyncInventory::class,
-            orderId: $event->orderId,
-            productIds: $event->productIds,
-        );
+        $this->db->transaction(function (Connection $transaction) use ($event): void {
+            $order = $transaction->table('orders')->where('id', $event->orderId)->lockForUpdate()->first();
+            if ($order === null) {
+                return;
+            }
+            $queue = $this->queue->within($transaction);
+            $queue->on('mail')->push(SendOrderConfirmation::class, orderId: $event->orderId);
+            $queue->on('warehouse')->push(
+                SyncInventory::class,
+                orderId: $event->orderId,
+                productIds: $event->productIds,
+            );
 
-        $run = $this->runs->start(FollowUpOrder::class, orderId: $event->orderId);
-        $this->db->table('orders')->where('id', $event->orderId)->update(['follow_up_run' => $run]);
+            $run = $this->runs->within($transaction)->start(FollowUpOrder::class, orderId: $event->orderId);
+            $transaction->table('orders')->where('id', $event->orderId)->update(['follow_up_run' => $run]);
+            // Shipping can precede this listener. The lock also covers shipping while the run is linked.
+            if ($order['status'] === 'shipped') {
+                $queue->push(SignalOrderShipped::class, orderId: $event->orderId);
+            }
+        });
     }
 }

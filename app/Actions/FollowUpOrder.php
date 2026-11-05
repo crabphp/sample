@@ -12,7 +12,7 @@ use Crab\Contracts\Runs\Run;
  * What happens to an order after it is placed, over days: it waits for
  * the order to ship, lets it arrive, then asks the customer for a review.
  * A run, so a deploy or a crash in the middle loses nothing, and no
- * worker is held while it waits. ShipOrder gives it the "shipped" signal.
+ * worker is held while it waits. SignalOrderShipped delivers its signal.
  *
  *     php cua runs:list
  */
@@ -36,7 +36,7 @@ final readonly class FollowUpOrder
         $shipped = $run->await('shipped');
         $run->sleep('arrival', self::ARRIVAL);
 
-        // In a step: it is sent once, however often the run is resumed after it.
+        // A completed step is kept. A crash after sending but before keeping it can send mail again.
         $asked = $run->step('ask-for-review', function () use ($orderId): bool {
             $order = $this->db->table('orders')->find($orderId);
             $user = $order === null ? null : $this->db->table('users')->find($order['user_id']);

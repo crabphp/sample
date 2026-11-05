@@ -10,7 +10,7 @@ use App\OrderStatus;
 use Crab\Contracts\Broadcast\Broadcaster;
 use Crab\Contracts\Database\Connection;
 use Crab\Contracts\Database\Database;
-use Crab\Contracts\Runs\Runs;
+use Crab\Contracts\Queue\Queue;
 use Crab\Http\HttpException;
 use Crab\OpenApi\Attributes\Response;
 use Psr\Clock\ClockInterface;
@@ -26,7 +26,7 @@ final readonly class ShipOrder
         private Database $db,
         private Broadcaster $broadcast,
         private ClockInterface $clock,
-        private Runs $runs,
+        private Queue $queue,
     ) {}
 
     /**
@@ -45,6 +45,11 @@ final readonly class ShipOrder
                 'No such order.',
             );
 
+            if ($order->status === OrderStatus::Shipped) {
+                // A retry may repair a lost notification, without shipping or broadcasting twice.
+                $this->queue->within($transaction)->push(SignalOrderShipped::class, orderId: $id);
+                return;
+            }
             if ($order->status !== OrderStatus::Paid) {
                 throw new HttpException(409, 'Only a paid order can be shipped. Wait for payment before shipping it.');
             }
@@ -59,6 +64,9 @@ final readonly class ShipOrder
                     'updated_at' => $this->clock->now(),
                 ]);
 
+            // On the database queue this commits with the shipment. A failed signal is retried as a job.
+            $this->queue->within($transaction)->push(SignalOrderShipped::class, orderId: $id);
+
             $this->broadcast
                 ->within($transaction)
                 ->to("orders.{$id}")
@@ -69,12 +77,6 @@ final readonly class ShipOrder
                     'version' => $version,
                 ]);
         });
-
-        // After the commit: the run is resumed by it, and must find the order shipped.
-        $run = $this->db->table('orders')->where('id', $id)->value('follow_up_run');
-        if ($run !== null) {
-            $this->runs->signal((int) $run, 'shipped', ['at' => $this->clock->now()->format(DATE_ATOM)]);
-        }
 
         return ['id' => $id, 'status' => 'shipped'];
     }

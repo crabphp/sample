@@ -65,7 +65,7 @@ It uses SQLite. `shop:seed` makes 36 products, 12 people and about two weeks of 
 | `GET` | `/orders/{id}` | One of your orders, with its lines |
 | `POST` | `/products` | Add a product. Administrators |
 | `PUT` | `/products/{id}/stock` | `{"stock": 40}`. Administrators |
-| `PUT` | `/orders/{id}/ship` | Ship a paid order. Administrators |
+| `PUT` | `/orders/{id}/ship` | Ship a paid order. Administrators. Repeating a shipped order keeps its version and shipment time |
 
 The checked-in [OpenAPI 3.1 document](openapi.json) describes the same routes, their input validation, authentication, errors and typed responses. Generate it without starting a server, then check that the committed copy is current:
 
@@ -101,7 +101,7 @@ curl -s -X POST localhost:8080/orders -H "Authorization: Bearer $TOKEN" -H 'Cont
 | Streaming | `WatchStock` returns a generator, and each value it yields is a server-sent event, sent at once |
 | Client streaming | `AskAssistant` reads the pretend model's answer with `$http->stream()` and `events()`, and relays each word as it comes; `PretendModel` stands in for a language model's API (`shop.model_url`). `tests/AssistantTest.php` fakes the model with `FakeClient` |
 | Actors package | `app/Actors/ShoppingAssistant` is an actor: one per customer, `ChatWithAssistant` asks it, and it keeps the conversation in its variables until a minute without a question. With Redis it runs in the `actors` server, so a customer has one assistant whichever HTTP worker their request lands on. `tests/AssistantChatTest.php` |
-| Runs package | `FollowUpOrder` waits for its order to ship, sleeps three days, then asks for a review; `ShipOrder` signals it. `php cua runs:list` |
+| Runs package | `FollowUpOrder` waits for its order to ship, sleeps three days, then asks for a review; `ShipOrder` queues `SignalOrderShipped` to signal it. `php cua runs:list` |
 | Retries and failed jobs | The pretend mail server refuses some messages (`mail.fail_rate` in `config/mail.php`) |
 | Scheduling | `app/Setup.php`: every ten seconds, every minute, daily |
 | Clock injection | Actions and file mail take `ClockInterface`; tests use `FrozenClock` |
@@ -121,9 +121,11 @@ What happens when an order is placed:
 3. The queue's workers run both. The confirmation is a file in `storage/mail/`. Refused messages are tried again, up to four times.
 4. The scheduler marks the order paid ten seconds or so later. One order in ten is never paid; `orders:cancel-stale` cancels it after two minutes and puts its stock back.
 5. Every minute a "delivery" adds 60 to products with stock below 10; customers may find a product out of stock before the next delivery.
-6. The listener also starts a `FollowUpOrder` run. It waits, holding no worker, until an administrator ships the order, then three days for it to arrive, and then writes to ask for a review.
+6. The listener also starts a `FollowUpOrder` run. It waits, holding no worker, until an administrator or the dispatch desk ships the order, then three days for it to arrive, and then writes to ask for a review. The shipment and its signal job commit together on the database queue; a failed signal is retried by a worker. A listener delayed until after shipping queues the signal too.
 
 After the order commits, a listener failure is logged and the action still returns `201`; some jobs or cache invalidation may be skipped, with no outbox recovery in this sample.
+
+With the Redis queue, jobs are pushed after the transaction commits. A process that dies between commit and push can lose a job; repeating the shipping request queues its signal again. Mail is delivered at least once: a crash after sending but before recording completion can send it again, including a run's review request.
 
 ## Commands
 
