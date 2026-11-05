@@ -30,6 +30,13 @@ php cua shop:traffic     # thirty seconds of pretend customers
 
 Open the dashboard at <http://127.0.0.1:8080/clockwerk?token=sample>.
 
+Open the server-rendered shop at <http://127.0.0.1:8080/shop>. It has the
+catalogue with search, category, colour and price filters, product pages, a
+browser cart, checkout and a public order receipt. The cart is kept in browser
+local storage and the complete cart is posted at checkout, so these pages do
+not need a session or cookie authentication. Checkout uses one of the seeded
+accounts (ada@example.com / password) for the existing order transaction.
+
 It uses SQLite. `shop:seed` makes 36 products, 12 people and about two weeks of orders, the same ones every time. Everyone's password is `password`: `ada@example.com` is a customer, `admin@example.com` an administrator.
 
 ## The API
@@ -80,6 +87,7 @@ curl -s -X POST localhost:8080/orders -H "Authorization: Bearer $TOKEN" -H 'Cont
 
 | Part of the framework | Where to look |
 | --- | --- |
+| Arc templates and components | `resources/views/`, `app/Actions/Shop*.php`, and `app.php`; the shop is built from capitalised Arc components and named slots |
 | Actions and validation by signature | `app/Actions/`; `PlaceOrder` takes `app/Http/OrderInput.php`, with `#[ListOf]` validating each `OrderLineInput` |
 | Routes, groups, middleware | `routes/web.php`, `app/Http/AdminsOnly.php` |
 | Token authentication | `Login`, `Register`, `app/Users.php` |
