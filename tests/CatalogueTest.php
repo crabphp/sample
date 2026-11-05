@@ -78,6 +78,14 @@ final class CatalogueTest extends ShopTestCase
         );
     }
 
+    public function testTheColourFilterKeepsJsonNullApartFromTheTextNull(): void
+    {
+        $this->db->table('products')->where('id', 5)->update(['details' => '{"colour":"null"}']);
+        $products = $this->api->get('/products', ['colour' => 'null'])->assertStatus(200)->json('data');
+
+        self::assertSame([5], array_column($products, 'id'));
+    }
+
     public function testTheCatalogueIsChangedOnlyByAdministrators(): void
     {
         $product = [

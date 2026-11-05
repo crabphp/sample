@@ -36,10 +36,10 @@ final readonly class ListProducts
                 'category',
                 $search->category,
             ))
-            ->when($search->colour !== null, static fn(Query $query): Query => $query->where(
+            // MySQL unquotes JSON null to the text "null" when compared as a string.
+            ->when($search->colour !== null, static fn(Query $query): Query => $query->whereNotNull(
                 'details->colour',
-                $search->colour,
-            ))
+            )->where('details->colour', $search->colour))
             ->when($search->minPrice !== null, static fn(Query $query): Query => $query->where(
                 'price',
                 '>=',
