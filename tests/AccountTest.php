@@ -9,6 +9,18 @@ namespace Tests;
  */
 final class AccountTest extends ShopTestCase
 {
+    public function testAPasswordThatBcryptCannotHashIsRejectedBeforeCreatingAnAccount(): void
+    {
+        $this->api
+            ->post('/register', [
+                'email' => 'null@example.com',
+                'name' => 'Null Byte',
+                'password' => "correct\0horse",
+            ])
+            ->assertStatus(422);
+        self::assertFalse($this->db->table('users')->where('email', 'null@example.com')->exists());
+    }
+
     public function testGuessingAPasswordIsSlowedDown(): void
     {
         $statuses = [];

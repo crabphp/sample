@@ -8,6 +8,7 @@ use App\Http\NewProduct;
 use App\Http\OpenApiSchemas;
 use Crab\Contracts\Cache\Cache;
 use Crab\Contracts\Database\Database;
+use Crab\Database\DatabaseException;
 use Crab\Http\HttpException;
 use Crab\Http\Response;
 use Crab\OpenApi\Attributes\Response as ApiResponse;
@@ -33,17 +34,25 @@ final readonly class CreateProduct
         }
 
         $now = $this->clock->now()->format('Y-m-d H:i:s');
-        $id = $this->db
-            ->table('products')
-            ->insert([
-                'sku' => $product->sku,
-                'name' => $product->name,
-                'category' => $product->category,
-                'price' => $product->price,
-                'stock' => $product->stock,
-                'created_at' => $now,
-                'updated_at' => $now,
-            ]);
+        try {
+            $id = $this->db
+                ->table('products')
+                ->insert([
+                    'sku' => $product->sku,
+                    'name' => $product->name,
+                    'category' => $product->category,
+                    'price' => $product->price,
+                    'stock' => $product->stock,
+                    'created_at' => $now,
+                    'updated_at' => $now,
+                ]);
+        } catch (DatabaseException $error) {
+            // The unique index also covers a request that won after the existence check.
+            if ($error->sqlState() === '23000' && $this->db->table('products')->where('sku', $product->sku)->exists()) {
+                throw new HttpException(409, 'There is already a product with this SKU.', previous: $error);
+            }
+            throw $error;
+        }
 
         $this->cache->delete('categories');
 

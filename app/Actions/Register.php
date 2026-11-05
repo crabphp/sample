@@ -10,6 +10,7 @@ use App\User;
 use Crab\Contracts\Auth\PasswordHasher;
 use Crab\Contracts\Auth\TokenStore;
 use Crab\Contracts\Database\Database;
+use Crab\Database\DatabaseException;
 use Crab\Http\HttpException;
 use Crab\Http\Response;
 use Crab\OpenApi\Attributes\Response as ApiResponse;
@@ -46,16 +47,27 @@ final readonly class Register
         }
 
         $now = $this->clock->now()->format('Y-m-d H:i:s');
-        $id = $this->db
-            ->table('users')
-            ->insert([
-                'name' => $registration->name,
-                'email' => $registration->email,
-                'password' => $this->passwords->hash($registration->password),
-                'role' => 'member',
-                'created_at' => $now,
-                'updated_at' => $now,
-            ]);
+        try {
+            $id = $this->db
+                ->table('users')
+                ->insert([
+                    'name' => $registration->name,
+                    'email' => $registration->email,
+                    'password' => $this->passwords->hash($registration->password),
+                    'role' => 'member',
+                    'created_at' => $now,
+                    'updated_at' => $now,
+                ]);
+        } catch (DatabaseException $error) {
+            // The unique index also covers a request that won after the existence check.
+            if (
+                $error->sqlState() === '23000'
+                && $this->db->table('users')->where('email', $registration->email)->exists()
+            ) {
+                throw new HttpException(409, 'There is already an account with this email.', previous: $error);
+            }
+            throw $error;
+        }
         $user = new User((int) $id, $registration->name, $registration->email);
 
         return Response::created([
