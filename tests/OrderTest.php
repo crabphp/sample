@@ -18,6 +18,21 @@ use Crab\Contracts\Runs\Status;
  */
 final class OrderTest extends ShopTestCase
 {
+    public function testAnOrderCanHoldTheTotalOfEveryValidLine(): void
+    {
+        $this->db->table('products')->where('id', 1)->update(['price' => 100_000_000, 'stock' => 400]);
+        $placed = $this->api
+            ->actingAs($this->user('ada@example.com'))
+            ->post('/orders', [
+                'lines' => array_fill(0, 20, ['productId' => 1, 'quantity' => 20]),
+            ])
+            ->assertStatus(201);
+
+        self::assertSame(40_000_000_000, $placed->json('total'));
+        self::assertSame(40_000_000_000, $this->db->table('orders')->where('id', $placed->json('id'))->value('total'));
+        self::assertSame(0, $this->db->table('products')->where('id', 1)->value('stock'));
+    }
+
     public function testYourOrdersArePagedByACursorThatAnOrderPlacedMeanwhileDoesNotShift(): void
     {
         $at = ['created_at' => '2026-01-02 12:00:00', 'updated_at' => '2026-01-02 12:00:00'];

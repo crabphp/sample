@@ -174,4 +174,12 @@ composer openapi:check
 
 Shop integration tests each use a temporary database, a small set of known records and a frozen clock. They send requests through the real application and do not run the demo seeder. `OrderInputTest` checks the nested input without a database.
 
-`composer format` applies the shared Mago formatting rules. CI checks out the framework and packages on `main` beside the sample and runs these checks on PHP 8.4. The application keeps its dependencies at `@dev` through path repositories; the packages require framework `^0.6`, which the framework's `0.6.x-dev` branch alias satisfies.
+SQLite is the default. To run the same suite on MySQL, give it a server DSN and an account that can create and drop databases. Each test creates a random database of its own and drops it afterwards; it does not use the development shop:
+
+```sh
+SAMPLE_TEST_MYSQL_DSN='mysql:host=127.0.0.1;port=3306' SAMPLE_TEST_MYSQL_USER=root SAMPLE_TEST_MYSQL_PASSWORD='' composer test
+```
+
+Existing shops must run `php cua migrate` before starting the updated application. The new migration widens MySQL order totals to hold every accepted order; SQLite already uses 64-bit integers. Rolling that migration back refuses to narrow the column when a total would be lost.
+
+`composer format` applies the shared Mago formatting rules. CI checks out the framework and packages on `main` beside the sample and runs these checks on PHP 8.4, with both SQLite and MySQL. The application keeps its dependencies at `@dev` through path repositories; the packages require framework `^0.6`, which the framework's `0.6.x-dev` branch alias satisfies.

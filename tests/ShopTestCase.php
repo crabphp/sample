@@ -25,14 +25,30 @@ abstract class ShopTestCase extends TestCase
     protected string $directory;
     protected FrozenClock $clock;
     private array $environment = [];
+    private ?\PDO $mysql = null;
+    private ?string $mysqlDatabase = null;
 
     protected function setUp(): void
     {
         $this->directory = sys_get_temp_dir() . '/crab-sample-' . bin2hex(random_bytes(6));
         mkdir($this->directory . '/mail', recursive: true);
+        $dsn = 'sqlite:' . $this->directory . '/shop.sqlite';
+        if (($server = getenv('SAMPLE_TEST_MYSQL_DSN')) !== false) {
+            $this->mysql = new \PDO(
+                $server,
+                getenv('SAMPLE_TEST_MYSQL_USER') ?: 'root',
+                getenv('SAMPLE_TEST_MYSQL_PASSWORD') ?: '',
+            );
+            $this->mysqlDatabase = 'crab_sample_' . bin2hex(random_bytes(8));
+            $this->mysql->exec('CREATE DATABASE ' . $this->mysqlDatabase . ' CHARACTER SET utf8mb4');
+            $dsn = $server . ';dbname=' . $this->mysqlDatabase;
+        }
         // The real environment is read before .env, so a test can have a shop of its own.
         foreach ([
-            'DB_DSN' => 'sqlite:' . $this->directory . '/shop.sqlite',
+            'DB_DSN' => $dsn,
+            'DB_USERNAME' => $this->mysql === null ? '' : (getenv('SAMPLE_TEST_MYSQL_USER') ?: 'root'),
+            'DB_PASSWORD' => $this->mysql === null ? '' : (getenv('SAMPLE_TEST_MYSQL_PASSWORD') ?: ''),
+            'DB_ASYNC' => 'false',
             'CACHE_STORE' => 'array',
             'QUEUE_STORE' => 'database',
             'BROADCAST_CARRIER' => 'local',
@@ -63,6 +79,10 @@ abstract class ShopTestCase extends TestCase
     protected function tearDown(): void
     {
         $this->api->closeSockets();
+        if ($this->mysql !== null) {
+            $this->mysql->exec('DROP DATABASE ' . $this->mysqlDatabase);
+            $this->mysql = null;
+        }
         foreach ([...(glob($this->directory . '/*/*') ?: []), ...(glob($this->directory . '/*.*') ?: [])] as $file) {
             unlink($file);
         }
