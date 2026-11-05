@@ -13,6 +13,5 @@ final readonly class OrderLineInput
 
         #[Range(min: 1, max: 20)]
         public ?int $quantity = 1,
-    ) {
-    }
+    ) {}
 }

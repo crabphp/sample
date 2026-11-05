@@ -16,9 +16,10 @@ use Crab\OpenApi\Attributes\Response;
  */
 final readonly class ListCategories
 {
-    public function __construct(private Database $db, private Cache $cache)
-    {
-    }
+    public function __construct(
+        private Database $db,
+        private Cache $cache,
+    ) {}
 
     /**
      * @return list<array{category: string, products: int, in_stock: int}>
@@ -27,7 +28,8 @@ final readonly class ListCategories
     public function handle(): array
     {
         return $this->cache->remember('categories', 60, function (): array {
-            $categories = $this->db->table('products')
+            $categories = $this->db
+                ->table('products')
                 ->select('category')
                 ->selectRaw('COUNT(*) AS products')
                 ->selectRaw('SUM(CASE WHEN stock > 0 THEN 1 ELSE 0 END) AS in_stock')
@@ -35,7 +37,7 @@ final readonly class ListCategories
                 ->orderBy('category')
                 ->get();
 
-            return array_map(static fn (array $row): array => [
+            return array_map(static fn(array $row): array => [
                 'category' => (string) $row['category'],
                 'products' => (int) $row['products'],
                 'in_stock' => (int) $row['in_stock'],

@@ -9,7 +9,7 @@ use Crab\Contracts\Database\Table;
 return new class implements Migration {
     public function up(Schema $schema): void
     {
-        $schema->create('auth_tokens', function (Table $table) {
+        $schema->create('auth_tokens', static function (Table $table) {
             $table->id();
             // The id of the user the token belongs to, as text so that any kind of id fits.
             $table->string('owner_id', 64)->index();

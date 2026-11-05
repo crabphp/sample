@@ -1,0 +1,63 @@
+name: Checks
+
+on: [push, pull_request]
+
+permissions:
+  contents: read
+
+jobs:
+  sample:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: sample
+      - uses: actions/checkout@v4
+        with:
+          repository: crabphp/framework
+          ref: main
+          path: framework
+      - uses: actions/checkout@v4
+        with:
+          repository: crabphp/runs
+          ref: main
+          path: runs
+      - uses: actions/checkout@v4
+        with:
+          repository: crabphp/actors
+          ref: main
+          path: actors
+      - uses: actions/checkout@v4
+        with:
+          repository: crabphp/redis
+          ref: main
+          path: redis
+      - uses: actions/checkout@v4
+        with:
+          repository: crabphp/clockwerk
+          ref: main
+          path: clockwerk
+      - uses: actions/checkout@v4
+        with:
+          repository: crabphp/openapi
+          ref: main
+          path: openapi
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          extensions: mbstring, pdo_sqlite, pcntl, posix
+          coverage: none
+          tools: composer:v2
+      - run: composer install --no-interaction --prefer-dist
+        working-directory: sample
+      # The path repositories deliberately use unbounded @dev constraints.
+      - run: composer validate --strict --no-check-all
+        working-directory: sample
+      - run: composer format:check
+        working-directory: sample
+      - run: composer lint
+        working-directory: sample
+      - run: composer test
+        working-directory: sample
+      - run: composer openapi:check
+        working-directory: sample

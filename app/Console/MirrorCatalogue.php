@@ -25,9 +25,9 @@ final readonly class MirrorCatalogue implements Command
      */
     private const MAX_BYTES = 8 * 1024 * 1024;
 
-    public function __construct(private Client $http)
-    {
-    }
+    public function __construct(
+        private Client $http,
+    ) {}
 
     public function description(): string
     {
@@ -47,11 +47,10 @@ final readonly class MirrorCatalogue implements Command
         }
         $file = (string) config('shop.catalogue');
 
-        $this->http->timeout(120)->request('GET', "{$url}/products.csv",
-            sink: $file,
-            maxBytes: self::MAX_BYTES,
-            decode: false,
-        )->throw();
+        $this->http
+            ->timeout(120)
+            ->request('GET', "{$url}/products.csv", sink: $file, maxBytes: self::MAX_BYTES, decode: false)
+            ->throw();
 
         $output->line(sprintf('Saved %s: %d bytes, sha256 %s.', $file, filesize($file), hash_file('sha256', $file)));
         return 0;

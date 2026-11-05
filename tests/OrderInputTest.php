@@ -15,11 +15,13 @@ final class OrderInputTest extends TestCase
 {
     public function testOrderLinesKeepTheQuantityDefaultAndAcceptNull(): void
     {
-        $order = (new Validator())->validate(OrderInput::class, ['lines' => [
-            ['productId' => 1],
-            ['productId' => 2, 'quantity' => null],
-            ['productId' => 3, 'quantity' => 4],
-        ]]);
+        $order = new Validator()->validate(OrderInput::class, [
+            'lines' => [
+                ['productId' => 1],
+                ['productId' => 2, 'quantity' => null],
+                ['productId' => 3, 'quantity' => 4],
+            ],
+        ]);
 
         self::assertContainsOnlyInstancesOf(OrderLineInput::class, $order->lines);
         self::assertSame([1, 2, 3], array_column($order->lines, 'productId'));
@@ -28,7 +30,7 @@ final class OrderInputTest extends TestCase
 
     public function testAnOrderAcceptsTheMaximumNumberOfLinesAndQuantity(): void
     {
-        $order = (new Validator())->validate(OrderInput::class, [
+        $order = new Validator()->validate(OrderInput::class, [
             'lines' => array_fill(0, 20, ['productId' => 1, 'quantity' => 20]),
         ]);
 
@@ -43,7 +45,7 @@ final class OrderInputTest extends TestCase
     public function testInvalidOrderDataNamesTheField(array $data, string $field): void
     {
         try {
-            (new Validator())->validate(OrderInput::class, $data);
+            new Validator()->validate(OrderInput::class, $data);
             self::fail('Invalid order data was accepted.');
         } catch (ValidationException $error) {
             self::assertArrayHasKey($field, $error->errors);

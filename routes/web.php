@@ -16,21 +16,22 @@ use App\Actions\PretendModel;
 use App\Actions\Ready;
 use App\Actions\Register;
 use App\Actions\SetStock;
+use App\Actions\ShipOrder;
 use App\Actions\ShowOrder;
 use App\Actions\ShowProduct;
-use App\Actions\ShipOrder;
 use App\Actions\WatchOrder;
 use App\Actions\WatchStock;
 use App\Http\AdminsOnly;
 use App\Http\OpenApiSchemas;
 use App\User;
-use Crab\Auth\TokenAuth;
 use Crab\Auth\Ticket;
+use Crab\Auth\TokenAuth;
 use Crab\Http\RateLimit;
 use Crab\OpenApi\Attributes\Response;
 use Crab\Route;
 
-Route::get('/', #[Response(200, body: OpenApiSchemas::HOME)] static fn (): array => [
+Route::get('/', #[Response(200, body: OpenApiSchemas::HOME)]
+static fn(): array => [
     'name' => config('app.name'),
     'docs' => 'See README.md for the routes.',
 ]);
@@ -42,7 +43,7 @@ Route::get('/ready', Ready::class);
 Route::get('/products', ListProducts::class);
 Route::get('/products.csv', ExportProducts::class);
 Route::get('/products/{id}', ShowProduct::class);
-Route::get('/products/{id}/stock', WatchStock::class);  // server-sent events, live
+Route::get('/products/{id}/stock', WatchStock::class); // server-sent events, live
 Route::get('/categories', ListCategories::class);
 
 // The assistant streams a model's answer as it comes; the model is pretend, as the warehouse is.
@@ -58,8 +59,8 @@ Route::websocket('/orders/{id}/live', WatchOrder::class)->middleware(Ticket::cla
 
 Route::middleware(TokenAuth::class)->group(static function (): void {
     Route::post('/ws/ticket', IssueTicket::class);
-    Route::get('/me', #[Response(200, body: OpenApiSchemas::USER)] static fn (User $user): User => $user);
-    Route::post('/assistant/chat', ChatWithAssistant::class);   // your own assistant, an actor that remembers
+    Route::get('/me', #[Response(200, body: OpenApiSchemas::USER)] static fn(User $user): User => $user);
+    Route::post('/assistant/chat', ChatWithAssistant::class); // your own assistant, an actor that remembers
     Route::get('/orders', ListMyOrders::class);
     Route::post('/orders', PlaceOrder::class);
     Route::get('/orders/{id}', ShowOrder::class);

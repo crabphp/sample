@@ -12,14 +12,14 @@ use Crab\Contracts\Database\Table;
 return new class implements Migration {
     public function up(Schema $schema): void
     {
-        $schema->table('runs', function (Table $table): void {
+        $schema->table('runs', static function (Table $table): void {
             $table->string('claim', 32)->nullable();
         });
     }
 
     public function down(Schema $schema): void
     {
-        $schema->table('runs', function (Table $table): void {
+        $schema->table('runs', static function (Table $table): void {
             $table->dropColumn('claim');
         });
     }

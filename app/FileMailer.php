@@ -20,12 +20,11 @@ final readonly class FileMailer implements Mailer
         private string $directory,
         private ClockInterface $clock,
         private float $failRate = 0.0,
-    ) {
-    }
+    ) {}
 
     public function send(string $to, string $subject, string $body): void
     {
-        if ($this->failRate > 0 && mt_rand() / mt_getrandmax() < $this->failRate) {
+        if ($this->failRate > 0 && (mt_rand() / mt_getrandmax()) < $this->failRate) {
             throw new \RuntimeException("The mail server refused the message to {$to}: 451 try again later");
         }
 
@@ -33,7 +32,8 @@ final readonly class FileMailer implements Mailer
             throw new \RuntimeException("The mail folder {$this->directory} cannot be created.");
         }
 
-        $file = $this->directory . '/' . $this->clock->now()->format('Ymd-His') . '-' . bin2hex(random_bytes(4)) . '.txt';
+        $file =
+            $this->directory . '/' . $this->clock->now()->format('Ymd-His') . '-' . bin2hex(random_bytes(4)) . '.txt';
         $message = "To: {$to}\nSubject: {$subject}\n\n{$body}\n";
         if (@file_put_contents($file, $message) !== strlen($message)) {
             throw new \RuntimeException("The message to {$to} could not be written to {$file}.");

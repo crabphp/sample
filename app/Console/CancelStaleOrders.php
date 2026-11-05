@@ -20,8 +20,7 @@ final readonly class CancelStaleOrders implements Command
         private Cache $cache,
         private Broadcaster $broadcast,
         private ClockInterface $clock,
-    ) {
-    }
+    ) {}
 
     public function description(): string
     {
@@ -34,7 +33,8 @@ final readonly class CancelStaleOrders implements Command
         $before = $now->modify('-' . (int) config('shop.cancel_after') . ' minutes')->format('Y-m-d H:i:s');
 
         $cancelled = $this->db->transaction(function (Connection $db) use ($before, $now): int {
-            $orders = $db->table('orders')
+            $orders = $db
+                ->table('orders')
                 ->where('status', 'pending')
                 ->where('created_at', '<=', $before)
                 ->select('id', 'version')
@@ -46,7 +46,8 @@ final readonly class CancelStaleOrders implements Command
             }
 
             $ids = array_column($orders, 'id');
-            $stock = $db->table('order_items')
+            $stock = $db
+                ->table('order_items')
                 ->whereIn('order_id', $ids)
                 ->select('product_id')
                 ->selectRaw('SUM(quantity) AS quantity')
@@ -56,24 +57,31 @@ final readonly class CancelStaleOrders implements Command
 
             // Restore each product once, in the same lock order used when placing orders.
             foreach ($stock as $line) {
-                $db->table('products')
+                $db
+                    ->table('products')
                     ->where('id', $line['product_id'])
                     ->increment('stock', (int) $line['quantity']);
             }
 
-            $db->table('orders')->whereIn('id', $ids)->increment('version', 1, [
-                'status' => 'cancelled',
-                'updated_at' => $now->format('Y-m-d H:i:s'),
-            ]);
+            $db
+                ->table('orders')
+                ->whereIn('id', $ids)
+                ->increment('version', 1, [
+                    'status' => 'cancelled',
+                    'updated_at' => $now->format('Y-m-d H:i:s'),
+                ]);
 
             foreach ($orders as $order) {
                 $id = (int) $order['id'];
-                $this->broadcast->within($db)->to("orders.{$id}")->send([
-                    'type' => 'status',
-                    'id' => $id,
-                    'status' => 'cancelled',
-                    'version' => (int) $order['version'] + 1,
-                ]);
+                $this->broadcast
+                    ->within($db)
+                    ->to("orders.{$id}")
+                    ->send([
+                        'type' => 'status',
+                        'id' => $id,
+                        'status' => 'cancelled',
+                        'version' => (int) $order['version'] + 1,
+                    ]);
             }
 
             return count($ids);

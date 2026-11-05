@@ -24,20 +24,25 @@ final readonly class SetStock
         private Database $db,
         private Cache $cache,
         private ClockInterface $clock,
-    ) {
-    }
+    ) {}
 
     /**
      * @return array<string, mixed>
      */
     #[Response(200, body: OpenApiSchemas::PRODUCT)]
     #[Response(404, description: 'No such product.')]
-    public function handle(int $id, #[Fields(['stock' => ['int', new Range(min: 0, max: 100_000)]])] Data $change): array
-    {
-        $updated = $this->db->table('products')->where('id', $id)->update([
-            'stock' => $change->stock,
-            'updated_at' => $this->clock->now()->format('Y-m-d H:i:s'),
-        ]);
+    public function handle(
+        int $id,
+        #[Fields(['stock' => ['int', new Range(min: 0, max: 100_000)]])]
+        Data $change,
+    ): array {
+        $updated = $this->db
+            ->table('products')
+            ->where('id', $id)
+            ->update([
+                'stock' => $change->stock,
+                'updated_at' => $this->clock->now()->format('Y-m-d H:i:s'),
+            ]);
 
         // An existing product can report zero changed rows when its stock is unchanged.
         if ($updated === 0 && !$this->db->table('products')->where('id', $id)->exists()) {

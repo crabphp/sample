@@ -9,7 +9,7 @@ use Crab\Contracts\Database\Table;
 return new class implements Migration {
     public function up(Schema $schema): void
     {
-        $schema->create('jobs', function (Table $table) {
+        $schema->create('jobs', static function (Table $table) {
             $table->id();
             $table->string('queue');
             // The job's class, and the arguments of its handle() as JSON.

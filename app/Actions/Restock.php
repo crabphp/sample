@@ -20,12 +20,12 @@ final readonly class Restock
         private Cache $cache,
         private LoggerInterface $log,
         private ClockInterface $clock,
-    ) {
-    }
+    ) {}
 
     public function handle(): void
     {
-        $filled = $this->db->table('products')
+        $filled = $this->db
+            ->table('products')
             ->where('stock', '<', 10)
             ->increment('stock', 60, ['updated_at' => $this->clock->now()->format('Y-m-d H:i:s')]);
 

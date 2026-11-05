@@ -23,8 +23,7 @@ final readonly class DispatchOrders implements Command
     public function __construct(
         private Database $db,
         private ShipOrder $ship,
-    ) {
-    }
+    ) {}
 
     public function description(): string
     {
@@ -49,7 +48,12 @@ final readonly class DispatchOrders implements Command
         });
 
         while (!$stopping) {
-            $order = $this->db->table('orders')->where('status', 'paid')->orderBy('id')->select('id')->first();
+            $order = $this->db
+                ->table('orders')
+                ->where('status', 'paid')
+                ->orderBy('id')
+                ->select('id')
+                ->first();
             if ($order === null) {
                 sleep(1);
                 continue;

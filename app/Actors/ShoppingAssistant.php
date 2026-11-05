@@ -24,14 +24,13 @@ final readonly class ShoppingAssistant
     public function __construct(
         private Database $db,
         private Client $http,
-    ) {
-    }
+    ) {}
 
     public function handle(Inbox $inbox, string $key): void
     {
-        $turns = [];       // what was asked and answered, for the model
-        $shown = [];       // the products already suggested, not suggested again
-        $shelf = null;     // the category the conversation is about
+        $turns = []; // what was asked and answered, for the model
+        $shown = []; // the products already suggested, not suggested again
+        $shelf = null; // the category the conversation is about
 
         foreach ($inbox as $message) {
             $question = (string) ($message->data['question'] ?? '');
@@ -49,7 +48,15 @@ final readonly class ShoppingAssistant
             }
 
             $answer = '';
-            $reply = $this->http->timeout(30)->request('POST', config('shop.model_url') . '/model/chat', json: ['prompt' => $prompt], cancellation: $inbox->cancellation())->throw();
+            $reply = $this->http
+                ->timeout(30)
+                ->request(
+                    'POST',
+                    config('shop.model_url') . '/model/chat',
+                    json: ['prompt' => $prompt],
+                    cancellation: $inbox->cancellation(),
+                )
+                ->throw();
             foreach ($reply->events() as $event) {
                 if ($event->data === '[DONE]') {
                     break;
@@ -80,18 +87,21 @@ final readonly class ShoppingAssistant
             preg_split('/\W+/', strtolower($question), flags: PREG_SPLIT_NO_EMPTY) ?: [],
             static fn(string $word): bool => strlen($word) > 2,
         ));
-        $query = fn() => $this->db->table('products')
+        $query = fn() => $this->db
+            ->table('products')
             ->where('stock', '>', 0)
             ->when($shown !== [], static fn($query) => $query->whereNotIn('id', $shown))
             ->orderBy('id')
             ->limit(3)
             ->select('id', 'name', 'category', 'price');
 
-        $named = $words === [] ? [] : $query()->where(static function ($query) use ($words): void {
-            foreach ($words as $word) {
-                $query->orWhere('name', 'like', "%{$word}%")->orWhere('category', $word);
-            }
-        })->get();
+        $named = $words === []
+            ? []
+            : $query()->where(static function ($query) use ($words): void {
+                foreach ($words as $word) {
+                    $query->orWhere('name', 'like', "%{$word}%")->orWhere('category', $word);
+                }
+            })->get();
         if ($named !== [] || $shelf === null) {
             return $named;
         }

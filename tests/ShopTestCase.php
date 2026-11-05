@@ -32,10 +32,17 @@ abstract class ShopTestCase extends TestCase
         mkdir($this->directory . '/mail', recursive: true);
         // The real environment is read before .env, so a test can have a shop of its own.
         foreach ([
-            'DB_DSN' => 'sqlite:' . $this->directory . '/shop.sqlite', 'CACHE_STORE' => 'array', 'QUEUE_STORE' => 'database',
+            'DB_DSN' => 'sqlite:' . $this->directory . '/shop.sqlite',
+            'CACHE_STORE' => 'array',
+            'QUEUE_STORE' => 'database',
             'BROADCAST_CARRIER' => 'local',
-            'LOG_PATH' => $this->directory . '/app.log', 'MAIL_PATH' => $this->directory . '/mail', 'MAIL_FAIL_RATE' => '0',
-            'REPORTS_PATH' => $this->directory . '/reports', 'CATALOGUE_PATH' => $this->directory . '/catalogue.csv', 'WAREHOUSE_URL' => '', 'CLOCKWERK_TOKEN' => 'test-token',
+            'LOG_PATH' => $this->directory . '/app.log',
+            'MAIL_PATH' => $this->directory . '/mail',
+            'MAIL_FAIL_RATE' => '0',
+            'REPORTS_PATH' => $this->directory . '/reports',
+            'CATALOGUE_PATH' => $this->directory . '/catalogue.csv',
+            'WAREHOUSE_URL' => '',
+            'CLOCKWERK_TOKEN' => 'test-token',
         ] as $name => $value) {
             $this->environment[$name] = getenv($name);
             putenv("{$name}={$value}");
@@ -88,27 +95,110 @@ abstract class ShopTestCase extends TestCase
         static $password = null;
         $password ??= password_hash('password', PASSWORD_BCRYPT, ['cost' => 4]);
         $timestamps = ['created_at' => '2026-01-01 12:00:00', 'updated_at' => '2026-01-01 12:00:00'];
-        $this->db->table('users')->insertMany([
-            ['id' => 1, 'name' => 'Admin', 'email' => 'admin@example.com', 'password' => $password, 'role' => 'admin', ...$timestamps],
-            ['id' => 2, 'name' => 'Ada', 'email' => 'ada@example.com', 'password' => $password, 'role' => 'member', ...$timestamps],
-            ['id' => 3, 'name' => 'Grace', 'email' => 'grace@example.com', 'password' => $password, 'role' => 'member', ...$timestamps],
-        ]);
-        $this->db->table('products')->insertMany([
-            ['id' => 1, 'sku' => 'KIT-001', 'name' => 'Stoneware Mug', 'category' => 'kitchen', 'price' => 1400, 'stock' => 30, 'details' => '{"colour": "blue", "dishwasherSafe": true}', ...$timestamps],
-            ['id' => 2, 'sku' => 'KIT-002', 'name' => 'Pour-over Kettle', 'category' => 'kitchen', 'price' => 6200, 'stock' => 20, 'details' => '{"colour": "black"}', ...$timestamps],
-            ['id' => 3, 'sku' => 'DSK-001', 'name' => 'Grid Notebook', 'category' => 'desk', 'price' => 800, 'stock' => 50, 'details' => null, ...$timestamps],
-            ['id' => 4, 'sku' => 'DSK-002', 'name' => 'Desk Lamp', 'category' => 'desk', 'price' => 4200, 'stock' => 10, 'details' => '{"colour": "black"}', ...$timestamps],
-            ['id' => 5, 'sku' => 'HOM-001', 'name' => 'Cotton Blanket', 'category' => 'home', 'price' => 8900, 'stock' => 12, 'details' => '{"colour": "blue"}', ...$timestamps],
-            ['id' => 6, 'sku' => 'HOM-002', 'name' => 'Linen Cushion', 'category' => 'home', 'price' => 2500, 'stock' => 0, 'details' => '{"colour": null}', ...$timestamps],
-        ]);
-        $this->db->table('orders')->insertMany([
-            ['id' => 1, 'user_id' => 2, 'status' => 'paid', 'total' => 1400, ...$timestamps],
-            ['id' => 2, 'user_id' => 3, 'status' => 'paid', 'total' => 6200, ...$timestamps],
-        ]);
-        $this->db->table('order_items')->insertMany([
-            ['order_id' => 1, 'product_id' => 1, 'quantity' => 1, 'price' => 1400],
-            ['order_id' => 2, 'product_id' => 2, 'quantity' => 1, 'price' => 6200],
-        ]);
+        $this->db
+            ->table('users')
+            ->insertMany([
+                [
+                    'id' => 1,
+                    'name' => 'Admin',
+                    'email' => 'admin@example.com',
+                    'password' => $password,
+                    'role' => 'admin',
+                    ...$timestamps,
+                ],
+                [
+                    'id' => 2,
+                    'name' => 'Ada',
+                    'email' => 'ada@example.com',
+                    'password' => $password,
+                    'role' => 'member',
+                    ...$timestamps,
+                ],
+                [
+                    'id' => 3,
+                    'name' => 'Grace',
+                    'email' => 'grace@example.com',
+                    'password' => $password,
+                    'role' => 'member',
+                    ...$timestamps,
+                ],
+            ]);
+        $this->db
+            ->table('products')
+            ->insertMany([
+                [
+                    'id' => 1,
+                    'sku' => 'KIT-001',
+                    'name' => 'Stoneware Mug',
+                    'category' => 'kitchen',
+                    'price' => 1400,
+                    'stock' => 30,
+                    'details' => '{"colour": "blue", "dishwasherSafe": true}',
+                    ...$timestamps,
+                ],
+                [
+                    'id' => 2,
+                    'sku' => 'KIT-002',
+                    'name' => 'Pour-over Kettle',
+                    'category' => 'kitchen',
+                    'price' => 6200,
+                    'stock' => 20,
+                    'details' => '{"colour": "black"}',
+                    ...$timestamps,
+                ],
+                [
+                    'id' => 3,
+                    'sku' => 'DSK-001',
+                    'name' => 'Grid Notebook',
+                    'category' => 'desk',
+                    'price' => 800,
+                    'stock' => 50,
+                    'details' => null,
+                    ...$timestamps,
+                ],
+                [
+                    'id' => 4,
+                    'sku' => 'DSK-002',
+                    'name' => 'Desk Lamp',
+                    'category' => 'desk',
+                    'price' => 4200,
+                    'stock' => 10,
+                    'details' => '{"colour": "black"}',
+                    ...$timestamps,
+                ],
+                [
+                    'id' => 5,
+                    'sku' => 'HOM-001',
+                    'name' => 'Cotton Blanket',
+                    'category' => 'home',
+                    'price' => 8900,
+                    'stock' => 12,
+                    'details' => '{"colour": "blue"}',
+                    ...$timestamps,
+                ],
+                [
+                    'id' => 6,
+                    'sku' => 'HOM-002',
+                    'name' => 'Linen Cushion',
+                    'category' => 'home',
+                    'price' => 2500,
+                    'stock' => 0,
+                    'details' => '{"colour": null}',
+                    ...$timestamps,
+                ],
+            ]);
+        $this->db
+            ->table('orders')
+            ->insertMany([
+                ['id' => 1, 'user_id' => 2, 'status' => 'paid', 'total' => 1400, ...$timestamps],
+                ['id' => 2, 'user_id' => 3, 'status' => 'paid', 'total' => 6200, ...$timestamps],
+            ]);
+        $this->db
+            ->table('order_items')
+            ->insertMany([
+                ['order_id' => 1, 'product_id' => 1, 'quantity' => 1, 'price' => 1400],
+                ['order_id' => 2, 'product_id' => 2, 'quantity' => 1, 'price' => 6200],
+            ]);
     }
 
     /**

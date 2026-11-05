@@ -16,6 +16,5 @@ final readonly class OrderSummary
         public int $total,
         public ?\DateTimeImmutable $created_at,
         public int $items,
-    ) {
-    }
+    ) {}
 }

@@ -20,13 +20,16 @@ final readonly class QueueOrderWork
         private Queue $queue,
         private Runs $runs,
         private Database $db,
-    ) {
-    }
+    ) {}
 
     public function handle(OrderPlaced $event): void
     {
         $this->queue->on('mail')->push(SendOrderConfirmation::class, orderId: $event->orderId);
-        $this->queue->on('warehouse')->push(SyncInventory::class, orderId: $event->orderId, productIds: $event->productIds);
+        $this->queue->on('warehouse')->push(
+            SyncInventory::class,
+            orderId: $event->orderId,
+            productIds: $event->productIds,
+        );
 
         $run = $this->runs->start(FollowUpOrder::class, orderId: $event->orderId);
         $this->db->table('orders')->where('id', $event->orderId)->update(['follow_up_run' => $run]);

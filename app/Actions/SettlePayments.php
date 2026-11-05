@@ -23,8 +23,7 @@ final readonly class SettlePayments
         private LoggerInterface $log,
         private Broadcaster $broadcast,
         private ClockInterface $clock,
-    ) {
-    }
+    ) {}
 
     public function handle(): void
     {
@@ -32,7 +31,8 @@ final readonly class SettlePayments
         $before = $now->modify('-' . (int) config('shop.settle_after') . ' seconds')->format('Y-m-d H:i:s');
 
         $settled = $this->db->transaction(function (Connection $transaction) use ($before, $now): int {
-            $orders = $transaction->table('orders')
+            $orders = $transaction
+                ->table('orders')
                 ->where('status', 'pending')
                 ->where('created_at', '<=', $before)
                 ->whereRaw('id % 10 <> 0')
@@ -44,7 +44,8 @@ final readonly class SettlePayments
                 return 0;
             }
 
-            $transaction->table('orders')
+            $transaction
+                ->table('orders')
                 ->whereIn('id', array_column($orders, 'id'))
                 ->increment('version', 1, [
                     'status' => 'paid',
@@ -53,12 +54,15 @@ final readonly class SettlePayments
 
             foreach ($orders as $order) {
                 $id = (int) $order['id'];
-                $this->broadcast->within($transaction)->to("orders.{$id}")->send([
-                    'type' => 'status',
-                    'id' => $id,
-                    'status' => 'paid',
-                    'version' => (int) $order['version'] + 1,
-                ]);
+                $this->broadcast
+                    ->within($transaction)
+                    ->to("orders.{$id}")
+                    ->send([
+                        'type' => 'status',
+                        'id' => $id,
+                        'status' => 'paid',
+                        'version' => (int) $order['version'] + 1,
+                    ]);
             }
 
             return count($orders);

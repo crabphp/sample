@@ -138,6 +138,11 @@ After the order commits, a listener failure is logged and the action still retur
 
 ```sh
 composer test
+composer format:check
+composer lint
+composer openapi:check
 ```
 
 Shop integration tests each use a temporary database, a small set of known records and a frozen clock. They send requests through the real application and do not run the demo seeder. `OrderInputTest` checks the nested input without a database.
+
+`composer format` applies the shared Mago formatting rules. CI checks out the framework and packages on `main` beside the sample and runs these checks on PHP 8.4. The application keeps its dependencies at `@dev` through path repositories; the packages require framework `^0.6`, which the framework's `0.6.x-dev` branch alias satisfies.

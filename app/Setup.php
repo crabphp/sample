@@ -10,9 +10,6 @@ use App\Actions\QueueOrderWork;
 use App\Actions\Restock;
 use App\Actions\SettlePayments;
 use App\Events\OrderPlaced;
-use App\FileMailer;
-use App\Mailer;
-use App\Users;
 use Crab\Contracts\Auth\IdentityResolver;
 use Crab\Contracts\Container\Container;
 use Crab\Contracts\Events\Dispatcher;
@@ -32,11 +29,14 @@ final class Setup implements Plugin
     public function register(Container $container): void
     {
         $container->singleton(IdentityResolver::class, Users::class);
-        $container->singleton(Mailer::class, static fn (Container $container): Mailer => new FileMailer(
-            directory: (string) config('mail.path'),
-            clock: $container->get(ClockInterface::class),
-            failRate: (float) config('mail.fail_rate'),
-        ));
+        $container->singleton(
+            Mailer::class,
+            static fn(Container $container): Mailer => new FileMailer(
+                directory: (string) config('mail.path'),
+                clock: $container->get(ClockInterface::class),
+                failRate: (float) config('mail.fail_rate'),
+            ),
+        );
 
         $limit = config('shop.max_requests');
         if ($limit !== null) {

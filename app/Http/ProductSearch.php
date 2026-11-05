@@ -35,6 +35,5 @@ final readonly class ProductSearch
         public int $page = 1,
         #[Range(min: 1, max: 50)]
         public int $perPage = 12,
-    ) {
-    }
+    ) {}
 }

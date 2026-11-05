@@ -10,7 +10,7 @@ return new class implements Migration {
     public function up(Schema $schema): void
     {
         // What each worker counted, by minute: requests by route, jobs by class, tasks by name.
-        $schema->create('clockwerk_metrics', function (Table $table) {
+        $schema->create('clockwerk_metrics', static function (Table $table) {
             $table->id();
             $table->string('worker', 60);
             $table->string('kind', 16);
@@ -27,7 +27,7 @@ return new class implements Migration {
             $table->index(['kind', 'bucket']);
         });
         // What is read one by one: exceptions, with where they came from.
-        $schema->create('clockwerk_events', function (Table $table) {
+        $schema->create('clockwerk_events', static function (Table $table) {
             $table->id();
             $table->string('kind', 16);
             $table->bigInteger('at');
@@ -36,7 +36,7 @@ return new class implements Migration {
             $table->index(['kind', 'at']);
         });
         // The workers alive, each rewritten every few seconds by itself.
-        $schema->create('clockwerk_workers', function (Table $table) {
+        $schema->create('clockwerk_workers', static function (Table $table) {
             $table->string('id', 60)->unique();
             $table->string('group_name', 60);
             $table->integer('pid');

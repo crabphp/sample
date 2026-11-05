@@ -16,8 +16,7 @@ final readonly class SendOrderConfirmation
     public function __construct(
         private Database $db,
         private Mailer $mailer,
-    ) {
-    }
+    ) {}
 
     public function handle(int $orderId): void
     {
@@ -28,7 +27,8 @@ final readonly class SendOrderConfirmation
         }
 
         $user = $this->db->table('users')->find($order['user_id']);
-        $lines = $this->db->table('order_items')
+        $lines = $this->db
+            ->table('order_items')
             ->join('products', 'products.id', '=', 'order_items.product_id')
             ->where('order_items.order_id', $orderId)
             ->select('products.name', 'order_items.quantity', 'order_items.price')

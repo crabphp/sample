@@ -14,8 +14,8 @@ final readonly class Registration
         public string $email,
         #[Length(min: 2, max: 60)]
         public string $name,
+        #[\SensitiveParameter]
         #[Length(min: 8, max: 72)]
         public string $password,
-    ) {
-    }
+    ) {}
 }

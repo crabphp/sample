@@ -25,8 +25,7 @@ final readonly class SyncInventory
     public function __construct(
         private Client $http,
         private LoggerInterface $log,
-    ) {
-    }
+    ) {}
 
     /**
      * @param list<int> $productIds
@@ -42,6 +41,9 @@ final readonly class SyncInventory
             }
         }
 
-        $this->log->info('Order {order} was synced with the warehouse.', ['order' => $orderId, 'products' => count($productIds)]);
+        $this->log->info('Order {order} was synced with the warehouse.', [
+            'order' => $orderId,
+            'products' => count($productIds),
+        ]);
     }
 }

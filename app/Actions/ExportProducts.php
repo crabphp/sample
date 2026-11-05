@@ -14,9 +14,9 @@ use Crab\OpenApi\Attributes\Response as ApiResponse;
  */
 final readonly class ExportProducts
 {
-    public function __construct(private Database $db)
-    {
-    }
+    public function __construct(
+        private Database $db,
+    ) {}
 
     #[ApiResponse(
         200,
@@ -29,7 +29,11 @@ final readonly class ExportProducts
     {
         $csv = fopen('php://temp', 'w+b');
         fputcsv($csv, ['sku', 'name', 'category', 'price', 'stock'], escape: '');
-        foreach ($this->db->table('products')->select('sku', 'name', 'category', 'price', 'stock')->orderBy('sku')->get() as $product) {
+        foreach ($this->db
+            ->table('products')
+            ->select('sku', 'name', 'category', 'price', 'stock')
+            ->orderBy('sku')
+            ->get() as $product) {
             fputcsv($csv, array_values($product), escape: '');
         }
         rewind($csv);

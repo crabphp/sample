@@ -23,9 +23,9 @@ final readonly class WatchStock
 {
     private const CHECKS = 60;
 
-    public function __construct(private Database $db)
-    {
-    }
+    public function __construct(
+        private Database $db,
+    ) {}
 
     #[Response(
         200,

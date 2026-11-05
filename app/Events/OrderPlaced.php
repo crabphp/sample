@@ -14,7 +14,10 @@ final readonly class OrderPlaced
     /**
      * @param list<int> $productIds The products in it.
      */
-    public function __construct(public int $orderId, public int|string $userId, public int $total, public array $productIds)
-    {
-    }
+    public function __construct(
+        public int $orderId,
+        public int|string $userId,
+        public int $total,
+        public array $productIds,
+    ) {}
 }

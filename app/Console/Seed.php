@@ -9,26 +9,81 @@ use Crab\Contracts\Cache\Cache;
 use Crab\Contracts\Console\Command;
 use Crab\Contracts\Console\Input;
 use Crab\Contracts\Console\Output;
-use Crab\Contracts\Database\Database;
 use Crab\Contracts\Database\Connection;
+use Crab\Contracts\Database\Database;
 
 final readonly class Seed implements Command
 {
     private const PRODUCTS = [
-        'kitchen' => [['Stoneware Mug', 1400], ['Pour-Over Kettle', 6200], ['Cast Iron Skillet', 4800], ['Linen Tea Towels', 1900], ['Walnut Cutting Board', 3900], ['French Press', 3400], ['Ceramic Salt Cellar', 1600], ['Enamel Dutch Oven', 8900]],
-        'desk' => [['Brass Pen', 2800], ['Dot Grid Notebook', 1200], ['Felt Desk Mat', 3300], ['Oak Monitor Stand', 7400], ['Cable Clips', 900], ['Task Lamp', 9600], ['Leather Mouse Pad', 2600]],
-        'outdoors' => [['Canvas Daypack', 8800], ['Enamel Camp Cup', 1100], ['Wool Blanket', 12900], ['Pocket Knife', 4500], ['Steel Water Bottle', 2900], ['Headlamp', 3700], ['Hammock', 6400]],
-        'home' => [['Soy Candle', 2200], ['Linen Throw Pillow', 3800], ['Terracotta Planter', 2700], ['Wall Clock', 5200], ['Cotton Bath Towel', 2400], ['Woven Basket', 3100], ['Incense Holder', 1500]],
-        'apparel' => [['Merino Beanie', 3200], ['Canvas Apron', 4100], ['Wool Socks', 1800], ['Chore Jacket', 14500], ['Cotton Tote', 1300], ['Leather Belt', 5600], ['Rain Shell', 17800]],
+        'kitchen' => [
+            ['Stoneware Mug',        1400],
+            ['Pour-Over Kettle',     6200],
+            ['Cast Iron Skillet',    4800],
+            ['Linen Tea Towels',     1900],
+            ['Walnut Cutting Board', 3900],
+            ['French Press',         3400],
+            ['Ceramic Salt Cellar',  1600],
+            ['Enamel Dutch Oven',    8900],
+        ],
+        'desk' => [
+            ['Brass Pen',         2800],
+            ['Dot Grid Notebook', 1200],
+            ['Felt Desk Mat',     3300],
+            ['Oak Monitor Stand', 7400],
+            ['Cable Clips',       900],
+            ['Task Lamp',         9600],
+            ['Leather Mouse Pad', 2600],
+        ],
+        'outdoors' => [
+            ['Canvas Daypack',     8800],
+            ['Enamel Camp Cup',    1100],
+            ['Wool Blanket',       12_900],
+            ['Pocket Knife',       4500],
+            ['Steel Water Bottle', 2900],
+            ['Headlamp',           3700],
+            ['Hammock',            6400],
+        ],
+        'home' => [
+            ['Soy Candle',         2200],
+            ['Linen Throw Pillow', 3800],
+            ['Terracotta Planter', 2700],
+            ['Wall Clock',         5200],
+            ['Cotton Bath Towel',  2400],
+            ['Woven Basket',       3100],
+            ['Incense Holder',     1500],
+        ],
+        'apparel' => [
+            ['Merino Beanie', 3200],
+            ['Canvas Apron',  4100],
+            ['Wool Socks',    1800],
+            ['Chore Jacket',  14_500],
+            ['Cotton Tote',   1300],
+            ['Leather Belt',  5600],
+            ['Rain Shell',    17_800],
+        ],
     ];
 
     private const COLOURS = ['black', 'blue', 'green', 'natural', 'red', 'white'];
 
-    private const PEOPLE = ['Ada Lovelace', 'Grace Hopper', 'Alan Turing', 'Katherine Johnson', 'Linus Torvalds', 'Margaret Hamilton', 'Dennis Ritchie', 'Barbara Liskov', 'Ken Thompson', 'Radia Perlman', 'Tim Berners-Lee'];
+    private const PEOPLE = [
+        'Ada Lovelace',
+        'Grace Hopper',
+        'Alan Turing',
+        'Katherine Johnson',
+        'Linus Torvalds',
+        'Margaret Hamilton',
+        'Dennis Ritchie',
+        'Barbara Liskov',
+        'Ken Thompson',
+        'Radia Perlman',
+        'Tim Berners-Lee',
+    ];
 
-    public function __construct(private Database $db, private PasswordHasher $passwords, private Cache $cache)
-    {
-    }
+    public function __construct(
+        private Database $db,
+        private PasswordHasher $passwords,
+        private Cache $cache,
+    ) {}
 
     public function description(): string
     {
@@ -45,20 +100,29 @@ final readonly class Seed implements Command
 
     public function handle(Input $input, Output $output): int
     {
-        $sized = $input->option('products') !== null || $input->option('users') !== null || $input->option('orders') !== null;
+        $sized =
+            $input->option('products') !== null
+            || $input->option('users') !== null
+            || $input->option('orders') !== null;
         $counts = [];
         if ($sized) {
             foreach (['products' => 36, 'users' => 12, 'orders' => 200] as $name => $default) {
                 $value = $input->option($name, (string) $default);
                 $count = is_string($value) ? filter_var($value, FILTER_VALIDATE_INT) : false;
                 if ($count === false || $count < ($name === 'users' ? 2 : 1)) {
-                    $output->error("Give --{$name}= a positive integer" . ($name === 'users' ? ' of at least 2 (an admin and a customer).' : '.'));
+                    $output->error(
+                        "Give --{$name}= a positive integer"
+                        . ($name === 'users' ? ' of at least 2 (an admin and a customer).' : '.'),
+                    );
                     return 1;
                 }
                 $counts[$name] = $count;
             }
         }
-        $filled = $this->db->table('products')->exists() || $this->db->table('users')->exists() || $this->db->table('orders')->exists();
+        $filled =
+            $this->db->table('products')->exists()
+            || $this->db->table('users')->exists()
+            || $this->db->table('orders')->exists();
         if ($filled && !$input->flag('fresh')) {
             $output->line('The shop already has data. Run it with --fresh to start again.');
             return 0;
@@ -73,13 +137,27 @@ final readonly class Seed implements Command
         // The same shop every time, so that what one person sees another can reproduce.
         mt_srand(2026);
         $now = time();
-        $at = static fn (int $time): string => date('Y-m-d H:i:s', $time);
+        $at = static fn(int $time): string => date('Y-m-d H:i:s', $time);
 
         $password = $this->passwords->hash('password');
-        $users = [['name' => 'Shop Admin', 'email' => 'admin@example.com', 'password' => $password, 'role' => 'admin', 'created_at' => $at($now - 30 * 86400), 'updated_at' => $at($now - 30 * 86400)]];
+        $users = [[
+            'name' => 'Shop Admin',
+            'email' => 'admin@example.com',
+            'password' => $password,
+            'role' => 'admin',
+            'created_at' => $at($now - (30 * 86_400)),
+            'updated_at' => $at($now - (30 * 86_400)),
+        ]];
         foreach (self::PEOPLE as $index => $name) {
-            $joined = $at($now - (29 - $index * 2) * 86400);
-            $users[] = ['name' => $name, 'email' => strtolower(strtok($name, ' ')) . '@example.com', 'password' => $password, 'role' => 'member', 'created_at' => $joined, 'updated_at' => $joined];
+            $joined = $at($now - ((29 - ($index * 2)) * 86_400));
+            $users[] = [
+                'name' => $name,
+                'email' => strtolower(strtok($name, ' ')) . '@example.com',
+                'password' => $password,
+                'role' => 'member',
+                'created_at' => $joined,
+                'updated_at' => $joined,
+            ];
         }
         $this->db->table('users')->insertMany($users);
 
@@ -89,7 +167,19 @@ final readonly class Seed implements Command
                 // A few are sold out, so that an order for them is refused.
                 $stock = mt_rand(1, 12) === 1 ? 0 : mt_rand(8, 120);
                 $details = json_encode(['colour' => self::COLOURS[mt_rand(0, count(self::COLOURS) - 1)]]);
-                $products[] = ['sku' => strtoupper(substr($category, 0, 3)) . '-' . str_pad((string) ($index + 1), 3, '0', STR_PAD_LEFT), 'name' => $name, 'category' => $category, 'price' => $price, 'stock' => $stock, 'details' => $details, 'created_at' => $at($now - 30 * 86400), 'updated_at' => $at($now)];
+                $products[] = [
+                    'sku' =>
+                        strtoupper(substr($category, 0, 3))
+                            . '-'
+                            . str_pad((string) ($index + 1), 3, '0', STR_PAD_LEFT),
+                    'name' => $name,
+                    'category' => $category,
+                    'price' => $price,
+                    'stock' => $stock,
+                    'details' => $details,
+                    'created_at' => $at($now - (30 * 86_400)),
+                    'updated_at' => $at($now),
+                ];
             }
         }
         $this->db->table('products')->insertMany($products);
@@ -99,8 +189,8 @@ final readonly class Seed implements Command
         $orders = 0;
         for ($day = 14; $day >= 0; --$day) {
             for ($n = mt_rand(6, 16); $n > 0; --$n) {
-                $placed = $now - $day * 86400 - mt_rand(0, 86399);
-                if ($placed > $now - 3600) {
+                $placed = $now - ($day * 86_400) - mt_rand(0, 86_399);
+                if ($placed > ($now - 3600)) {
                     continue;
                 }
                 $lines = [];
@@ -110,16 +200,32 @@ final readonly class Seed implements Command
                     $lines[] = ['product_id' => $productId, 'quantity' => $quantity, 'price' => $prices[$productId]];
                     $total += $prices[$productId] * $quantity;
                 }
-                $orderId = $this->db->table('orders')->insert([
-                    'user_id' => $customers[array_rand($customers)], 'status' => match (mt_rand(1, 10)) { 1 => 'cancelled', 2, 3, 4, 5 => 'shipped', default => 'paid' }, 'total' => $total,
-                    'created_at' => $at($placed), 'updated_at' => $at($placed + 30),
-                ]);
-                $this->db->table('order_items')->insertMany(array_map(static fn (array $line): array => ['order_id' => $orderId, ...$line], $lines));
+                $orderId = $this->db
+                    ->table('orders')
+                    ->insert([
+                        'user_id' => $customers[array_rand($customers)],
+                        'status' => match (mt_rand(1, 10)) {
+                            1 => 'cancelled',
+                            2, 3, 4, 5 => 'shipped',
+                            default => 'paid',
+                        },
+                        'total' => $total,
+                        'created_at' => $at($placed),
+                        'updated_at' => $at($placed + 30),
+                    ]);
+                $this->db
+                    ->table('order_items')
+                    ->insertMany(array_map(static fn(array $line): array => [
+                        'order_id' => $orderId,
+                        ...$line,
+                    ], $lines));
                 ++$orders;
             }
         }
         $this->cache->delete('categories');
-        $output->line('The shop has ' . count($products) . ' products, ' . count($users) . " people and {$orders} orders.");
+        $output->line(
+            'The shop has ' . count($products) . ' products, ' . count($users) . " people and {$orders} orders.",
+        );
         $output->line('Log in as ada@example.com or admin@example.com, with the password "password".');
         return 0;
     }
@@ -133,14 +239,26 @@ final readonly class Seed implements Command
     {
         mt_srand(2026);
         $now = time();
-        $created = date('Y-m-d H:i:s', $now - 30 * 86400);
+        $created = date('Y-m-d H:i:s', $now - (30 * 86_400));
         $updated = date('Y-m-d H:i:s', $now);
         $password = $this->passwords->hash('password');
         $users = [];
         for ($id = 1; $id <= $userCount; ++$id) {
-            $name = $id === 1 ? 'Shop Admin' : (self::PEOPLE[$id - 2] ?? "Customer {$id}");
-            $email = $id === 1 ? 'admin@example.com' : ($id <= 12 ? strtolower(strtok($name, ' ')) . '@example.com' : "customer{$id}@bench.example.com");
-            $users[] = ['id' => $id, 'name' => $name, 'email' => $email, 'password' => $password, 'role' => $id === 1 ? 'admin' : 'member', 'created_at' => $created, 'updated_at' => $created];
+            $name = $id === 1 ? 'Shop Admin' : self::PEOPLE[$id - 2] ?? "Customer {$id}";
+            $email = match (true) {
+                $id === 1 => 'admin@example.com',
+                $id <= 12 => strtolower(strtok($name, ' ')) . '@example.com',
+                default => "customer{$id}@bench.example.com",
+            };
+            $users[] = [
+                'id' => $id,
+                'name' => $name,
+                'email' => $email,
+                'password' => $password,
+                'role' => $id === 1 ? 'admin' : 'member',
+                'created_at' => $created,
+                'updated_at' => $created,
+            ];
             if (count($users) === 100 || $id === $userCount) {
                 $this->db->table('users')->insertMany($users);
                 $users = [];
@@ -157,7 +275,16 @@ final readonly class Seed implements Command
         for ($id = 1; $id <= $productCount; ++$id) {
             [$category, $name, $price] = $catalogue[($id - 1) % count($catalogue)];
             $prices[$id] = $price;
-            $products[] = ['id' => $id, 'sku' => 'BENCH-' . $id, 'name' => $name . ($id > count($catalogue) ? " {$id}" : ''), 'category' => $category, 'price' => $price, 'stock' => 100_000, 'created_at' => $created, 'updated_at' => $updated];
+            $products[] = [
+                'id' => $id,
+                'sku' => 'BENCH-' . $id,
+                'name' => $name . ($id > count($catalogue) ? " {$id}" : ''),
+                'category' => $category,
+                'price' => $price,
+                'stock' => 100_000,
+                'created_at' => $created,
+                'updated_at' => $updated,
+            ];
             if (count($products) === 100 || $id === $productCount) {
                 $this->db->table('products')->insertMany($products);
                 $products = [];
@@ -170,11 +297,27 @@ final readonly class Seed implements Command
                 $total = 0;
                 foreach ((array) array_rand($prices, mt_rand(1, min(4, $productCount))) as $productId) {
                     $quantity = mt_rand(1, 3);
-                    $items[] = ['order_id' => $id, 'product_id' => $productId, 'quantity' => $quantity, 'price' => $prices[$productId]];
+                    $items[] = [
+                        'order_id' => $id,
+                        'product_id' => $productId,
+                        'quantity' => $quantity,
+                        'price' => $prices[$productId],
+                    ];
                     $total += $prices[$productId] * $quantity;
                 }
-                $placed = date('Y-m-d H:i:s', $now - 3600 - ($id % (14 * 86400)));
-                $orders[] = ['id' => $id, 'user_id' => 2 + ($id - 1) % ($userCount - 1), 'status' => match ($id % 10) { 0 => 'cancelled', 1, 2, 3, 4 => 'shipped', default => 'paid' }, 'total' => $total, 'created_at' => $placed, 'updated_at' => $placed];
+                $placed = date('Y-m-d H:i:s', $now - 3600 - ($id % (14 * 86_400)));
+                $orders[] = [
+                    'id' => $id,
+                    'user_id' => 2 + (($id - 1) % ($userCount - 1)),
+                    'status' => match ($id % 10) {
+                        0 => 'cancelled',
+                        1, 2, 3, 4 => 'shipped',
+                        default => 'paid',
+                    },
+                    'total' => $total,
+                    'created_at' => $placed,
+                    'updated_at' => $placed,
+                ];
             }
             $this->db->transaction(static function (Connection $db) use ($orders, $items): void {
                 $db->table('orders')->insertMany($orders);

@@ -9,7 +9,7 @@ use Crab\Contracts\Database\Table;
 return new class implements Migration {
     public function up(Schema $schema): void
     {
-        $schema->create('users', function (Table $table) {
+        $schema->create('users', static function (Table $table) {
             $table->id();
             $table->string('name');
             $table->string('email')->unique();
@@ -18,7 +18,7 @@ return new class implements Migration {
             $table->string('role', 20);
             $table->timestamps();
         });
-        $schema->create('products', function (Table $table) {
+        $schema->create('products', static function (Table $table) {
             $table->id();
             $table->string('sku', 40)->unique();
             $table->string('name');
@@ -28,7 +28,7 @@ return new class implements Migration {
             $table->integer('stock');
             $table->timestamps();
         });
-        $schema->create('orders', function (Table $table) {
+        $schema->create('orders', static function (Table $table) {
             $table->id();
             $table->foreignId('user_id')->index();
             // "pending", "paid", "shipped" or "cancelled".
@@ -36,7 +36,7 @@ return new class implements Migration {
             $table->integer('total');
             $table->timestamps();
         });
-        $schema->create('order_items', function (Table $table) {
+        $schema->create('order_items', static function (Table $table) {
             $table->id();
             $table->foreignId('order_id')->index();
             $table->foreignId('product_id')->index();

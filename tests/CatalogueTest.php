@@ -12,9 +12,17 @@ final class CatalogueTest extends ShopTestCase
     public function testTheCatalogueIsPagedSearchedAndCounted(): void
     {
         $page = $this->api->get('/products', ['perPage' => 2, 'page' => 2])->assertStatus(200);
-        self::assertSame([2, 2, 6, true], [count($page->json('data')), $page->json('current_page'), $page->json('total'), $page->json('has_more')]);
+        self::assertSame([2, 2, 6, true], [
+            count($page->json('data')),
+            $page->json('current_page'),
+            $page->json('total'),
+            $page->json('has_more'),
+        ]);
         self::assertSame(['Grid Notebook', 'Linen Cushion'], array_column($page->json('data'), 'name'));
-        self::assertSame(['Stoneware Mug'], array_column($this->api->get('/products', ['q' => 'mug'])->assertStatus(200)->json('data'), 'name'));
+        self::assertSame(
+            ['Stoneware Mug'],
+            array_column($this->api->get('/products', ['q' => 'mug'])->assertStatus(200)->json('data'), 'name'),
+        );
         self::assertCount(2, $this->api->get('/products', ['category' => 'desk'])->assertStatus(200)->json('data'));
 
         $categories = array_column($this->api->get('/categories')->assertStatus(200)->json(), 'products', 'category');
@@ -38,7 +46,10 @@ final class CatalogueTest extends ShopTestCase
     {
         $prices = array_column($this->api->get('/products', ['perPage' => 50])->json('data'), 'price');
         sort($prices);
-        $cheap = $this->api->get('/products', ['maxPrice' => $prices[1], 'perPage' => 50])->assertStatus(200)->json('data');
+        $cheap = $this->api
+            ->get('/products', ['maxPrice' => $prices[1], 'perPage' => 50])
+            ->assertStatus(200)
+            ->json('data');
         $cheapPrices = array_column($cheap, 'price');
         sort($cheapPrices);
         self::assertSame(array_slice($prices, 0, count($cheapPrices)), $cheapPrices);
@@ -48,10 +59,16 @@ final class CatalogueTest extends ShopTestCase
         // The two ends of the range are checked together, once each is a valid price.
         self::assertSame(
             ['maxPrice' => ['must be at least the minimum price']],
-            $this->api->get('/products', ['minPrice' => 5000, 'maxPrice' => 1000])->assertStatus(422)->json('error.query'),
+            $this->api
+                ->get('/products', ['minPrice' => 5000, 'maxPrice' => 1000])
+                ->assertStatus(422)
+                ->json('error.query'),
         );
         // A colour is read from the product's JSON details; one that has none, or a null colour, is not any colour.
-        self::assertSame(['Cotton Blanket', 'Stoneware Mug'], array_column($this->api->get('/products', ['colour' => 'blue'])->assertStatus(200)->json('data'), 'name'));
+        self::assertSame(
+            ['Cotton Blanket', 'Stoneware Mug'],
+            array_column($this->api->get('/products', ['colour' => 'blue'])->assertStatus(200)->json('data'), 'name'),
+        );
         self::assertSame([], $this->api->get('/products', ['colour' => 'null'])->assertStatus(200)->json('data'));
 
         // A filter the catalogue does not have is refused, not quietly ignored.
@@ -63,21 +80,39 @@ final class CatalogueTest extends ShopTestCase
 
     public function testTheCatalogueIsChangedOnlyByAdministrators(): void
     {
-        $product = ['sku' => 'DSK-900', 'name' => 'Standing Desk', 'category' => 'desk', 'price' => 45000, 'stock' => 3];
+        $product = [
+            'sku' => 'DSK-900',
+            'name' => 'Standing Desk',
+            'category' => 'desk',
+            'price' => 45_000,
+            'stock' => 3,
+        ];
         $this->api->post('/products', $product)->assertStatus(401);
         $this->api->actingAs($this->user('ada@example.com'))->post('/products', $product)->assertStatus(403);
 
         $admin = $this->api->actingAs($this->user('admin@example.com'));
-        $before = array_column($this->api->get('/categories')->assertStatus(200)->json(), 'products', 'category')['desk'];
+        $before = array_column(
+            $this->api->get('/categories')->assertStatus(200)->json(),
+            'products',
+            'category',
+        )['desk'];
         $response = $admin->post('/products', $product)->assertStatus(201);
         $made = $response->json();
         $response->assertJson('name', 'Standing Desk');
-        self::assertSame([$product['sku'], $product['category'], $product['price'], $product['stock']], [$made['sku'], $made['category'], $made['price'], $made['stock']]);
+        self::assertSame([$product['sku'], $product['category'], $product['price'], $product['stock']], [
+            $made['sku'],
+            $made['category'],
+            $made['price'],
+            $made['stock'],
+        ]);
         $response->assertHeader('Location', "/products/{$made['id']}");
         $admin->post('/products', $product)->assertStatus(409);
         $admin->post('/products', ['sku' => 'bad sku'] + $product)->assertStatus(422);
         // The remembered counts were forgotten when the catalogue changed.
-        self::assertSame($before + 1, array_column($this->api->get('/categories')->assertStatus(200)->json(), 'products', 'category')['desk']);
+        self::assertSame(
+            $before + 1,
+            array_column($this->api->get('/categories')->assertStatus(200)->json(), 'products', 'category')['desk'],
+        );
 
         $admin->put("/products/{$made['id']}/stock", ['stock' => 40])->assertStatus(200)->assertJson('stock', 40);
         $admin->put('/products/99999/stock', ['stock' => 1])->assertStatus(404);

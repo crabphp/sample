@@ -15,9 +15,9 @@ use Crab\Contracts\HttpClient\Client;
  */
 final readonly class Traffic implements Command
 {
-    public function __construct(private Client $http)
-    {
-    }
+    public function __construct(
+        private Client $http,
+    ) {}
 
     public function description(): string
     {
@@ -42,7 +42,9 @@ final readonly class Traffic implements Command
         foreach (['ada', 'grace', 'alan', 'katherine', 'linus'] as $name) {
             $login = $http->post("{$url}/login", ['email' => "{$name}@example.com", 'password' => 'password']);
             if (!$login->ok()) {
-                $output->error("Could not log in as {$name}@example.com at {$url}. Is the server running, and was `shop:seed` run?");
+                $output->error(
+                    "Could not log in as {$name}@example.com at {$url}. Is the server running, and was `shop:seed` run?",
+                );
                 return 1;
             }
             $tokens[] = $login->json()['token'];
@@ -65,7 +67,13 @@ final readonly class Traffic implements Command
                 16 => $http->get("{$url}/products/99999"),
                 17 => $http->get("{$url}/products", ['perPage' => 500]),
                 18 => $http->get("{$url}/orders"),
-                default => $orders += $http->post("{$url}/orders", ['lines' => [['productId' => $product, 'quantity' => mt_rand(1, 2)]]], headers: $auth)->ok() ? 1 : 0,
+                default => $orders += $http->post(
+                    "{$url}/orders",
+                    ['lines' => [['productId' => $product, 'quantity' => mt_rand(1, 2)]]],
+                    headers: $auth,
+                )->ok()
+                    ? 1
+                    : 0,
             };
             ++$sent;
             // What is left of this request's share of the second.

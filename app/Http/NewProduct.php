@@ -22,6 +22,5 @@ final readonly class NewProduct
         public int $price,
         #[Range(min: 0, max: 100_000)]
         public int $stock = 0,
-    ) {
-    }
+    ) {}
 }

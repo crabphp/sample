@@ -23,14 +23,18 @@ use Crab\Validation\Length;
  */
 final readonly class ChatWithAssistant
 {
-    public function __construct(private Actors $actors)
-    {
-    }
+    public function __construct(
+        private Actors $actors,
+    ) {}
 
     #[Response(200, body: OpenApiSchemas::ASSISTANT_REPLY)]
     #[Response(503, description: 'The assistant is unavailable.')]
-    public function handle(User $user, #[Fields(['question' => ['string', new Length(1, 200)]])] Data $input, Request $request): array
-    {
+    public function handle(
+        User $user,
+        #[Fields(['question' => ['string', new Length(1, 200)]])]
+        Data $input,
+        Request $request,
+    ): array {
         try {
             return $this->actors->ask(
                 ShoppingAssistant::class,

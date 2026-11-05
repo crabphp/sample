@@ -30,7 +30,7 @@ final class CatalogueFeedTest extends ShopTestCase
 
     public function testAFeedLargerThanACatalogueIsRefusedAndLeavesNothing(): void
     {
-        $http = new FakeClient(['*' => FakeClient::response(200, str_repeat('x', 8 * 1024 * 1024 + 1))]);
+        $http = new FakeClient(['*' => FakeClient::response(200, str_repeat('x', (8 * 1024 * 1024) + 1))]);
         $this->app->container->instance(Client::class, $http);
 
         self::assertSame(1, $this->command('shop:mirror-catalogue', '--url=https://supplier.example'));

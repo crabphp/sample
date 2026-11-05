@@ -31,8 +31,11 @@ final readonly class PretendModel
         description: 'Answer tokens as server-sent events, then [DONE].',
         contentType: 'text/event-stream',
     )]
-    public function handle(#[Fields(['prompt' => ['string', new Length(1, 4000)]])] Data $input, Request $request): \Generator
-    {
+    public function handle(
+        #[Fields(['prompt' => ['string', new Length(1, 4000)]])]
+        Data $input,
+        Request $request,
+    ): \Generator {
         preg_match_all('/^- (.+)$/m', (string) $input->prompt, $products);
         $answer = $products[1] === []
             ? 'I could not find anything like that in the shop. Try another word, such as mug or lamp.'

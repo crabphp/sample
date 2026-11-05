@@ -15,9 +15,9 @@ use Crab\Http\HttpException;
  */
 final readonly class WatchOrder
 {
-    public function __construct(private Database $db)
-    {
-    }
+    public function __construct(
+        private Database $db,
+    ) {}
 
     public function handle(Socket $socket, int $id, User $user): void
     {
@@ -27,7 +27,12 @@ final readonly class WatchOrder
         }
         $socket->join("orders.{$id}");
         $snapshot = $this->db->table('orders')->where('id', $id)->select('status', 'version')->first();
-        $socket->send(['type' => 'ready', 'id' => $id, 'status' => $snapshot['status'], 'version' => (int) $snapshot['version']]);
+        $socket->send([
+            'type' => 'ready',
+            'id' => $id,
+            'status' => $snapshot['status'],
+            'version' => (int) $snapshot['version'],
+        ]);
         foreach ($socket as $message) {
             // This route pushes updates; it has no client commands.
         }

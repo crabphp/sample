@@ -9,8 +9,8 @@ use App\OrderSummary;
 use App\User;
 use Crab\Contracts\Database\CursorPage;
 use Crab\Contracts\Database\Database;
-use Crab\Routing\FromQuery;
 use Crab\OpenApi\Attributes\Response;
+use Crab\Routing\FromQuery;
 
 /**
  * The orders of whoever asks, the newest first, with how many things each
@@ -21,18 +21,20 @@ use Crab\OpenApi\Attributes\Response;
  */
 final readonly class ListMyOrders
 {
-    public function __construct(private Database $db)
-    {
-    }
+    public function __construct(
+        private Database $db,
+    ) {}
 
     #[Response(200, body: OpenApiSchemas::ORDER_CURSOR_PAGE)]
     public function handle(User $user, #[FromQuery] ?string $cursor = null): CursorPage
     {
-        $items = $this->db->table('order_items')
+        $items = $this->db
+            ->table('order_items')
             ->selectRaw('COALESCE(SUM(order_items.quantity), 0)')
             ->whereColumn('order_items.order_id', 'orders.id');
 
-        return $this->db->table('orders')
+        return $this->db
+            ->table('orders')
             ->where('user_id', $user->id)
             ->select('id', 'status', 'total', 'created_at')
             ->selectSub($items, 'items')

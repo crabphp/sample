@@ -16,8 +16,7 @@ final readonly class BuildDailyReport
     public function __construct(
         private Database $db,
         private ClockInterface $clock,
-    ) {
-    }
+    ) {}
 
     /**
      * @param string|null $day The day to report, as "2026-01-31"; yesterday when left out.
@@ -25,7 +24,8 @@ final readonly class BuildDailyReport
     public function handle(?string $day = null): void
     {
         $day ??= $this->clock->now()->modify('-1 day')->format('Y-m-d');
-        $totals = $this->db->table('orders')
+        $totals = $this->db
+            ->table('orders')
             ->select('status')
             ->selectRaw('COUNT(*) as orders, SUM(total) as revenue')
             ->whereBetween('created_at', "{$day} 00:00:00", "{$day} 23:59:59")

@@ -11,9 +11,9 @@ use Crab\OpenApi\Attributes\Response;
 
 final readonly class ShowProduct
 {
-    public function __construct(private Database $db)
-    {
-    }
+    public function __construct(
+        private Database $db,
+    ) {}
 
     /**
      * @return array<string, mixed>

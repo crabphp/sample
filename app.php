@@ -30,9 +30,5 @@ return App::configure(__DIR__)
         OpenApiPlugin::class,
     ])
     ->withSetup(Setup::class)
-    ->withRouting(
-        routes: 'routes/web.php',
-        commands: 'routes/console.php',
-        health: '/up',
-    )
+    ->withRouting(routes: 'routes/web.php', commands: 'routes/console.php', health: '/up')
     ->create();

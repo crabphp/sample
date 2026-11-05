@@ -64,15 +64,50 @@ final class SnapshotDatabase implements Database
 {
     public ?\Closure $afterFirst = null;
 
-    public function __construct(private Database $db) {}
-    public function connection(string $name): Database { return $this; }
-    public function owns(Connection $connection): bool { return $this->db->owns($connection); }
-    public function acquire(): Connection { return $this->db->acquire(); }
-    public function release(Connection $connection): void { $this->db->release($connection); }
-    public function run(\Closure $callback): mixed { return $this->db->run($callback); }
-    public function table(string|Query $table, ?string $as = null): Query { return new QueryBuilder($this, $table, as: $as); }
-    public function driver(): string { return $this->db->driver(); }
-    public function select(string $sql, array $bindings = []): array { return $this->db->select($sql, $bindings); }
+    public function __construct(
+        private Database $db,
+    ) {}
+
+    public function connection(string $name): Database
+    {
+        return $this;
+    }
+
+    public function owns(Connection $connection): bool
+    {
+        return $this->db->owns($connection);
+    }
+
+    public function acquire(): Connection
+    {
+        return $this->db->acquire();
+    }
+
+    public function release(Connection $connection): void
+    {
+        $this->db->release($connection);
+    }
+
+    public function run(\Closure $callback): mixed
+    {
+        return $this->db->run($callback);
+    }
+
+    public function table(string|Query $table, ?string $as = null): Query
+    {
+        return new QueryBuilder($this, $table, as: $as);
+    }
+
+    public function driver(): string
+    {
+        return $this->db->driver();
+    }
+
+    public function select(string $sql, array $bindings = []): array
+    {
+        return $this->db->select($sql, $bindings);
+    }
+
     public function first(string $sql, array $bindings = []): ?array
     {
         $row = $this->db->first($sql, $bindings);
@@ -81,8 +116,24 @@ final class SnapshotDatabase implements Database
         }
         return $row;
     }
-    public function insert(string $sql, array $bindings = []): int|string { return $this->db->insert($sql, $bindings); }
-    public function execute(string $sql, array $bindings = []): int { return $this->db->execute($sql, $bindings); }
-    public function transaction(\Closure $callback): mixed { return $this->db->transaction($callback); }
-    public function afterCommit(\Closure $callback): void { $this->db->afterCommit($callback); }
+
+    public function insert(string $sql, array $bindings = []): int|string
+    {
+        return $this->db->insert($sql, $bindings);
+    }
+
+    public function execute(string $sql, array $bindings = []): int
+    {
+        return $this->db->execute($sql, $bindings);
+    }
+
+    public function transaction(\Closure $callback): mixed
+    {
+        return $this->db->transaction($callback);
+    }
+
+    public function afterCommit(\Closure $callback): void
+    {
+        $this->db->afterCommit($callback);
+    }
 }

@@ -21,8 +21,7 @@ final readonly class Login
         private Database $db,
         private PasswordHasher $passwords,
         private TokenStore $tokens,
-    ) {
-    }
+    ) {}
 
     /**
      * @return array{user: User, token: string}

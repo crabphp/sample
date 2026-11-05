@@ -13,9 +13,9 @@ use Crab\Contracts\Cache\Cache;
  */
 final readonly class ForgetProductCache
 {
-    public function __construct(private Cache $cache)
-    {
-    }
+    public function __construct(
+        private Cache $cache,
+    ) {}
 
     public function handle(OrderPlaced $event): void
     {

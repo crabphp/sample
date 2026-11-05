@@ -25,10 +25,14 @@ final readonly class Register
         private PasswordHasher $passwords,
         private TokenStore $tokens,
         private ClockInterface $clock,
-    ) {
-    }
+    ) {}
 
-    #[ApiResponse(201, body: OpenApiSchemas::AUTH_RESULT, description: 'Account created and logged in.', headers: ['Location'])]
+    #[ApiResponse(
+        201,
+        body: OpenApiSchemas::AUTH_RESULT,
+        description: 'Account created and logged in.',
+        headers: ['Location'],
+    )]
     #[ApiResponse(409, description: 'An account with this email already exists.')]
     public function handle(Registration $registration): Response
     {
@@ -42,14 +46,16 @@ final readonly class Register
         }
 
         $now = $this->clock->now()->format('Y-m-d H:i:s');
-        $id = $this->db->table('users')->insert([
-            'name' => $registration->name,
-            'email' => $registration->email,
-            'password' => $this->passwords->hash($registration->password),
-            'role' => 'member',
-            'created_at' => $now,
-            'updated_at' => $now,
-        ]);
+        $id = $this->db
+            ->table('users')
+            ->insert([
+                'name' => $registration->name,
+                'email' => $registration->email,
+                'password' => $this->passwords->hash($registration->password),
+                'role' => 'member',
+                'created_at' => $now,
+                'updated_at' => $now,
+            ]);
         $user = new User((int) $id, $registration->name, $registration->email);
 
         return Response::created([

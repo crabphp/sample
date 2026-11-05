@@ -14,7 +14,9 @@ use Crab\OpenApi\Attributes\Response;
  */
 final readonly class IssueTicket
 {
-    public function __construct(private \Crab\Auth\IssueTicket $tickets) {}
+    public function __construct(
+        private \Crab\Auth\IssueTicket $tickets,
+    ) {}
 
     #[Response(200, body: OpenApiSchemas::TICKET)]
     public function handle(User $user): array

@@ -21,13 +21,12 @@ final readonly class FollowUpOrder
     /**
      * How long an order takes to arrive, before asking about it.
      */
-    private const ARRIVAL = 3 * 86400;
+    private const ARRIVAL = 3 * 86_400;
 
     public function __construct(
         private Database $db,
         private Mailer $mailer,
-    ) {
-    }
+    ) {}
 
     /**
      * @return array{order: int, shipped: string, asked: bool}

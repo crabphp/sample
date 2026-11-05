@@ -19,9 +19,10 @@ use Crab\OpenApi\Attributes\Response;
  */
 final readonly class Ready
 {
-    public function __construct(private Database $db, private Cache $cache)
-    {
-    }
+    public function __construct(
+        private Database $db,
+        private Cache $cache,
+    ) {}
 
     /**
      * @return array{status: string}

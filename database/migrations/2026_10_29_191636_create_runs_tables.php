@@ -9,7 +9,7 @@ use Crab\Contracts\Database\Table;
 return new class implements Migration {
     public function up(Schema $schema): void
     {
-        $schema->create('runs', function (Table $table) {
+        $schema->create('runs', static function (Table $table) {
             $table->id();
             // The run's class, and the arguments of its handle() as JSON.
             $table->string('run');
@@ -25,7 +25,7 @@ return new class implements Migration {
             $table->bigInteger('updated_at');
             $table->index(['status', 'id']);
         });
-        $schema->create('run_steps', function (Table $table) {
+        $schema->create('run_steps', static function (Table $table) {
             $table->id();
             $table->bigInteger('run_id');
             // A step's, a sleep's or a signal's name, unique in its run.

@@ -25,9 +25,13 @@ final class AssistantChatTest extends ShopTestCase
         $this->app->container->instance(Client::class, new FakeClient([
             'POST */model/chat' => static function (RequestInterface $request) use (&$prompts) {
                 $prompts[] = json_decode((string) $request->getBody(), true)['prompt'];
-                return FakeClient::response(200, "data: {\"delta\":\"Here \"}\n\ndata: {\"delta\":\"you go.\"}\n\ndata: [DONE]\n\n", [
-                    'Content-Type' => 'text/event-stream',
-                ]);
+                return FakeClient::response(
+                    200,
+                    "data: {\"delta\":\"Here \"}\n\ndata: {\"delta\":\"you go.\"}\n\ndata: [DONE]\n\n",
+                    [
+                        'Content-Type' => 'text/event-stream',
+                    ],
+                );
             },
         ]));
     }
@@ -54,11 +58,19 @@ final class AssistantChatTest extends ShopTestCase
 
     public function testEachCustomerHasAnAssistantOfTheirOwn(): void
     {
-        $this->api->actingAs($this->user('ada@example.com'))->post('/assistant/chat', ['question' => 'a mug'])->assertStatus(200);
+        $this->api
+            ->actingAs($this->user('ada@example.com'))
+            ->post('/assistant/chat', ['question' => 'a mug'])
+            ->assertStatus(200);
 
-        $grace = $this->api->actingAs($this->user('grace@example.com'))->post('/assistant/chat', ['question' => 'a mug']);
+        $grace = $this->api->actingAs($this->user('grace@example.com'))->post('/assistant/chat', [
+            'question' => 'a mug',
+        ]);
 
-        self::assertSame(['answer' => 'Here you go.', 'products' => [1], 'turn' => 1], $grace->assertStatus(200)->json());
+        self::assertSame(
+            ['answer' => 'Here you go.', 'products' => [1], 'turn' => 1],
+            $grace->assertStatus(200)->json(),
+        );
     }
 
     public function testItIsForCustomersWhoAreLoggedIn(): void

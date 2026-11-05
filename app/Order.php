@@ -20,6 +20,5 @@ final readonly class Order
         public int $version,
         public ?\DateTimeImmutable $created_at,
         public ?\DateTimeImmutable $updated_at,
-    ) {
-    }
+    ) {}
 }

@@ -27,8 +27,7 @@ final readonly class ShipOrder
         private Broadcaster $broadcast,
         private ClockInterface $clock,
         private Runs $runs,
-    ) {
-    }
+    ) {}
 
     /**
      * @return array{id: int, status: string}
@@ -41,11 +40,10 @@ final readonly class ShipOrder
         $this->db->transaction(function (Connection $transaction) use ($id): void {
             $orders = $transaction->table('orders')->into(Order::class);
             /** @var Order $order */
-            $order = (clone $orders)
-                ->where('id', $id)
-                ->lockForUpdate()
-                ->first()
-                ?? throw new HttpException(404, 'No such order.');
+            $order = (clone $orders)->where('id', $id)->lockForUpdate()->first() ?? throw new HttpException(
+                404,
+                'No such order.',
+            );
 
             if ($order->status !== OrderStatus::Paid) {
                 throw new HttpException(409, 'Only a paid order can be shipped. Wait for payment before shipping it.');
@@ -53,18 +51,23 @@ final readonly class ShipOrder
 
             // Through the record's map: the enum is written as its value, the date as the column holds one.
             $version = $order->version + 1;
-            $orders->where('id', $id)->update([
-                'status' => OrderStatus::Shipped,
-                'version' => $version,
-                'updated_at' => $this->clock->now(),
-            ]);
+            $orders
+                ->where('id', $id)
+                ->update([
+                    'status' => OrderStatus::Shipped,
+                    'version' => $version,
+                    'updated_at' => $this->clock->now(),
+                ]);
 
-            $this->broadcast->within($transaction)->to("orders.{$id}")->send([
-                'type' => 'status',
-                'id' => $id,
-                'status' => 'shipped',
-                'version' => $version,
-            ]);
+            $this->broadcast
+                ->within($transaction)
+                ->to("orders.{$id}")
+                ->send([
+                    'type' => 'status',
+                    'id' => $id,
+                    'status' => 'shipped',
+                    'version' => $version,
+                ]);
         });
 
         // After the commit: the run is resumed by it, and must find the order shipped.

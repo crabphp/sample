@@ -13,9 +13,9 @@ use Crab\Contracts\Database\Database;
  */
 final readonly class Users implements IdentityResolver
 {
-    public function __construct(private Database $db)
-    {
-    }
+    public function __construct(
+        private Database $db,
+    ) {}
 
     public function resolve(int|string $id): ?Identity
     {

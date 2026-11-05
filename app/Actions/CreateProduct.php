@@ -22,8 +22,7 @@ final readonly class CreateProduct
         private Database $db,
         private Cache $cache,
         private ClockInterface $clock,
-    ) {
-    }
+    ) {}
 
     #[ApiResponse(201, body: OpenApiSchemas::PRODUCT, description: 'Product created.', headers: ['Location'])]
     #[ApiResponse(409, description: 'A product with this SKU already exists.')]
@@ -34,15 +33,17 @@ final readonly class CreateProduct
         }
 
         $now = $this->clock->now()->format('Y-m-d H:i:s');
-        $id = $this->db->table('products')->insert([
-            'sku' => $product->sku,
-            'name' => $product->name,
-            'category' => $product->category,
-            'price' => $product->price,
-            'stock' => $product->stock,
-            'created_at' => $now,
-            'updated_at' => $now,
-        ]);
+        $id = $this->db
+            ->table('products')
+            ->insert([
+                'sku' => $product->sku,
+                'name' => $product->name,
+                'category' => $product->category,
+                'price' => $product->price,
+                'stock' => $product->stock,
+                'created_at' => $now,
+                'updated_at' => $now,
+            ]);
 
         $this->cache->delete('categories');
 
