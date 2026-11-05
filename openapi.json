@@ -837,14 +837,16 @@
                                                 "string",
                                                 "null"
                                             ],
-                                            "format": "date-time"
+                                            "pattern": "^\\d{4}-\\d{2}-\\d{2} \\d{2}:\\d{2}:\\d{2}$",
+                                            "description": "Database timestamp in the PHP default timezone, without an offset."
                                         },
                                         "updated_at": {
                                             "type": [
                                                 "string",
                                                 "null"
                                             ],
-                                            "format": "date-time"
+                                            "pattern": "^\\d{4}-\\d{2}-\\d{2} \\d{2}:\\d{2}:\\d{2}$",
+                                            "description": "Database timestamp in the PHP default timezone, without an offset."
                                         },
                                         "follow_up_run": {
                                             "type": [
@@ -1339,24 +1341,26 @@
                                         },
                                         "details": {
                                             "type": [
-                                                "object",
+                                                "string",
                                                 "null"
                                             ],
-                                            "additionalProperties": true
+                                            "description": "JSON text as stored in the database."
                                         },
                                         "created_at": {
                                             "type": [
                                                 "string",
                                                 "null"
                                             ],
-                                            "format": "date-time"
+                                            "pattern": "^\\d{4}-\\d{2}-\\d{2} \\d{2}:\\d{2}:\\d{2}$",
+                                            "description": "Database timestamp in the PHP default timezone, without an offset."
                                         },
                                         "updated_at": {
                                             "type": [
                                                 "string",
                                                 "null"
                                             ],
-                                            "format": "date-time"
+                                            "pattern": "^\\d{4}-\\d{2}-\\d{2} \\d{2}:\\d{2}:\\d{2}$",
+                                            "description": "Database timestamp in the PHP default timezone, without an offset."
                                         }
                                     },
                                     "required": [
@@ -1521,24 +1525,26 @@
                                         },
                                         "details": {
                                             "type": [
-                                                "object",
+                                                "string",
                                                 "null"
                                             ],
-                                            "additionalProperties": true
+                                            "description": "JSON text as stored in the database."
                                         },
                                         "created_at": {
                                             "type": [
                                                 "string",
                                                 "null"
                                             ],
-                                            "format": "date-time"
+                                            "pattern": "^\\d{4}-\\d{2}-\\d{2} \\d{2}:\\d{2}:\\d{2}$",
+                                            "description": "Database timestamp in the PHP default timezone, without an offset."
                                         },
                                         "updated_at": {
                                             "type": [
                                                 "string",
                                                 "null"
                                             ],
-                                            "format": "date-time"
+                                            "pattern": "^\\d{4}-\\d{2}-\\d{2} \\d{2}:\\d{2}:\\d{2}$",
+                                            "description": "Database timestamp in the PHP default timezone, without an offset."
                                         }
                                     },
                                     "required": [
@@ -1721,24 +1727,26 @@
                                         },
                                         "details": {
                                             "type": [
-                                                "object",
+                                                "string",
                                                 "null"
                                             ],
-                                            "additionalProperties": true
+                                            "description": "JSON text as stored in the database."
                                         },
                                         "created_at": {
                                             "type": [
                                                 "string",
                                                 "null"
                                             ],
-                                            "format": "date-time"
+                                            "pattern": "^\\d{4}-\\d{2}-\\d{2} \\d{2}:\\d{2}:\\d{2}$",
+                                            "description": "Database timestamp in the PHP default timezone, without an offset."
                                         },
                                         "updated_at": {
                                             "type": [
                                                 "string",
                                                 "null"
                                             ],
-                                            "format": "date-time"
+                                            "pattern": "^\\d{4}-\\d{2}-\\d{2} \\d{2}:\\d{2}:\\d{2}$",
+                                            "description": "Database timestamp in the PHP default timezone, without an offset."
                                         }
                                     },
                                     "required": [

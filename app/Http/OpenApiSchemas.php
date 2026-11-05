@@ -11,6 +11,12 @@ namespace App\Http;
  */
 final class OpenApiSchemas
 {
+    public const DATABASE_TIME = [
+        'type' => ['string', 'null'],
+        'pattern' => '^\\d{4}-\\d{2}-\\d{2} \\d{2}:\\d{2}:\\d{2}$',
+        'description' => 'Database timestamp in the PHP default timezone, without an offset.',
+    ];
+
     public const USER = [
         'type' => 'object',
         'properties' => [
@@ -41,9 +47,9 @@ final class OpenApiSchemas
         'type' => 'object',
         'properties' => [
             ...self::PRODUCT_SUMMARY['properties'],
-            'details' => ['type' => ['object', 'null'], 'additionalProperties' => true],
-            'created_at' => ['type' => ['string', 'null'], 'format' => 'date-time'],
-            'updated_at' => ['type' => ['string', 'null'], 'format' => 'date-time'],
+            'details' => ['type' => ['string', 'null'], 'description' => 'JSON text as stored in the database.'],
+            'created_at' => self::DATABASE_TIME,
+            'updated_at' => self::DATABASE_TIME,
         ],
         'required' => [
             'id',
@@ -120,8 +126,8 @@ final class OpenApiSchemas
             'status' => ['type' => 'string', 'enum' => ['pending', 'paid', 'shipped', 'cancelled']],
             'total' => ['type' => 'integer', 'description' => 'Total in cents.'],
             'version' => ['type' => 'integer'],
-            'created_at' => ['type' => ['string', 'null'], 'format' => 'date-time'],
-            'updated_at' => ['type' => ['string', 'null'], 'format' => 'date-time'],
+            'created_at' => self::DATABASE_TIME,
+            'updated_at' => self::DATABASE_TIME,
             'follow_up_run' => ['type' => ['integer', 'null']],
             'lines' => ['type' => 'array', 'items' => self::ORDER_LINE],
         ],

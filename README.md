@@ -22,19 +22,6 @@ Then one command runs it all: the API on <http://127.0.0.1:8080>, the queue's wo
 php cua dev
 ```
 
-```text
-Crab Shop server running on http://127.0.0.1:8080
-
-  Server    Workers  Runs
-  --------  -------  -------------------------------
-  http      2        http://127.0.0.1:8080
-  queue     4        queue:work: mail x1, warehouse x1, default x2
-  schedule  1        schedule:work
-  actors    2        actors:work
-
-Press Ctrl+C to stop
-```
-
 And, in another terminal, for something to look at:
 
 ```sh
@@ -61,6 +48,8 @@ It uses SQLite. `shop:seed` makes 36 products, 12 people and about two weeks of 
 | `POST` | `/login` | `email`, `password`; answers with a token |
 | `POST` | `/assistant/chat` | `{"question": "a mug"}`, then `{"question": "another one?"}`: your own assistant, which remembers what it showed you and stays on the same shelf; answers with `answer`, `products` and `turn` |
 | `GET` | `/me` | Whoever the token belongs to |
+| `POST` | `/ws/ticket` | A single-use ticket for a WebSocket connection. Requires a bearer token |
+| `WS` | `/orders/{id}/live` | The owner’s order status. Authenticate with `?ticket=` or a bearer header; discard messages whose `version` is no newer than the last one seen |
 | `GET` | `/orders` | Your orders, newest first, with how many things each holds; ten at a time, then `?cursor=` with the `next_cursor` of the page before |
 | `POST` | `/orders` | `{"lines": [{"productId": 1, "quantity": 2}]}` |
 | `GET` | `/orders/{id}` | One of your orders, with its lines |
@@ -68,16 +57,18 @@ It uses SQLite. `shop:seed` makes 36 products, 12 people and about two weeks of 
 | `PUT` | `/products/{id}/stock` | `{"stock": 40}`. Administrators |
 | `PUT` | `/orders/{id}/ship` | Ship a paid order. Administrators. Repeating a shipped order keeps its version and shipment time |
 
-The checked-in [OpenAPI 3.1 document](openapi.json) describes the same routes, their input validation, authentication, errors and typed responses. Generate it without starting a server, then check that the committed copy is current:
+The checked-in [OpenAPI 3.1 document](openapi.json) describes the HTTP routes, their input validation, authentication, errors and typed responses. The WebSocket route is listed above. Generate it without starting a server, then check that the committed copy is current:
 
 ```sh
+set -e
 php cua openapi:generate --strict
 php cua openapi:generate --strict --check
 ```
 
-Response DTOs are inferred directly. Database-row actions declare their exact schemas with `#[Response]`; the shared shapes are in `app/Http/OpenApiSchemas.php`. The `openapi.security` and `openapi.middleware` settings in `config/openapi.php` document bearer authentication, rate limits and administrator-only responses.
+Response DTOs can be inferred directly. Database-row actions declare their schemas with `#[Response]`; the shared shapes are in `app/Http/OpenApiSchemas.php`. The `openapi.security` and `openapi.middleware` settings in `config/openapi.php` document bearer authentication, rate limits and administrator-only responses. Raw product and order rows expose database timestamps without a timezone offset; product `details` is JSON text or null. The order-list records serialize their dates as RFC 3339 timestamps.
 
 ```sh
+set -e
 TOKEN=$(curl -s -X POST localhost:8080/login -H 'Content-Type: application/json' -H 'Accept: application/json' \
     -d '{"email":"ada@example.com","password":"password"}' | php -r 'echo json_decode(stream_get_contents(STDIN))->token;')
 
@@ -118,12 +109,14 @@ The order input classes use PHP types for nested fields. An order has 1–20 lin
 
 The conversational assistant keeps the last four questions and the first 500 characters of each answer, plus the last 256 product IDs it showed. Its turn counter continues until it idles out. A model response is limited to 64 KiB, so a conversation that stays active cannot retain an unbounded history. The streaming assistant returns `502` when its model cannot be reached before the stream starts.
 
+Every `start` launches a scheduler. Tasks use `onOneServer()`; set `CACHE_STORE=redis` when several machines run the same shop so they share the scheduling locks. Use distinct `REDIS_PREFIX` and `BROADCAST_PREFIX` values for unrelated shops on one Redis server, and the same values for workers of one shop.
+
 What happens when an order is placed:
 
 1. `PlaceOrder` takes the stock and saves the order in one transaction, and dispatches `OrderPlaced`.
 2. A listener pushes `SendOrderConfirmation` onto the `mail` queue and `SyncInventory` onto `warehouse`; another forgets the cached categories.
 3. The queue's workers run both. The confirmation is a file in `storage/mail/`. Refused messages are tried again, up to four times.
-4. The scheduler marks the order paid ten seconds or so later. One order in ten is never paid; `orders:cancel-stale` cancels it after two minutes and puts its stock back.
+4. The scheduler marks the order paid ten seconds or so later. One order in ten is never paid; `order:cancel-stale` cancels it after two minutes and puts its stock back.
 5. Every minute a "delivery" adds 60 to products with stock below 10; customers may find a product out of stock before the next delivery.
 6. The listener also starts a `FollowUpOrder` run. It waits, holding no worker, until an administrator or the dispatch desk ships the order, then three days for it to arrive, and then writes to ask for a review. The shipment and its signal job commit together on the database queue; a failed signal is retried by a worker. A listener delayed until after shipping queues the signal too.
 
@@ -137,7 +130,7 @@ With the Redis queue, jobs are pushed after the transaction commits. A process t
 | --- | --- |
 | `shop:seed` | Fill the shop; `--fresh` empties it first |
 | `shop:traffic` | Pretend customers; `--seconds=30`, `--rate=200`, `--url=` |
-| `orders:cancel-stale` | Cancel orders never paid; the scheduler runs it every minute |
+| `order:cancel-stale` | Cancel orders never paid; the scheduler runs it every minute |
 | `shop:mirror-catalogue` | Download `/products.csv` into `storage/catalogue.csv`; `--url=` |
 | `shop:report` | Write yesterday's report, or `--day=2026-01-31`, to the configured report disk |
 | `shop:dispatch` | Ship paid orders until stopped; `--pause=3` seconds per handoff. `start` also runs it as the `dispatch` server |
@@ -166,13 +159,14 @@ Reports go under `reports/` in the bucket. Set `S3_ENDPOINT` for MinIO or anothe
 ## Tests
 
 ```sh
+set -e
 composer test
 composer format:check
 composer lint
 composer openapi:check
 ```
 
-Shop integration tests each use a temporary database, a small set of known records and a frozen clock. They send requests through the real application and do not run the demo seeder. `OrderInputTest` checks the nested input without a database.
+Shop integration tests each use a temporary database, a small set of known records and a frozen clock. They send requests through the real application. Only `SeedTest` runs the demo seeder to check reset behavior. `OrderInputTest` checks the nested input without a database.
 
 SQLite is the default. To run the same suite on MySQL, give it a server DSN and an account that can create and drop databases. Each test creates a random database of its own and drops it afterwards; it does not use the development shop:
 
@@ -186,6 +180,6 @@ To exercise Redis cache and queues, set `SAMPLE_TEST_REDIS_URL`. Each test uses 
 SAMPLE_TEST_REDIS_URL=redis://127.0.0.1:6379 composer test
 ```
 
-Existing shops must run `php cua migrate` before starting the updated application. The new migration widens MySQL order totals to hold every accepted order; SQLite already uses 64-bit integers. Rolling that migration back refuses to narrow the column when a total would be lost.
+Existing shops must run `php cua migrate` before starting the updated application. The stale-order command is now `order:cancel-stale`, following the singular command-area convention; update any external invocation of its old plural name. The new migration widens MySQL order totals to hold every accepted order; SQLite already uses 64-bit integers. Rolling that migration back refuses to narrow the column when a total would be lost.
 
-`composer format` applies the shared Mago formatting rules. CI checks out the framework and packages on `main` beside the sample and runs these checks on PHP 8.4, with both SQLite and MySQL. The application keeps its dependencies at `@dev` through path repositories; the packages require framework `^0.6`, which the framework's `0.6.x-dev` branch alias satisfies.
+`composer format` applies the shared Mago formatting rules. CI checks out the framework and packages on `main` beside the sample and runs these checks on PHP 8.4, with SQLite, MySQL and Redis stores. The application keeps its dependencies at `@dev` through path repositories; the packages require framework `^0.6`, which the framework's `0.6.x-dev` branch alias satisfies.
