@@ -1,12 +1,12 @@
 # Crab Shop
 
-A sample application on the [Crab framework](../framework): the API of a small shop, with data in it. It is here to try the framework as an application would use it, with everything switched on, and to have something real to run while a feature is being built.
+A sample application on the [Crab framework](../framework): a small shop with an API, Arc pages and data in it. It is here to try the framework as an application would use it, with everything switched on, and to have something real to run while a feature is being built.
 
 It is not the skeleton to start a project from; that is [`crab`](../crab).
 
 ## Running it
 
-Use PHP 8.4 with `mbstring`, `pdo_sqlite`, `pcntl`, `posix` and `simplexml`. Keep the `framework`, `runs`, `actors`, `redis`, `s3`, `clockwerk` and `openapi` package folders beside this application for Composer's path repositories. The database is SQLite, so none needs installing, but `.env.example` carries broadcasts and actors over Redis, at `redis://127.0.0.1:6379`: start one (`docker run -d -p 6379:6379 redis:7-alpine`). `php cua start` needs it: the queue and the scheduler run in processes of their own, and their broadcasts reach the sockets only through Redis, so the local carrier is refused. The tests run without it.
+Use PHP 8.4 with `mbstring`, `pdo_sqlite`, `pcntl`, `posix` and `simplexml`. Keep the `framework`, `arc`, `runs`, `actors`, `redis`, `s3`, `clockwerk` and `openapi` package folders beside this application for Composer's path repositories. The database is SQLite, so none needs installing, but `.env.example` carries broadcasts and actors over Redis, at `redis://127.0.0.1:6379`: start one (`docker run -d -p 6379:6379 redis:7-alpine`). `php cua start` needs it: the queue and the scheduler run in processes of their own, and their broadcasts reach the sockets only through Redis, so the local carrier is refused. The tests run without it.
 
 ```sh
 set -e
@@ -32,12 +32,38 @@ Open the dashboard at <http://127.0.0.1:8080/clockwerk?token=sample>.
 
 Open the server-rendered shop at <http://127.0.0.1:8080/shop>. It has the
 catalogue with search, category, colour and price filters, product pages, a
-browser cart, checkout and a public order receipt. The cart is kept in browser
-local storage and the complete cart is posted at checkout, so these pages do
-not need a session or cookie authentication. Checkout uses one of the seeded
-accounts (ada@example.com / password) for the existing order transaction.
+browser cart, checkout, private receipts and **My orders** at `/shop/orders`.
+Choose **Log in** in the navigation, or open `/shop/login`, and use a seeded
+account below. The layout shows your name and email, with a **Log out** button.
+Checkout and My orders send signed-out visitors to the login page. After
+logging in, open your cart and choose **Checkout**; the order belongs to your
+logged-in account. A receipt is visible only to its owner; everyone else,
+including signed-out visitors and other administrators, receives `404`.
 
-It uses SQLite. `shop:seed` makes 36 products, 12 people and about two weeks of orders, the same ones every time. Everyone's password is `password`: `ada@example.com` is a customer, `admin@example.com` an administrator.
+The cart stays in browser local storage across login and logout. The form posts
+its complete contents when you place an order. `CookieAuth` uses the existing
+token store and an HttpOnly, SameSite=Lax cookie; logout revokes that token and
+clears the cookie. Every changing `/shop` route checks the request's origin,
+including login and logout. Browsers send `Sec-Fetch-Site: same-origin` for
+these forms; curl must send that header or a matching `Origin` too.
+
+Set `APP_URL` to the address used in the browser, including any non-default
+port, and set `SERVER_ADDRESS` to the listening address. Local defaults are
+`http://127.0.0.1:8080` and `tcp://127.0.0.1:8080`. Use the public HTTPS URL
+when deploying, including behind a TLS proxy: CookieAuth uses it for origin
+checks and makes the cookie Secure for HTTPS.
+
+It uses SQLite. `shop:seed` makes 36 products, 12 people and about two weeks of
+orders, the same ones every time. Everyone's password is `password`:
+
+| Account | Role |
+| --- | --- |
+| `ada@example.com` | Customer |
+| `grace@example.com` | Another customer, useful for checking receipt privacy |
+| `admin@example.com` | Administrator |
+
+The other seeded customers are `alan`, `katherine`, `linus`, `margaret`,
+`dennis`, `barbara`, `ken`, `radia` and `tim`, each at `@example.com`.
 
 ## The API
 
@@ -91,6 +117,7 @@ curl -s -X POST localhost:8080/orders -H "Authorization: Bearer $TOKEN" -H 'Cont
 | Actions and validation by signature | `app/Actions/`; `PlaceOrder` takes `app/Http/OrderInput.php`, with `#[ListOf]` validating each `OrderLineInput` |
 | Routes, groups, middleware | `routes/web.php`, `app/Http/AdminsOnly.php` |
 | Token authentication | `Login`, `Register`, `app/Users.php` |
+| Cookie authentication | `ShopLogin`, `ShopLogout`, `ShopCheckout`, `ShopOrder`, `ShopOrders`, `config/auth.php` and `SiteLayout`; browser login, token revocation, origin checks and owner-only receipts. `tests/ShopAuthTest.php` and `tests/ShopPageTest.php` |
 | Query builder, transactions, pagination | `PlaceOrder`, `ListProducts`, `ShowOrder` |
 | Rows as records | `app/Order.php` is read with `->into(Order::class)`, its status a backed enum (`OrderStatus`) and its times dates; `ListMyOrders` and `ShipOrder` read orders that way |
 | Migrations | `database/migrations/` |
