@@ -5,7 +5,9 @@ declare(strict_types=1);
 namespace Tests;
 
 use Crab\Contracts\HttpClient\Client;
+use Crab\Http\Request;
 use Crab\HttpClient\FakeClient;
+use Crab\HttpClient\NetworkException;
 use Psr\Http\Message\RequestInterface;
 
 /**
@@ -48,6 +50,15 @@ final class AssistantTest extends ShopTestCase
     public function testAModelThatIsDownIsA502BeforeAnyEvent(): void
     {
         $this->app->container->instance(Client::class, new FakeClient(['*' => FakeClient::response(503, 'down')]));
+
+        $this->api->post('/assistant', ['question' => 'lamp'])->assertStatus(502);
+    }
+
+    public function testAModelConnectionFailureIsA502BeforeAnyEvent(): void
+    {
+        $this->app->container->instance(Client::class, new FakeClient([
+            '*' => new NetworkException('Connection refused.', new Request('POST', 'https://model.example/chat')),
+        ]));
 
         $this->api->post('/assistant', ['question' => 'lamp'])->assertStatus(502);
     }

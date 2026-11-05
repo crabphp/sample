@@ -6,7 +6,9 @@ namespace App\Actions;
 
 use Crab\Contracts\Database\Database;
 use Crab\Contracts\HttpClient\Client;
+use Crab\Http\HttpException;
 use Crab\Http\Request;
+use Crab\HttpClient\NetworkException;
 use Crab\OpenApi\Attributes\Response;
 use Crab\Validation\Data;
 use Crab\Validation\Fields;
@@ -65,14 +67,18 @@ final readonly class AskAssistant
         }
 
         // Asked before the first yield, so that a model that is down is a 502, not a stream cut short.
-        $reply = $this->http->timeout(60)->stream(
-            'POST',
-            config('shop.model_url') . '/model/chat',
-            json: ['prompt' => $prompt],
-            cancellation: $request->cancellation(),
-        );
+        try {
+            $reply = $this->http->timeout(60)->stream(
+                'POST',
+                config('shop.model_url') . '/model/chat',
+                json: ['prompt' => $prompt],
+                cancellation: $request->cancellation(),
+            );
+        } catch (NetworkException $error) {
+            throw new HttpException(502, 'The assistant is not available. Try again in a moment.', previous: $error);
+        }
         if (!$reply->ok()) {
-            throw new \Crab\Http\HttpException(502, 'The assistant is not available. Try again in a moment.');
+            throw new HttpException(502, 'The assistant is not available. Try again in a moment.');
         }
 
         return (static function () use ($reply, $products): \Generator {

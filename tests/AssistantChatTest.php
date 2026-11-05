@@ -4,8 +4,12 @@ declare(strict_types=1);
 
 namespace Tests;
 
+use App\Actors\ShoppingAssistant;
 use Crab\Actors\Actors;
+use Crab\Contracts\Actors\Inbox;
+use Crab\Contracts\Actors\Message;
 use Crab\Contracts\HttpClient\Client;
+use Crab\Engine\Async\Cancellation;
 use Crab\HttpClient\FakeClient;
 use Psr\Http\Message\RequestInterface;
 
@@ -76,5 +80,65 @@ final class AssistantChatTest extends ShopTestCase
     public function testItIsForCustomersWhoAreLoggedIn(): void
     {
         $this->api->post('/assistant/chat', ['question' => 'a mug'])->assertStatus(401);
+    }
+
+    public function testLongAnswersDoNotMakeTheNextPromptTooLargeForTheModel(): void
+    {
+        $prompts = [];
+        $this->app->container->instance(Client::class, new FakeClient([
+            'POST */model/chat' => static function (RequestInterface $request) use (&$prompts) {
+                $prompt = json_decode((string) $request->getBody(), true)['prompt'];
+                $prompts[] = $prompt;
+                if (mb_strlen($prompt) > 4000) {
+                    return 422; // The real PretendModel's prompt limit.
+                }
+                return FakeClient::response(
+                    200,
+                    'data: ' . json_encode(['delta' => str_repeat('A useful answer. ', 100)]) . "\n\ndata: [DONE]\n\n",
+                );
+            },
+        ]));
+        $ada = $this->api->actingAs($this->user('ada@example.com'));
+        for ($turn = 1; $turn <= 8; ++$turn) {
+            $ada
+                ->post('/assistant/chat', ['question' => "question {$turn}"])
+                ->assertStatus(200)
+                ->assertJson('turn', $turn);
+        }
+        self::assertStringNotContainsString('question 1 /', $prompts[7]);
+        self::assertStringContainsString('question 7 /', $prompts[7]);
+    }
+
+    public function testAnActiveConversationDoesNotRetainEveryAnswer(): void
+    {
+        $http = new FakeClient(['*' => FakeClient::response(
+            200,
+            'data: ' . json_encode(['delta' => str_repeat('x', 16_000)]) . "\n\ndata: [DONE]\n\n",
+        )]);
+        $inbox = $this->createStub(Inbox::class);
+        $inbox->method('cancellation')->willReturn(new Cancellation());
+        $warm = $growth = $lastTurn = 0;
+        $inbox
+            ->method('getIterator')
+            ->willReturnCallback(static function () use ($http, &$warm, &$growth, &$lastTurn): \Generator {
+                for ($turn = 1; $turn <= 256; ++$turn) {
+                    yield new Message(['question' => 'another one?'], static function (bool $ok, mixed $reply) use (
+                        &$lastTurn,
+                    ): void {
+                        $lastTurn = $reply['turn'];
+                    });
+                    // The test client records requests; keep that out of the actor's memory measurement.
+                    $http->requests = [];
+                    if ($turn === 32) {
+                        $warm = memory_get_usage();
+                    }
+                }
+                $growth = memory_get_usage() - $warm;
+            });
+
+        new ShoppingAssistant($this->db, $http)->handle($inbox, 'test-conversation');
+
+        self::assertSame(256, $lastTurn);
+        self::assertLessThan(1024 * 1024, $growth, 'An active actor retained more than a megabyte of old answers.');
     }
 }

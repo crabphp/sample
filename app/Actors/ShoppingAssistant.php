@@ -28,7 +28,8 @@ final readonly class ShoppingAssistant
 
     public function handle(Inbox $inbox, string $key): void
     {
-        $turns = []; // what was asked and answered, for the model
+        $turns = []; // the last four questions and a bounded excerpt of each answer
+        $turn = 0;
         $shown = []; // the products already suggested, not suggested again
         $shelf = null; // the category the conversation is about
 
@@ -36,10 +37,13 @@ final readonly class ShoppingAssistant
             $question = (string) ($message->data['question'] ?? '');
             $products = $this->find($question, $shown, $shelf);
             $shelf = $products[0]['category'] ?? $shelf;
-            $shown = [...$shown, ...array_map(static fn(array $product): int => (int) $product['id'], $products)];
+            $shown = array_slice([
+                ...$shown,
+                ...array_map(static fn(array $product): int => (int) $product['id'], $products),
+            ], -256);
 
             $prompt = "Answer the customer's question from these products.\n";
-            foreach (array_slice($turns, -4) as [$asked, $answered]) {
+            foreach ($turns as [$asked, $answered]) {
                 $prompt .= "Earlier: {$asked} / {$answered}\n";
             }
             $prompt .= "Question: {$question}\nProducts:\n";
@@ -55,6 +59,7 @@ final readonly class ShoppingAssistant
                     config('shop.model_url') . '/model/chat',
                     json: ['prompt' => $prompt],
                     cancellation: $inbox->cancellation(),
+                    maxBytes: 64 * 1024,
                 )
                 ->throw();
             foreach ($reply->events() as $event) {
@@ -64,12 +69,13 @@ final readonly class ShoppingAssistant
                 $answer .= $event->json()['delta'] ?? '';
             }
             $answer = trim($answer);
-            $turns[] = [$question, $answer];
+            // Keep the next prompt within the model's 4000-character input and bound an actor that never idles.
+            $turns = array_slice([...$turns, [$question, mb_substr($answer, 0, 500)]], -4);
 
             $message->reply([
                 'answer' => $answer,
                 'products' => array_map(static fn(array $product): int => (int) $product['id'], $products),
-                'turn' => count($turns),
+                'turn' => ++$turn,
             ]);
         }
     }

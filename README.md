@@ -116,6 +116,8 @@ curl -s -X POST localhost:8080/orders -H "Authorization: Bearer $TOKEN" -H 'Cont
 
 The order input classes use PHP types for nested fields. An order has 1–20 lines, each with a `productId` and a quantity of 1–20. Leaving out `quantity` or sending it as `null` means one item.
 
+The conversational assistant keeps the last four questions and the first 500 characters of each answer, plus the last 256 product IDs it showed. Its turn counter continues until it idles out. A model response is limited to 64 KiB, so a conversation that stays active cannot retain an unbounded history. The streaming assistant returns `502` when its model cannot be reached before the stream starts.
+
 What happens when an order is placed:
 
 1. `PlaceOrder` takes the stock and saves the order in one transaction, and dispatches `OrderPlaced`.
