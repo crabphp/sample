@@ -1,7 +1,7 @@
 {
     "openapi": "3.1.0",
     "info": {
-        "title": "Crab Shop API",
+        "title": "Crab Shop",
         "version": "1.0.0",
         "description": "The shop catalogue, orders, assistant, and administration API.",
         "license": {

@@ -7,8 +7,6 @@ use Crab\Auth\TokenAuth;
 use Crab\Http\RateLimit;
 
 return [
-    // Its own setting, not APP_NAME: the committed document must not change with an .env.
-    'title' => env('API_TITLE', 'Crab Shop API'),
     'version' => env('API_VERSION', '1.0.0'),
     'description' => 'The shop catalogue, orders, assistant, and administration API.',
     'license' => ['name' => 'MIT', 'identifier' => 'MIT'],
