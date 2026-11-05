@@ -1,4 +1,4 @@
-@props(string $title, string $slot = '', string $head = '')
+@props(string $title, ?\App\User $user = null, string $slot = '', string $head = '')
 <!doctype html>
 <html lang="en">
 <head>
@@ -14,8 +14,10 @@
         .topbar { background: #173f3a; color: #fff; }
         .topbar .shell { display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding: 1rem 0; }
         .brand { color: #fff; font-weight: 800; text-decoration: none; letter-spacing: .04em; }
-        nav { display: flex; gap: 1rem; }
+        nav { display: flex; flex-wrap: wrap; align-items: center; gap: 1rem; }
         nav a { color: #d9f2e5; text-decoration: none; }
+        nav form { margin: 0; }
+        nav button { width: auto; padding: .35rem .65rem; }
         main { padding: 2rem 0 4rem; }
         h1, h2, h3 { line-height: 1.1; }
         .eyebrow { color: #68746f; font-size: .78rem; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; }
@@ -64,6 +66,13 @@
         <nav aria-label="Shop">
             <a href="/shop">Catalogue</a>
             <a href="/shop/cart">Cart <span data-cart-count>0</span></a>
+            @if($user !== null)
+                <a href="/shop/orders">My orders</a>
+                <span>Logged in as {{ $user->name }} ({{ $user->email }})</span>
+                <form method="post" action="/shop/logout"><button type="submit">Log out</button></form>
+            @else
+                <a href="/shop/login">Log in</a>
+            @endif
         </nav>
     </div>
 </header>

@@ -1,4 +1,4 @@
-<SiteLayout title="Order {{ $order['id'] }}">
+<SiteLayout title="Order {{ $order['id'] }}" :user="$user">
     <div class="receipt">
         <p class="eyebrow">Order confirmed</p>
         <h1>Thanks for your order</h1>
@@ -8,6 +8,7 @@
             <p>{{ $line['quantity'] }} × {{ $line['name'] }} · $ {{ number_format($line['price'] * $line['quantity'] / 100, 2) }}</p>
         @endforeach
         <p class="total"><span>Total</span><span>$ {{ number_format($order['total'] / 100, 2) }}</span></p>
+        <p><a href="/shop/orders">My orders</a></p>
         <p><a class="button secondary" href="/shop">Return to catalogue</a></p>
     </div>
 </SiteLayout>

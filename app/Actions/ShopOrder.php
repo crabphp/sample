@@ -4,14 +4,16 @@ declare(strict_types=1);
 
 namespace App\Actions;
 
+use App\User;
 use Crab\Contracts\Database\Database;
 use Crab\Http\HttpException;
 use Crab\Http\Response;
 use Crab\OpenApi\Attributes\Response as ApiResponse;
+use Crab\OpenApi\Attributes\Security;
 
 /**
- * A deliberately small public receipt. It does not expose the customer's
- * address or account, so the browser can return to it without a session.
+ * Only the owner may read a receipt, including when another visitor is an
+ * administrator. Anonymous visitors get the same 404 as other non-owners.
  */
 final readonly class ShopOrder
 {
@@ -20,10 +22,11 @@ final readonly class ShopOrder
     ) {}
 
     #[ApiResponse(200, description: 'The HTML order receipt.', contentType: 'text/html')]
-    #[ApiResponse(404, description: 'No such order.')]
-    public function handle(int $id): Response
+    #[ApiResponse(404, description: 'No such order, or it belongs to another customer.')]
+    #[Security('cookie')]
+    public function handle(int $id, ?User $user): Response
     {
-        $order = $this->db->table('orders')->find($id);
+        $order = $user === null ? null : $this->db->table('orders')->where('user_id', $user->id)->find($id);
         if ($order === null) {
             throw new HttpException(404, 'No such order.');
         }
@@ -33,6 +36,9 @@ final readonly class ShopOrder
             ->where('order_items.order_id', $id)
             ->select('products.name', 'order_items.quantity', 'order_items.price')
             ->get();
-        return view('shop.order', ['order' => $order, 'lines' => $lines]);
+        return view('shop.order', ['user' => $user, 'order' => $order, 'lines' => $lines])->withHeader(
+            'Cache-Control',
+            'private, no-store',
+        );
     }
 }

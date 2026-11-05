@@ -1,4 +1,4 @@
-<SiteLayout title="Cart">
+<SiteLayout title="Cart" :user="$user">
     <div class="cart-panel">
         <p class="eyebrow">Your cart</p>
         <h1>Ready when you are</h1>

@@ -24,6 +24,7 @@ return [
     ],
     'security' => [
         'bearer' => ['type' => 'http', 'scheme' => 'bearer'],
+        'cookie' => ['type' => 'apiKey', 'in' => 'cookie', 'name' => 'auth'],
     ],
     'middleware' => [
         TokenAuth::class => ['security' => 'bearer', 'responses' => [401]],

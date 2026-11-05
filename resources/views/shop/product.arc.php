@@ -1,4 +1,4 @@
-<SiteLayout title="{{ $product['name'] }}">
+<SiteLayout title="{{ $product['name'] }}" :user="$user">
     <p class="eyebrow"><a href="/shop">Catalogue</a> / {{ $product['category'] }}</p>
     <article class="product-detail">
         <div>

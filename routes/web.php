@@ -20,7 +20,10 @@ use App\Actions\ShipOrder;
 use App\Actions\ShopCart;
 use App\Actions\ShopCatalogue;
 use App\Actions\ShopCheckout;
+use App\Actions\ShopLogin;
+use App\Actions\ShopLogout;
 use App\Actions\ShopOrder;
+use App\Actions\ShopOrders;
 use App\Actions\ShopProduct;
 use App\Actions\ShowOrder;
 use App\Actions\ShowProduct;
@@ -29,6 +32,7 @@ use App\Actions\WatchStock;
 use App\Http\AdminsOnly;
 use App\Http\OpenApiSchemas;
 use App\User;
+use Crab\Auth\CookieAuth;
 use Crab\Auth\Ticket;
 use Crab\Auth\TokenAuth;
 use Crab\Http\RateLimit;
@@ -41,13 +45,25 @@ static fn(): array => [
     'docs' => 'See README.md for the routes.',
 ]);
 
-// The public Arc-rendered shop. The JSON API below remains unchanged.
-Route::get('/shop', ShopCatalogue::class);
-Route::get('/shop/products/{id}', ShopProduct::class);
-Route::get('/shop/cart', ShopCart::class);
-Route::get('/shop/checkout', [ShopCheckout::class, 'show']);
-Route::post('/shop/checkout', ShopCheckout::class);
-Route::get('/shop/orders/{id}', ShopOrder::class);
+// Browser pages share the token store with the API, using an HttpOnly cookie.
+Route::middleware(new CookieAuth(required: false))->group(static function (): void {
+    Route::get('/shop', ShopCatalogue::class);
+    Route::get('/shop/products/{id}', ShopProduct::class);
+    Route::get('/shop/cart', ShopCart::class);
+    Route::get('/shop/login', [ShopLogin::class, 'show']);
+    Route::post('/shop/login', ShopLogin::class)->middleware(
+        new RateLimit((int) config('shop.login_limit'), name: 'shop-login'),
+    );
+    Route::post('/shop/logout', ShopLogout::class);
+    // An anonymous visitor gets the same 404 as any other non-owner.
+    Route::get('/shop/orders/{id}', ShopOrder::class);
+});
+
+Route::middleware(CookieAuth::class)->group(static function (): void {
+    Route::get('/shop/checkout', [ShopCheckout::class, 'show']);
+    Route::post('/shop/checkout', ShopCheckout::class);
+    Route::get('/shop/orders', ShopOrders::class);
+});
 
 // For a load balancer: /up says a worker answers, /ready that it reaches the database and the cache.
 Route::get('/ready', Ready::class);

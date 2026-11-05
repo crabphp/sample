@@ -1,4 +1,4 @@
-<SiteLayout title="Catalogue">
+<SiteLayout title="Catalogue" :user="$user">
     <section class="catalogue-head">
         <div>
             <p class="eyebrow">The Crab collection</p>

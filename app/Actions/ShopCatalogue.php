@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Actions;
 
 use App\Http\ProductSearch;
+use App\User;
 use Crab\Contracts\Database\Page;
 use Crab\Http\Response;
 use Crab\OpenApi\Attributes\Response as ApiResponse;
@@ -22,7 +23,7 @@ final readonly class ShopCatalogue
     ) {}
 
     #[ApiResponse(200, description: 'The HTML catalogue.', contentType: 'text/html')]
-    public function handle(#[FromQuery] ProductSearch $search): Response
+    public function handle(#[FromQuery] ProductSearch $search, ?User $user): Response
     {
         $page = $this->products->handle($search);
         $query = array_filter(
@@ -38,6 +39,7 @@ final readonly class ShopCatalogue
         );
 
         return view('shop.catalogue', [
+            'user' => $user,
             'page' => $page,
             'categories' => $this->categories->handle(),
             'search' => $search,

@@ -8,41 +8,34 @@ use App\Http\CheckoutInput;
 use App\Http\OrderInput;
 use App\Http\OrderLineInput;
 use App\User;
-use Crab\Contracts\Auth\PasswordHasher;
-use Crab\Contracts\Database\Database;
 use Crab\Http\HttpException;
 use Crab\Http\Response;
 use Crab\OpenApi\Attributes\Response as ApiResponse;
+use Crab\OpenApi\Attributes\Security;
 
 /**
- * Posts the browser cart through the existing PlaceOrder transaction. The
- * sample has token auth for its API but no cookie auth, so the public shop
- * asks for the existing sample account credentials on this one request.
+ * Posts the browser cart through the existing PlaceOrder transaction for
+ * the user authenticated by CookieAuth.
  */
+#[Security('cookie')]
 final readonly class ShopCheckout
 {
     public function __construct(
-        private Database $db,
-        private PasswordHasher $passwords,
         private PlaceOrder $orders,
     ) {}
 
     #[ApiResponse(200, description: 'The HTML checkout page.', contentType: 'text/html')]
-    public function show(): Response
+    #[ApiResponse(303, description: 'Log in before checking out.', headers: ['Location'])]
+    public function show(User $user): Response
     {
-        return view('shop.checkout');
+        return view('shop.checkout', ['user' => $user])->withHeader('Cache-Control', 'private, no-store');
     }
 
     #[ApiResponse(303, description: 'The order receipt.', headers: ['Location'])]
-    #[ApiResponse(401, description: 'These credentials do not match.')]
+    #[ApiResponse(403, description: 'The request did not come from this application’s pages.')]
     #[ApiResponse(422, description: 'The cart is invalid.')]
-    public function handle(CheckoutInput $input): Response
+    public function handle(User $user, CheckoutInput $input): Response
     {
-        $row = $this->db->table('users')->where('email', $input->email)->first();
-        if ($row === null || !$this->passwords->verify($input->password, (string) $row['password'])) {
-            throw new HttpException(401, 'These credentials do not match.');
-        }
-
         $decoded = json_decode($input->cart, true);
         if (!is_array($decoded) || !array_is_list($decoded) || $decoded === [] || count($decoded) > 20) {
             throw new HttpException(422, 'The cart must contain between 1 and 20 products.');
@@ -63,7 +56,7 @@ final readonly class ShopCheckout
             $lines[] = new OrderLineInput($productId, $quantity);
         }
 
-        $response = $this->orders->handle(User::from($row), new OrderInput($lines));
+        $response = $this->orders->handle($user, new OrderInput($lines));
         $placed = json_decode((string) $response->getBody(), true, flags: JSON_THROW_ON_ERROR);
         return Response::redirect('/shop/orders/' . (int) $placed['id'], 303);
     }
