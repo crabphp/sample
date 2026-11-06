@@ -1,5 +1,5 @@
 <SiteLayout title="Order {{ $order['id'] }}" :user="$user">
-    <div class="receipt">
+    <div class="receipt" data-order-receipt>
         <p class="eyebrow">Order confirmed</p>
         <h1>Thanks for your order</h1>
         <p class="notice">Order #{{ $order['id'] }} is <strong>{{ $order['status'] }}</strong>. We have recorded it and the sample's queue will handle its follow-up work.</p>

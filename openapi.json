@@ -2675,6 +2675,14 @@
                         "type": "string",
                         "minLength": 2,
                         "maxLength": 10000
+                    },
+                    "checkoutId": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "pattern": "^[a-f0-9-]{36}$",
+                        "default": null
                     }
                 },
                 "required": [

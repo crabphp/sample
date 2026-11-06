@@ -58,6 +58,10 @@ final readonly class ShopCheckout
 
         $response = $this->orders->handle($user, new OrderInput($lines));
         $placed = json_decode((string) $response->getBody(), true, flags: JSON_THROW_ON_ERROR);
-        return Response::redirect('/shop/orders/' . (int) $placed['id'], 303);
+        $receipt = '/shop/orders/' . (int) $placed['id'];
+        if ($input->checkoutId !== null) {
+            $receipt .= '#checkout=' . rawurlencode($input->checkoutId);
+        }
+        return Response::redirect($receipt, 303)->withHeader('Cache-Control', 'private, no-store');
     }
 }

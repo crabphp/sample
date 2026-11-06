@@ -96,6 +96,20 @@ final class ShopPageTest extends ShopTestCase
         self::assertSame(30, $this->db->table('products')->where('id', 1)->value('stock'));
     }
 
+    public function testCheckoutRedirectIdentifiesOnlyTheSuccessfulBrowserSubmission(): void
+    {
+        $browser = $this->browser('ada@example.com');
+        $id = '7aee85e6-3ffc-4905-a3c1-86558f4db11c';
+        $browser
+            ->post('/shop/checkout', form: ['cart' => '[{"productId":1,"quantity":2}]', 'checkoutId' => $id])
+            ->assertStatus(303)
+            ->assertHeader('Location', '/shop/orders/3#checkout=' . $id);
+        $failed = $browser
+            ->post('/shop/checkout', form: ['cart' => '[{"productId":99999,"quantity":1}]', 'checkoutId' => $id])
+            ->assertStatus(422);
+        self::assertSame('', $failed->header('Location'));
+    }
+
     public function testOnlyTheOwnerCanReadAReceipt(): void
     {
         $this->browser('ada@example.com')->get('/shop/orders/1')->assertStatus(200);

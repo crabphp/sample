@@ -81,6 +81,7 @@
 <script>
 (() => {
     const key = 'crab-shop-cart';
+    const checkoutKey = 'crab-shop-checkout';
     const escapeHtml = value => String(value).replace(/[&<>"']/g, character => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' }[character]));
     const read = () => { try { return JSON.parse(localStorage.getItem(key) || '[]'); } catch (_) { return []; } };
     const write = cart => { localStorage.setItem(key, JSON.stringify(cart)); updateCount(); };
@@ -91,6 +92,17 @@
         if (!response.ok) throw new Error('Product lookup failed');
         return [line.productId, await response.json()];
     })));
+    // Only the successful POST supplies this fragment. Ordinary receipt visits do nothing.
+    if (document.querySelector('[data-order-receipt]') && location.hash.startsWith('#checkout=')) {
+        let pending;
+        try { pending = JSON.parse(sessionStorage.getItem(checkoutKey)); } catch (_) {}
+        if (pending && location.hash === '#checkout=' + pending.id) {
+            const purchased = new Map(pending.cart.map(line => [line.productId, line.quantity]));
+            write(read().map(line => ({ ...line, quantity: line.quantity - (purchased.get(line.productId) || 0) })).filter(line => line.quantity > 0));
+            sessionStorage.removeItem(checkoutKey);
+            history.replaceState(null, '', location.pathname + location.search);
+        }
+    }
     document.addEventListener('click', event => {
         const button = event.target.closest('[data-add-to-cart]');
         if (!button) return;
@@ -120,7 +132,23 @@
         }).catch(() => { cartLines.innerHTML = '<p role="alert">We could not load your products. Your cart has been kept. <a href="/shop/cart">Try again</a>.</p>'; });
     }
     const checkout = document.querySelector('[data-checkout-form]');
-    if (checkout) checkout.addEventListener('submit', event => { const cart = read(); if (!cart.length) { event.preventDefault(); alert('Your cart is empty.'); return; } checkout.querySelector('[name=cart]').value = JSON.stringify(cart); });
+    if (checkout) {
+        checkout.addEventListener('submit', event => {
+            if (checkout.dataset.submitting) { event.preventDefault(); return; }
+            const cart = read();
+            if (!cart.length) { event.preventDefault(); alert('Your cart is empty.'); return; }
+            const id = crypto.randomUUID();
+            sessionStorage.setItem(checkoutKey, JSON.stringify({ id, cart }));
+            checkout.querySelector('[name=cart]').value = JSON.stringify(cart);
+            checkout.querySelector('[name=checkoutId]').value = id;
+            checkout.dataset.submitting = 'true';
+            checkout.querySelector('button[type=submit]').disabled = true;
+        });
+        window.addEventListener('pageshow', () => {
+            delete checkout.dataset.submitting;
+            checkout.querySelector('button[type=submit]').disabled = false;
+        });
+    }
     updateCount();
 })();
 </script>

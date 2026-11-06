@@ -41,7 +41,9 @@ logged-in account. A receipt is visible only to its owner; everyone else,
 including signed-out visitors and other administrators, receives `404`.
 
 The cart stays in browser local storage across login and logout. The form posts
-its complete contents when you place an order. `CookieAuth` uses the existing
+its complete contents when you place an order. A successful checkout removes
+only the submitted quantities; failed checkouts and visits to old receipts keep
+the cart. `CookieAuth` uses the existing
 token store and an HttpOnly, SameSite=Lax cookie; logout revokes that token and
 clears the cookie. Every changing `/shop` route checks the request's origin,
 including login and logout. Browsers send `Sec-Fetch-Site: same-origin` for

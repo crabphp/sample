@@ -5,6 +5,7 @@
         <p class="notice">This order will belong to {{ $user->name }} ({{ $user->email }}). Your cart stays in this browser until you place the order.</p>
         <form method="post" action="/shop/checkout" data-checkout-form>
             <input type="hidden" name="cart" value="">
+            <input type="hidden" name="checkoutId" value="">
             <button type="submit">Place order</button>
         </form>
         <p><a href="/shop/cart">Back to cart</a></p>
