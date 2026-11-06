@@ -85,6 +85,12 @@
     const read = () => { try { return JSON.parse(localStorage.getItem(key) || '[]'); } catch (_) { return []; } };
     const write = cart => { localStorage.setItem(key, JSON.stringify(cart)); updateCount(); };
     const updateCount = () => document.querySelectorAll('[data-cart-count]').forEach(el => el.textContent = read().reduce((n, line) => n + line.quantity, 0));
+    const loadProducts = async cart => Object.fromEntries(await Promise.all(cart.map(async line => {
+        const response = await fetch('/products/' + encodeURIComponent(line.productId));
+        if (response.status === 404) return [line.productId, null];
+        if (!response.ok) throw new Error('Product lookup failed');
+        return [line.productId, await response.json()];
+    })));
     document.addEventListener('click', event => {
         const button = event.target.closest('[data-add-to-cart]');
         if (!button) return;
@@ -99,14 +105,19 @@
     });
     const cartLines = document.querySelector('[data-cart-lines]');
     if (cartLines) {
-        fetch('/products?perPage=50').then(response => response.json()).then(payload => {
-            const products = Object.fromEntries(payload.data.map(product => [product.id, product]));
-            const cart = read().filter(line => products[line.productId]);
-            write(cart);
-            cartLines.innerHTML = cart.length ? cart.map(line => '<div class="cart-line"><a href="/shop/products/' + line.productId + '">' + escapeHtml(products[line.productId].name) + '</a><input aria-label="Quantity for ' + escapeHtml(products[line.productId].name) + '" type="number" min="1" max="20" value="' + line.quantity + '" data-cart-quantity="' + line.productId + '"><button type="button" data-remove="' + line.productId + '">Remove</button></div>').join('') : '<p>Your cart is empty. <a href="/shop">Browse the catalogue</a>.</p>';
+        const cart = read();
+        loadProducts(cart).then(products => {
+            cartLines.innerHTML = cart.length ? cart.map(line => {
+                const product = products[line.productId];
+                const id = escapeHtml(line.productId);
+                const details = product
+                    ? '<a href="/shop/products/' + id + '">' + escapeHtml(product.name) + '</a><input aria-label="Quantity for ' + escapeHtml(product.name) + '" type="number" min="1" max="20" value="' + escapeHtml(line.quantity) + '" data-cart-quantity="' + id + '">'
+                    : '<p>Product #' + id + ' is no longer available.</p>';
+                return '<div class="cart-line">' + details + '<button type="button" data-remove="' + id + '">Remove</button></div>';
+            }).join('') : '<p>Your cart is empty. <a href="/shop">Browse the catalogue</a>.</p>';
             document.querySelectorAll('[data-cart-quantity]').forEach(input => input.addEventListener('change', () => { const next = read().map(line => line.productId === Number(input.dataset.cartQuantity) ? { ...line, quantity: Math.max(1, Math.min(20, Number(input.value) || 1)) } : line); write(next); }));
             document.querySelectorAll('[data-remove]').forEach(button => button.addEventListener('click', () => { write(read().filter(line => line.productId !== Number(button.dataset.remove))); location.reload(); }));
-        }).catch(() => { cartLines.innerHTML = '<p>We could not read the catalogue. Try again.</p>'; });
+        }).catch(() => { cartLines.innerHTML = '<p role="alert">We could not load your products. Your cart has been kept. <a href="/shop/cart">Try again</a>.</p>'; });
     }
     const checkout = document.querySelector('[data-checkout-form]');
     if (checkout) checkout.addEventListener('submit', event => { const cart = read(); if (!cart.length) { event.preventDefault(); alert('Your cart is empty.'); return; } checkout.querySelector('[name=cart]').value = JSON.stringify(cart); });
