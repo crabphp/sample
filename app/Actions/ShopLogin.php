@@ -29,8 +29,19 @@ final readonly class ShopLogin
     }
 
     #[ApiResponse(303, description: 'Logged in; continue shopping.', headers: ['Location', 'Set-Cookie'])]
-    #[ApiResponse(401, description: 'These credentials do not match.', contentType: 'text/html')]
+    #[ApiResponse(
+        401,
+        body: ['type' => 'string'],
+        description: 'These credentials do not match.',
+        contentType: 'text/html',
+    )]
     #[ApiResponse(403, description: 'The request did not come from this application’s pages.')]
+    #[ApiResponse(
+        422,
+        body: ['type' => 'string'],
+        description: 'The login details are invalid.',
+        contentType: 'text/html',
+    )]
     public function handle(#[\SensitiveParameter] LoginInput $input, ?User $user): Response
     {
         $row = $this->db->table('users')->where('email', $input->email)->first();

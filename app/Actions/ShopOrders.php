@@ -18,6 +18,12 @@ final readonly class ShopOrders
 
     #[ApiResponse(200, description: 'Your HTML order history, newest first.', contentType: 'text/html')]
     #[ApiResponse(303, description: 'Log in to see your orders.', headers: ['Location'])]
+    #[ApiResponse(
+        422,
+        body: ['type' => 'string'],
+        description: 'The order cursor is invalid.',
+        contentType: 'text/html',
+    )]
     #[Security('cookie')]
     public function handle(User $user, #[FromQuery] ?string $cursor = null): Response
     {

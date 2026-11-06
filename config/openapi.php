@@ -5,6 +5,7 @@ declare(strict_types=1);
 use App\Http\AdminsOnly;
 use Crab\Auth\TokenAuth;
 use Crab\Http\RateLimit;
+use Crab\OpenApi\ErrorSchema;
 
 return [
     'version' => env('API_VERSION', '1.0.0'),
@@ -12,6 +13,8 @@ return [
     'license' => ['name' => 'MIT', 'identifier' => 'MIT'],
     'output' => env('OPENAPI_PATH', 'openapi.json'),
     'strict' => true,
+    // ShopErrors changes only shop HTML; JSON API errors keep Crab's schema.
+    'error_schema' => ErrorSchema::make(),
     'servers' => [env('APP_URL', 'http://127.0.0.1:8080')],
     // The health handler and the Clockwerk dashboard are operational views,
     // not part of the shop's public API contract.

@@ -23,6 +23,7 @@ final readonly class ShopCatalogue
     ) {}
 
     #[ApiResponse(200, description: 'The HTML catalogue.', contentType: 'text/html')]
+    #[ApiResponse(422, body: ['type' => 'string'], description: 'The filters are invalid.', contentType: 'text/html')]
     public function handle(#[FromQuery] ProductSearch $search, ?User $user): Response
     {
         // A normal GET form includes the empty "All" options. They mean no filter.

@@ -10,10 +10,12 @@ use App\Actions\QueueOrderWork;
 use App\Actions\Restock;
 use App\Actions\SettlePayments;
 use App\Events\OrderPlaced;
+use App\Http\ShopErrors;
 use Crab\Contracts\Auth\IdentityResolver;
 use Crab\Contracts\Config\Config;
 use Crab\Contracts\Container\Container;
 use Crab\Contracts\Events\Dispatcher;
+use Crab\Contracts\Http\ErrorRenderer;
 use Crab\Contracts\Http\MiddlewareStack;
 use Crab\Contracts\Plugin;
 use Crab\Contracts\Schedule\Schedule;
@@ -66,6 +68,7 @@ final class Setup implements Plugin
         // These settings construct middleware while the routes are declared, before runtime().
         $config->check('shop', 'mail');
         $container->singleton(IdentityResolver::class, Users::class);
+        $container->singleton(ErrorRenderer::class, ShopErrors::class);
         $container->singleton(
             Mailer::class,
             static fn(Container $container): Mailer => new FileMailer(

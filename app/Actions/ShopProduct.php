@@ -16,6 +16,7 @@ final readonly class ShopProduct
 
     #[ApiResponse(200, description: 'The HTML product page.', contentType: 'text/html')]
     #[ApiResponse(404, description: 'No such product.')]
+    #[ApiResponse(422, body: ['type' => 'string'], description: 'The product ID is invalid.', contentType: 'text/html')]
     public function handle(int $id, ?User $user): Response
     {
         $product = $this->products->handle($id);

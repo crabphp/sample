@@ -33,7 +33,13 @@ final readonly class ShopCheckout
 
     #[ApiResponse(303, description: 'The order receipt.', headers: ['Location'])]
     #[ApiResponse(403, description: 'The request did not come from this application’s pages.')]
-    #[ApiResponse(422, description: 'The cart is invalid.')]
+    #[ApiResponse(
+        409,
+        body: ['type' => 'string'],
+        description: 'There is not enough stock to place the order.',
+        contentType: 'text/html',
+    )]
+    #[ApiResponse(422, body: ['type' => 'string'], description: 'The cart is invalid.', contentType: 'text/html')]
     public function handle(User $user, CheckoutInput $input): Response
     {
         $decoded = json_decode($input->cart, true);

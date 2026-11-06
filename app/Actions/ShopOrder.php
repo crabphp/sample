@@ -23,6 +23,7 @@ final readonly class ShopOrder
 
     #[ApiResponse(200, description: 'The HTML order receipt.', contentType: 'text/html')]
     #[ApiResponse(404, description: 'No such order, or it belongs to another customer.')]
+    #[ApiResponse(422, body: ['type' => 'string'], description: 'The order ID is invalid.', contentType: 'text/html')]
     #[Security('cookie')]
     public function handle(int $id, ?User $user): Response
     {

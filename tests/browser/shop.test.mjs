@@ -190,3 +190,40 @@ test('S2: only a successful checkout removes the submitted purchase, once', asyn
     ]);
     assert.deepEqual(await cart(page), failed, 'Logout preserves the cart');
 });
+
+test('P3 errors: validation and stock errors retain shop HTML and the cart', async t => {
+    const page = await visit(t);
+    await page.goto('/shop/login');
+    await page.getByLabel('Email', { exact: true }).fill('ada@example.com');
+    await page.getByLabel('Password', { exact: true }).evaluate(input => input.removeAttribute('maxlength'));
+    const password = 'private-password'.repeat(5);
+    await page.getByLabel('Password', { exact: true }).fill(password);
+    const [invalid] = await Promise.all([
+        page.waitForNavigation({ waitUntil: 'load' }),
+        page.getByRole('button', { name: 'Log in', exact: true }).click(),
+    ]);
+    assert.equal(invalid.status(), 422);
+    assert.match(invalid.headers()['content-type'], /text\/html/);
+    assert.equal(await page.getByRole('navigation', { name: 'Shop', exact: true }).count(), 1);
+    assert.ok(!(await page.content()).includes(password));
+    await screenshot(page, 'login-validation');
+    await login(page);
+
+    const name = '<img src=x onerror="window.shopXss=1">';
+    const product = await createProduct(page, { name, stock: 0 });
+    const saved = [{ productId: product.id, quantity: 1 }];
+    await setCart(page, saved);
+    await page.goto('/shop/checkout');
+    const [conflict] = await Promise.all([
+        page.waitForNavigation({ waitUntil: 'load' }),
+        page.getByRole('button', { name: 'Place order', exact: true }).click(),
+    ]);
+    assert.equal(conflict.status(), 409);
+    assert.match(conflict.headers()['content-type'], /text\/html/);
+    assert.equal(await page.getByRole('navigation', { name: 'Shop', exact: true }).count(), 1);
+    assert.ok((await page.getByRole('alert').innerText()).includes(name));
+    assert.ok((await page.locator('body').innerText()).includes('Logged in as Ada'));
+    assert.equal(await page.locator('[onerror]').count(), 0);
+    assert.deepEqual(await cart(page), saved);
+    await screenshot(page, 'checkout-conflict');
+});

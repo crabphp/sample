@@ -2109,14 +2109,9 @@
                         "description": "The HTML catalogue."
                     },
                     "422": {
-                        "description": "The request is invalid.",
+                        "description": "The filters are invalid.",
                         "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/Error"
-                                }
-                            },
-                            "text/plain": {
+                            "text/html": {
                                 "schema": {
                                     "type": "string"
                                 }
@@ -2245,15 +2240,20 @@
                             }
                         }
                     },
+                    "409": {
+                        "description": "There is not enough stock to place the order.",
+                        "content": {
+                            "text/html": {
+                                "schema": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
                     "422": {
                         "description": "The cart is invalid.",
                         "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/Error"
-                                }
-                            },
-                            "text/plain": {
+                            "text/html": {
                                 "schema": {
                                     "type": "string"
                                 }
@@ -2311,12 +2311,7 @@
                     "401": {
                         "description": "These credentials do not match.",
                         "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/Error"
-                                }
-                            },
-                            "text/plain": {
+                            "text/html": {
                                 "schema": {
                                     "type": "string"
                                 }
@@ -2339,14 +2334,9 @@
                         }
                     },
                     "422": {
-                        "description": "The request is invalid.",
+                        "description": "The login details are invalid.",
                         "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/Error"
-                                }
-                            },
-                            "text/plain": {
+                            "text/html": {
                                 "schema": {
                                     "type": "string"
                                 }
@@ -2470,14 +2460,9 @@
                         }
                     },
                     "422": {
-                        "description": "The request is invalid.",
+                        "description": "The order cursor is invalid.",
                         "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/Error"
-                                }
-                            },
-                            "text/plain": {
+                            "text/html": {
                                 "schema": {
                                     "type": "string"
                                 }
@@ -2544,14 +2529,9 @@
                         }
                     },
                     "422": {
-                        "description": "The request is invalid.",
+                        "description": "The order ID is invalid.",
                         "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/Error"
-                                }
-                            },
-                            "text/plain": {
+                            "text/html": {
                                 "schema": {
                                     "type": "string"
                                 }
@@ -2598,14 +2578,9 @@
                         }
                     },
                     "422": {
-                        "description": "The request is invalid.",
+                        "description": "The product ID is invalid.",
                         "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/Error"
-                                }
-                            },
-                            "text/plain": {
+                            "text/html": {
                                 "schema": {
                                     "type": "string"
                                 }
