@@ -51,7 +51,7 @@ final readonly class Traffic implements Command
         $http = $this->http->timeout(10);
         $tokens = [];
         foreach (['ada', 'grace', 'alan', 'katherine', 'linus'] as $name) {
-            $login = $http->post("{$url}/login", ['email' => "{$name}@example.com", 'password' => 'password']);
+            $login = $http->post("{$url}/api/login", ['email' => "{$name}@example.com", 'password' => 'password']);
             if (!$login->ok()) {
                 $output->error(
                     "Could not log in as {$name}@example.com at {$url}. Is the server running, and was `shop:seed` run?",
@@ -60,7 +60,7 @@ final readonly class Traffic implements Command
             }
             $tokens[] = $login->json()['token'];
         }
-        $products = array_column($http->get("{$url}/products", ['perPage' => 50])->json()['data'], 'id');
+        $products = array_column($http->get("{$url}/api/products", ['perPage' => 50])->json()['data'], 'id');
         $pause = (int) (1_000_000 / $rate);
         $until = microtime(true) + $seconds;
         $sent = $orders = 0;
@@ -69,18 +69,18 @@ final readonly class Traffic implements Command
             $auth = ['Authorization' => 'Bearer ' . $tokens[array_rand($tokens)]];
             $product = $products[array_rand($products)];
             match (mt_rand(1, 20)) {
-                1, 2, 3, 4, 5 => $http->get("{$url}/products", ['page' => mt_rand(1, 3)]),
-                6, 7, 8, 9 => $http->get("{$url}/products/{$product}"),
-                10, 11 => $http->get("{$url}/categories"),
-                12 => $http->get("{$url}/products", ['q' => ['mug', 'wool', 'lamp', 'oak'][mt_rand(0, 3)]]),
-                13, 14 => $http->get("{$url}/orders", [], $auth),
-                15 => $http->get("{$url}/me", [], $auth),
+                1, 2, 3, 4, 5 => $http->get("{$url}/api/products", ['page' => mt_rand(1, 3)]),
+                6, 7, 8, 9 => $http->get("{$url}/api/products/{$product}"),
+                10, 11 => $http->get("{$url}/api/categories"),
+                12 => $http->get("{$url}/api/products", ['q' => ['mug', 'wool', 'lamp', 'oak'][mt_rand(0, 3)]]),
+                13, 14 => $http->get("{$url}/api/orders", [], $auth),
+                15 => $http->get("{$url}/api/me", [], $auth),
                 // Things visitors get wrong: a product that is not there, a page that cannot be, no token.
-                16 => $http->get("{$url}/products/99999"),
-                17 => $http->get("{$url}/products", ['perPage' => 500]),
-                18 => $http->get("{$url}/orders"),
+                16 => $http->get("{$url}/api/products/99999"),
+                17 => $http->get("{$url}/api/products", ['perPage' => 500]),
+                18 => $http->get("{$url}/api/orders"),
                 default => $orders += $http->post(
-                    "{$url}/orders",
+                    "{$url}/api/orders",
                     ['lines' => [['productId' => $product, 'quantity' => mt_rand(1, 2)]]],
                     headers: $auth,
                 )->ok()

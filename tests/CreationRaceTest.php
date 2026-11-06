@@ -31,7 +31,7 @@ final class CreationRaceTest extends ShopTestCase
         $this->app->container->instance(PasswordHasher::class, $passwords);
 
         $this->api
-            ->post('/register', [
+            ->post('/api/register', [
                 'email' => 'race@example.com',
                 'name' => 'Second',
                 'password' => 'valid password',
@@ -66,7 +66,7 @@ final class CreationRaceTest extends ShopTestCase
 
         $this->api
             ->actingAs($this->user('admin@example.com'))
-            ->post('/products', [
+            ->post('/api/products', [
                 'sku' => 'RACE-001',
                 'name' => 'Second',
                 'category' => 'desk',

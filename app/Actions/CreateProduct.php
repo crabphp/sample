@@ -56,6 +56,6 @@ final readonly class CreateProduct
 
         $this->cache->delete('categories');
 
-        return Response::created($this->db->table('products')->find($id), "/products/{$id}");
+        return Response::created($this->db->table('products')->find($id), "/api/products/{$id}");
     }
 }

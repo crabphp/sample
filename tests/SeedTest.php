@@ -24,7 +24,7 @@ final class SeedTest extends ShopTestCase
 
         self::assertSame(0, $this->command('shop:seed', '--fresh', '--users=2', '--products=1', '--orders=1'));
 
-        $this->api->withToken($token)->get('/me')->assertStatus(401);
+        $this->api->withToken($token)->get('/api/me')->assertStatus(401);
         self::assertNull($tickets->redeem($ticket));
         self::assertSame('admin', $this->db->table('users')->where('id', 1)->value('role'));
     }
@@ -33,7 +33,7 @@ final class SeedTest extends ShopTestCase
     {
         $this->api
             ->actingAs($this->user('ada@example.com'))
-            ->post('/orders', [
+            ->post('/api/orders', [
                 'lines' => [['productId' => 1]],
             ])
             ->assertStatus(201);

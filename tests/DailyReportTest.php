@@ -114,7 +114,7 @@ final class DailyReportTest extends ShopTestCase
         self::assertSame(1000, $before['revenue']);
         self::assertSame(1, $before['paid']);
 
-        $this->api->actingAs($this->user('admin@example.com'))->put("/orders/{$id}/ship")->assertStatus(200);
+        $this->api->actingAs($this->user('admin@example.com'))->put("/api/orders/{$id}/ship")->assertStatus(200);
         set_error_handler(static function (int $severity, string $message, string $file, int $line): never {
             throw new \ErrorException($message, 0, $severity, $file, $line);
         });
@@ -136,10 +136,10 @@ final class DailyReportTest extends ShopTestCase
             $after['pending'],
             $after['cancelled'],
         ]);
-        $this->api->actingAs($this->user('ada@example.com'))->get("/orders/{$id}")->assertJson('status', 'shipped');
+        $this->api->actingAs($this->user('ada@example.com'))->get("/api/orders/{$id}")->assertJson('status', 'shipped');
         self::assertSame(
             'shipped',
-            $this->api->actingAs($this->user('ada@example.com'))->get('/orders')->json('data.0.status'),
+            $this->api->actingAs($this->user('ada@example.com'))->get('/api/orders')->json('data.0.status'),
         );
     }
 }

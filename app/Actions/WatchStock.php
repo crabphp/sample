@@ -17,7 +17,7 @@ use Crab\OpenApi\Attributes\Response;
  * yielded is one event, sent at once. Between two of them it waits a
  * second, and the worker serves everyone else meanwhile.
  *
- *     curl -N http://127.0.0.1:8080/products/1/stock
+ *     curl -N http://127.0.0.1:8080/api/products/1/stock
  */
 final readonly class WatchStock
 {

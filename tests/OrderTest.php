@@ -23,7 +23,7 @@ final class OrderTest extends ShopTestCase
         $this->db->table('products')->where('id', 1)->update(['price' => 100_000_000, 'stock' => 400]);
         $placed = $this->api
             ->actingAs($this->user('ada@example.com'))
-            ->post('/orders', [
+            ->post('/api/orders', [
                 'lines' => array_fill(0, 20, ['productId' => 1, 'quantity' => 20]),
             ])
             ->assertStatus(201);
@@ -49,7 +49,7 @@ final class OrderTest extends ShopTestCase
         }
         $ada = $this->api->actingAs($this->user('ada@example.com'));
 
-        $first = $ada->get('/orders')->assertStatus(200);
+        $first = $ada->get('/api/orders')->assertStatus(200);
         self::assertSame(range(21, 12, -1), array_column($first->json('data'), 'id'));
         self::assertSame([3, true], [$first->json('data.0.items'), $first->json('has_more')]);
 
@@ -57,7 +57,7 @@ final class OrderTest extends ShopTestCase
         $this->db
             ->table('orders')
             ->insert(['id' => 30, 'user_id' => 2, 'status' => 'pending', 'total' => 1400, ...$at]);
-        $second = $ada->get('/orders', ['cursor' => $first->json('next_cursor')])->assertStatus(200);
+        $second = $ada->get('/api/orders', ['cursor' => $first->json('next_cursor')])->assertStatus(200);
         self::assertSame([11, 10, 1], array_column($second->json('data'), 'id'));
         self::assertSame([1, false, null], [
             $second->json('data.2.items'),
@@ -65,7 +65,7 @@ final class OrderTest extends ShopTestCase
             $second->json('next_cursor'),
         ]);
 
-        $ada->get('/orders', ['cursor' => 'made-up'])->assertStatus(422);
+        $ada->get('/api/orders', ['cursor' => 'made-up'])->assertStatus(422);
     }
 
     public function testAnOrderTakesStockAndItsWorkIsDoneByTheQueue(): void
@@ -75,7 +75,7 @@ final class OrderTest extends ShopTestCase
         $ada = $this->api->actingAs($user);
 
         // Missing and explicit-null quantities each mean one.
-        $placed = $ada->post('/orders', [
+        $placed = $ada->post('/api/orders', [
             'lines' => [
                 ['productId' => 1, 'quantity' => 2],
                 ['productId' => 2],
@@ -85,15 +85,18 @@ final class OrderTest extends ShopTestCase
         $order = $placed->json();
         // Three mugs at 14.00 and one kettle at 62.00.
         self::assertSame(['pending', (3 * 1400) + 6200], [$placed->json('status'), $placed->json('total')]);
-        $placed->assertHeader('Location', "/orders/{$order['id']}")->assertHeader('Content-Type', 'application/json');
+        $placed->assertHeader('Location', "/api/orders/{$order['id']}")->assertHeader(
+            'Content-Type',
+            'application/json',
+        );
         self::assertSame($user->id, (int) $this->db->table('orders')->where('id', $order['id'])->value('user_id'));
         self::assertSame(2, (int) $this->db->table('products')->where('id', 1)->value('stock'));
         self::assertSame(
             [3, 1],
             $this->db->table('order_items')->where('order_id', $order['id'])->orderBy('product_id')->pluck('quantity'),
         );
-        $ada->post('/orders', ['lines' => []])->assertStatus(422);
-        $ada->post('/orders', ['lines' => [['productId' => 1, 'quantity' => 99]]])->assertStatus(422);
+        $ada->post('/api/orders', ['lines' => []])->assertStatus(422);
+        $ada->post('/api/orders', ['lines' => [['productId' => 1, 'quantity' => 99]]])->assertStatus(422);
 
         // The event's listener queued a confirmation on "mail" and the warehouse on "default".
         $queue = $this->app->container->get(Store::class);
@@ -114,7 +117,7 @@ final class OrderTest extends ShopTestCase
     {
         $ada = $this->api->actingAs($this->user('ada@example.com'));
         $id = $ada
-            ->post('/orders', ['lines' => [['productId' => 3]]])
+            ->post('/api/orders', ['lines' => [['productId' => 3]]])
             ->assertStatus(201)
             ->json('id');
         $runs = $this->app->container->get(Runs::class);
@@ -130,7 +133,7 @@ final class OrderTest extends ShopTestCase
         $this->db->table('orders')->where('id', $id)->update(['status' => 'paid']);
         // Back to serving HTTP after the worker command, so that shipping's broadcast is heard.
         $this->app->container->get(\Crab\Broadcast\Lifecycle::class)->serving = true;
-        $this->api->actingAs($this->user('admin@example.com'))->put("/orders/{$id}/ship")->assertStatus(200);
+        $this->api->actingAs($this->user('admin@example.com'))->put("/api/orders/{$id}/ship")->assertStatus(200);
         self::assertSame(0, $this->command('queue:work', '--stop-when-empty'));
         self::assertSame(
             Status::Sleeping,
@@ -166,7 +169,7 @@ final class OrderTest extends ShopTestCase
         // Products are locked by id: both failures follow the successful
         // decrement of product 1, so the transaction must restore it.
         foreach ([2 => 409, 99_999 => 422] as $product => $status) {
-            $ada->post('/orders', [
+            $ada->post('/api/orders', [
                 'lines' => [['productId' => 1, 'quantity' => 2], ['productId' => $product]],
             ])->assertStatus($status);
             self::assertSame(5, (int) $this->db->table('products')->where('id', 1)->value('stock'));
@@ -190,7 +193,7 @@ final class OrderTest extends ShopTestCase
 
         $placed = $this->api
             ->actingAs($this->user('ada@example.com'))
-            ->post('/orders', ['lines' => [['productId' => 1]]])
+            ->post('/api/orders', ['lines' => [['productId' => 1]]])
             ->assertStatus(201);
         self::assertSame($placed->json('id'), (int) $observed['id']);
         self::assertSame('pending', $observed['status']);
@@ -208,7 +211,7 @@ final class OrderTest extends ShopTestCase
         $ids = [];
         for ($i = 0; $i < 12; ++$i) {
             $ids[] = $ada
-                ->post('/orders', ['lines' => [['productId' => 3]]])
+                ->post('/api/orders', ['lines' => [['productId' => 3]]])
                 ->assertStatus(201)
                 ->json('id');
         }
@@ -243,12 +246,12 @@ final class OrderTest extends ShopTestCase
         $stale = [];
         foreach ([2, 3] as $quantity) {
             $stale[] = $ada
-                ->post('/orders', ['lines' => [['productId' => 1, 'quantity' => $quantity]]])
+                ->post('/api/orders', ['lines' => [['productId' => 1, 'quantity' => $quantity]]])
                 ->assertStatus(201)
                 ->json('id');
         }
         $recent = $ada
-            ->post('/orders', ['lines' => [['productId' => 1, 'quantity' => 4]]])
+            ->post('/api/orders', ['lines' => [['productId' => 1, 'quantity' => 4]]])
             ->assertStatus(201)
             ->json('id');
         $this->db

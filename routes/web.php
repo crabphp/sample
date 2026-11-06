@@ -39,12 +39,6 @@ use Crab\Http\RateLimit;
 use Crab\OpenApi\Attributes\Response;
 use Crab\Route;
 
-Route::get('/', #[Response(200, body: OpenApiSchemas::HOME)]
-static fn(): array => [
-    'name' => config('app.name'),
-    'docs' => 'See README.md for the routes.',
-]);
-
 // Browser pages share the token store with the API, using an HttpOnly cookie.
 Route::middleware(new CookieAuth(required: false))->group(static function (): void {
     Route::get('/shop', ShopCatalogue::class);
@@ -65,41 +59,49 @@ Route::middleware(CookieAuth::class)->group(static function (): void {
     Route::get('/shop/orders', ShopOrders::class);
 });
 
-// For a load balancer: /up says a worker answers, /ready that it reaches the database and the cache.
-Route::get('/ready', Ready::class);
+Route::prefix('/api')->group(static function (): void {
+    Route::get('/', #[Response(200, body: OpenApiSchemas::HOME)]
+    static fn(): array => [
+        'name' => config('app.name'),
+        'docs' => 'See README.md for the routes.',
+    ]);
 
-// The catalogue, open to all.
-Route::get('/products', ListProducts::class);
-Route::get('/products.csv', ExportProducts::class);
-Route::get('/products/{id}', ShowProduct::class);
-Route::get('/products/{id}/stock', WatchStock::class); // server-sent events, live
-Route::get('/categories', ListCategories::class);
+    // For a load balancer: /up says a worker answers, /ready that it reaches the database and the cache.
+    Route::get('/ready', Ready::class);
 
-// The assistant streams a model's answer as it comes; the model is pretend, as the warehouse is.
-Route::post('/assistant', AskAssistant::class);
-Route::post('/model/chat', PretendModel::class);
+    // The catalogue, open to all.
+    Route::get('/products', ListProducts::class);
+    Route::get('/products.csv', ExportProducts::class);
+    Route::get('/products/{id}', ShowProduct::class);
+    Route::get('/products/{id}/stock', WatchStock::class); // server-sent events, live
+    Route::get('/categories', ListCategories::class);
 
-// A few tries a minute from one address: enough for a person, not for guessing passwords.
-Route::post('/register', Register::class)->middleware(
-    new RateLimit((int) config('shop.register_limit'), name: 'register'),
-);
-Route::post('/login', Login::class)->middleware(new RateLimit((int) config('shop.login_limit'), name: 'login'));
+    // The assistant streams a model's answer as it comes; the model is pretend, as the warehouse is.
+    Route::post('/assistant', AskAssistant::class);
+    Route::post('/model/chat', PretendModel::class);
 
-// For whoever is logged in.
-Route::websocket('/orders/{id}/live', WatchOrder::class)->middleware(Ticket::class);
+    // A few tries a minute from one address: enough for a person, not for guessing passwords.
+    Route::post('/register', Register::class)->middleware(
+        new RateLimit((int) config('shop.register_limit'), name: 'register'),
+    );
+    Route::post('/login', Login::class)->middleware(new RateLimit((int) config('shop.login_limit'), name: 'login'));
 
-Route::middleware(TokenAuth::class)->group(static function (): void {
-    Route::post('/ws/ticket', IssueTicket::class);
-    Route::get('/me', #[Response(200, body: OpenApiSchemas::USER)] static fn(User $user): User => $user);
-    Route::post('/assistant/chat', ChatWithAssistant::class); // your own assistant, an actor that remembers
-    Route::get('/orders', ListMyOrders::class);
-    Route::post('/orders', PlaceOrder::class);
-    Route::get('/orders/{id}', ShowOrder::class);
+    // For whoever is logged in.
+    Route::websocket('/orders/{id}/live', WatchOrder::class)->middleware(Ticket::class);
 
-    // For administrators.
-    Route::middleware(AdminsOnly::class)->group(static function (): void {
-        Route::post('/products', CreateProduct::class);
-        Route::put('/products/{id}/stock', SetStock::class);
-        Route::put('/orders/{id}/ship', ShipOrder::class);
+    Route::middleware(TokenAuth::class)->group(static function (): void {
+        Route::post('/ws/ticket', IssueTicket::class);
+        Route::get('/me', #[Response(200, body: OpenApiSchemas::USER)] static fn(User $user): User => $user);
+        Route::post('/assistant/chat', ChatWithAssistant::class); // your own assistant, an actor that remembers
+        Route::get('/orders', ListMyOrders::class);
+        Route::post('/orders', PlaceOrder::class);
+        Route::get('/orders/{id}', ShowOrder::class);
+
+        // For administrators.
+        Route::middleware(AdminsOnly::class)->group(static function (): void {
+            Route::post('/products', CreateProduct::class);
+            Route::put('/products/{id}/stock', SetStock::class);
+            Route::put('/orders/{id}/ship', ShipOrder::class);
+        });
     });
 });

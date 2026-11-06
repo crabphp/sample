@@ -74,7 +74,7 @@ final class ShopErrorTest extends ShopTestCase
         self::assertSame(2, $this->db->table('orders')->count());
         $this->api
             ->actingAs($this->user('ada@example.com'))
-            ->post('/orders', ['lines' => [['productId' => 1, 'quantity' => 1]]])
+            ->post('/api/orders', ['lines' => [['productId' => 1, 'quantity' => 1]]])
             ->assertStatus(409)
             ->assertHeader('Content-Type', 'application/json');
     }

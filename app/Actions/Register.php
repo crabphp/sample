@@ -73,6 +73,6 @@ final readonly class Register
         return Response::created([
             'user' => $user,
             'token' => $this->tokens->issue($user, 'registration'),
-        ], '/me');
+        ], '/api/me');
     }
 }

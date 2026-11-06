@@ -49,7 +49,7 @@ final readonly class MirrorCatalogue implements Command
 
         $this->http
             ->timeout(120)
-            ->request('GET', "{$url}/products.csv", sink: $file, maxBytes: self::MAX_BYTES, decode: false)
+            ->request('GET', "{$url}/api/products.csv", sink: $file, maxBytes: self::MAX_BYTES, decode: false)
             ->throw();
 
         $output->line(sprintf('Saved %s: %d bytes, sha256 %s.', $file, filesize($file), hash_file('sha256', $file)));

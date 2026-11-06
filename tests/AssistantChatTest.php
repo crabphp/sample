@@ -27,7 +27,7 @@ final class AssistantChatTest extends ShopTestCase
         parent::setUp();
         $prompts = &$this->prompts;
         $this->app->container->instance(Client::class, new FakeClient([
-            'POST */model/chat' => static function (RequestInterface $request) use (&$prompts) {
+            'POST */api/model/chat' => static function (RequestInterface $request) use (&$prompts) {
                 $prompts[] = json_decode((string) $request->getBody(), true)['prompt'];
                 return FakeClient::response(
                     200,
@@ -51,11 +51,11 @@ final class AssistantChatTest extends ShopTestCase
     {
         $ada = $this->api->actingAs($this->user('ada@example.com'));
 
-        $first = $ada->post('/assistant/chat', ['question' => 'a mug'])->assertStatus(200)->json();
+        $first = $ada->post('/api/assistant/chat', ['question' => 'a mug'])->assertStatus(200)->json();
         self::assertSame(['answer' => 'Here you go.', 'products' => [1], 'turn' => 1], $first);
 
         // Nothing named: the kitchen shelf, without the mug already shown.
-        $second = $ada->post('/assistant/chat', ['question' => 'another one?'])->assertStatus(200)->json();
+        $second = $ada->post('/api/assistant/chat', ['question' => 'another one?'])->assertStatus(200)->json();
         self::assertSame(['answer' => 'Here you go.', 'products' => [2], 'turn' => 2], $second);
         self::assertStringContainsString('Earlier: a mug / Here you go.', $this->prompts[1]);
     }
@@ -64,10 +64,10 @@ final class AssistantChatTest extends ShopTestCase
     {
         $this->api
             ->actingAs($this->user('ada@example.com'))
-            ->post('/assistant/chat', ['question' => 'a mug'])
+            ->post('/api/assistant/chat', ['question' => 'a mug'])
             ->assertStatus(200);
 
-        $grace = $this->api->actingAs($this->user('grace@example.com'))->post('/assistant/chat', [
+        $grace = $this->api->actingAs($this->user('grace@example.com'))->post('/api/assistant/chat', [
             'question' => 'a mug',
         ]);
 
@@ -79,14 +79,14 @@ final class AssistantChatTest extends ShopTestCase
 
     public function testItIsForCustomersWhoAreLoggedIn(): void
     {
-        $this->api->post('/assistant/chat', ['question' => 'a mug'])->assertStatus(401);
+        $this->api->post('/api/assistant/chat', ['question' => 'a mug'])->assertStatus(401);
     }
 
     public function testLongAnswersDoNotMakeTheNextPromptTooLargeForTheModel(): void
     {
         $prompts = [];
         $this->app->container->instance(Client::class, new FakeClient([
-            'POST */model/chat' => static function (RequestInterface $request) use (&$prompts) {
+            'POST */api/model/chat' => static function (RequestInterface $request) use (&$prompts) {
                 $prompt = json_decode((string) $request->getBody(), true)['prompt'];
                 $prompts[] = $prompt;
                 if (mb_strlen($prompt) > 4000) {
@@ -101,7 +101,7 @@ final class AssistantChatTest extends ShopTestCase
         $ada = $this->api->actingAs($this->user('ada@example.com'));
         for ($turn = 1; $turn <= 8; ++$turn) {
             $ada
-                ->post('/assistant/chat', ['question' => "question {$turn}"])
+                ->post('/api/assistant/chat', ['question' => "question {$turn}"])
                 ->assertStatus(200)
                 ->assertJson('turn', $turn);
         }

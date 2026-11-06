@@ -56,7 +56,7 @@ final readonly class ShoppingAssistant
                 ->timeout(30)
                 ->request(
                     'POST',
-                    config('shop.model_url') . '/model/chat',
+                    config('shop.model_url') . '/api/model/chat',
                     json: ['prompt' => $prompt],
                     cancellation: $inbox->cancellation(),
                     maxBytes: 64 * 1024,

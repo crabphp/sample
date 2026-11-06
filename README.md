@@ -71,26 +71,26 @@ The other seeded customers are `alan`, `katherine`, `linus`, `margaret`,
 
 | | | |
 | --- | --- | --- |
-| `GET` | `/up`, `/ready` | Whether a worker answers, and whether it reaches the database and the cache: a liveness and a readiness probe |
-| `GET` | `/products` | The catalogue, a page at a time: `?q=mug&category=kitchen&colour=blue&minPrice=1000&maxPrice=5000&page=2&perPage=12`; the colour is read from each product's JSON details. An unknown filter, or a range the wrong way round, is a `422` |
-| `GET` | `/products.csv` | The whole catalogue as a spreadsheet, the feed `shop:mirror-catalogue` downloads |
-| `GET` | `/products/{id}` | One product |
-| `GET` | `/products/{id}/stock` | Its stock live, as server-sent events: `curl -N` it and change the stock |
-| `POST` | `/assistant` | `{"question": "a blue mug"}`; a shop assistant's answer as server-sent events, a `token` at a time and `done` with the products it spoke of. `curl -N` it |
-| `POST` | `/model/chat` | The pretend language model the assistant asks: `{"prompt": "..."}`, answered word by word as server-sent events |
-| `GET` | `/categories` | Each category with its counts, remembered for a minute |
-| `POST` | `/register` | `email`, `name`, `password`; answers with a token |
-| `POST` | `/login` | `email`, `password`; answers with a token |
-| `POST` | `/assistant/chat` | `{"question": "a mug"}`, then `{"question": "another one?"}`: your own assistant, which remembers what it showed you and stays on the same shelf; answers with `answer`, `products` and `turn` |
-| `GET` | `/me` | Whoever the token belongs to |
-| `POST` | `/ws/ticket` | A single-use ticket for a WebSocket connection. Requires a bearer token |
-| `WS` | `/orders/{id}/live` | The owner’s order status. Authenticate with `?ticket=` or a bearer header; discard messages whose `version` is no newer than the last one seen |
-| `GET` | `/orders` | Your orders, newest first, with how many things each holds; ten at a time, then `?cursor=` with the `next_cursor` of the page before |
-| `POST` | `/orders` | `{"lines": [{"productId": 1, "quantity": 2}]}` |
-| `GET` | `/orders/{id}` | One of your orders, with its lines |
-| `POST` | `/products` | Add a product. Administrators |
-| `PUT` | `/products/{id}/stock` | `{"stock": 40}`. Administrators |
-| `PUT` | `/orders/{id}/ship` | Ship a paid order. Administrators. Repeating a shipped order keeps its version and shipment time |
+| `GET` | `/up`, `/api/ready` | Whether a worker answers, and whether it reaches the database and the cache: a liveness and a readiness probe |
+| `GET` | `/api/products` | The catalogue, a page at a time: `?q=mug&category=kitchen&colour=blue&minPrice=1000&maxPrice=5000&page=2&perPage=12`; the colour is read from each product's JSON details. An unknown filter, or a range the wrong way round, is a `422` |
+| `GET` | `/api/products.csv` | The whole catalogue as a spreadsheet, the feed `shop:mirror-catalogue` downloads |
+| `GET` | `/api/products/{id}` | One product |
+| `GET` | `/api/products/{id}/stock` | Its stock live, as server-sent events: `curl -N` it and change the stock |
+| `POST` | `/api/assistant` | `{"question": "a blue mug"}`; a shop assistant's answer as server-sent events, a `token` at a time and `done` with the products it spoke of. `curl -N` it |
+| `POST` | `/api/model/chat` | The pretend language model the assistant asks: `{"prompt": "..."}`, answered word by word as server-sent events |
+| `GET` | `/api/categories` | Each category with its counts, remembered for a minute |
+| `POST` | `/api/register` | `email`, `name`, `password`; answers with a token |
+| `POST` | `/api/login` | `email`, `password`; answers with a token |
+| `POST` | `/api/assistant/chat` | `{"question": "a mug"}`, then `{"question": "another one?"}`: your own assistant, which remembers what it showed you and stays on the same shelf; answers with `answer`, `products` and `turn` |
+| `GET` | `/api/me` | Whoever the token belongs to |
+| `POST` | `/api/ws/ticket` | A single-use ticket for a WebSocket connection. Requires a bearer token |
+| `WS` | `/api/orders/{id}/live` | The owner’s order status. Authenticate with `?ticket=` or a bearer header; discard messages whose `version` is no newer than the last one seen |
+| `GET` | `/api/orders` | Your orders, newest first, with how many things each holds; ten at a time, then `?cursor=` with the `next_cursor` of the page before |
+| `POST` | `/api/orders` | `{"lines": [{"productId": 1, "quantity": 2}]}` |
+| `GET` | `/api/orders/{id}` | One of your orders, with its lines |
+| `POST` | `/api/products` | Add a product. Administrators |
+| `PUT` | `/api/products/{id}/stock` | `{"stock": 40}`. Administrators |
+| `PUT` | `/api/orders/{id}/ship` | Ship a paid order. Administrators. Repeating a shipped order keeps its version and shipment time |
 
 The checked-in [OpenAPI 3.1 document](openapi.json) describes the HTTP routes, their input validation, authentication, errors and typed responses. The WebSocket route is listed above. Generate it without starting a server, then check that the committed copy is current:
 
@@ -104,10 +104,10 @@ Response DTOs can be inferred directly. Database-row actions declare their schem
 
 ```sh
 set -e
-TOKEN=$(curl -s -X POST localhost:8080/login -H 'Content-Type: application/json' -H 'Accept: application/json' \
+TOKEN=$(curl -s -X POST localhost:8080/api/login -H 'Content-Type: application/json' -H 'Accept: application/json' \
     -d '{"email":"ada@example.com","password":"password"}' | php -r 'echo json_decode(stream_get_contents(STDIN))->token;')
 
-curl -s -X POST localhost:8080/orders -H "Authorization: Bearer $TOKEN" -H 'Content-Type: application/json' -H 'Accept: application/json' \
+curl -s -X POST localhost:8080/api/orders -H "Authorization: Bearer $TOKEN" -H 'Content-Type: application/json' -H 'Accept: application/json' \
     -d '{"lines":[{"productId":1,"quantity":2}]}'
 ```
 
@@ -168,7 +168,7 @@ With the Redis queue, jobs are pushed after the transaction commits. A process t
 | `shop:seed` | Fill the shop; `--fresh` empties it first |
 | `shop:traffic` | Pretend customers; `--seconds=30`, `--rate=200`, `--url=` |
 | `order:cancel-stale` | Cancel orders never paid; the scheduler runs it every minute |
-| `shop:mirror-catalogue` | Download `/products.csv` into `storage/catalogue.csv`; `--url=` |
+| `shop:mirror-catalogue` | Download `/api/products.csv` into `storage/catalogue.csv`; `--url=` |
 | `shop:report` | Write yesterday's report, or `--day=2026-01-31`, to the configured report disk |
 | `shop:dispatch` | Ship paid orders until stopped; `--pause=3` seconds per handoff. `start` also runs it as the `dispatch` server |
 

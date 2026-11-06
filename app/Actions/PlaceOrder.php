@@ -59,7 +59,7 @@ final readonly class PlaceOrder
             ]);
         }
 
-        return Response::created($placed, "/orders/{$placed['id']}");
+        return Response::created($placed, "/api/orders/{$placed['id']}");
     }
 
     /**

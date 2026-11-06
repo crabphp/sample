@@ -16,12 +16,12 @@
         }
     ],
     "paths": {
-        "/": {
+        "/api": {
             "get": {
-                "summary": "GET /",
-                "operationId": "get.root",
+                "summary": "GET /api",
+                "operationId": "get.api",
                 "tags": [
-                    "default"
+                    "api"
                 ],
                 "responses": {
                     "200": {
@@ -50,12 +50,12 @@
                 }
             }
         },
-        "/assistant": {
+        "/api/assistant": {
             "post": {
                 "summary": "AskAssistant",
                 "operationId": "AskAssistant",
                 "tags": [
-                    "assistant"
+                    "api"
                 ],
                 "requestBody": {
                     "required": true,
@@ -121,12 +121,12 @@
                 }
             }
         },
-        "/assistant/chat": {
+        "/api/assistant/chat": {
             "post": {
                 "summary": "ChatWithAssistant",
                 "operationId": "ChatWithAssistant",
                 "tags": [
-                    "assistant"
+                    "api"
                 ],
                 "requestBody": {
                     "required": true,
@@ -233,12 +233,12 @@
                 }
             }
         },
-        "/categories": {
+        "/api/categories": {
             "get": {
                 "summary": "ListCategories",
                 "operationId": "ListCategories",
                 "tags": [
-                    "categories"
+                    "api"
                 ],
                 "responses": {
                     "200": {
@@ -276,12 +276,12 @@
                 }
             }
         },
-        "/login": {
+        "/api/login": {
             "post": {
                 "summary": "Login",
                 "operationId": "Login",
                 "tags": [
-                    "login"
+                    "api"
                 ],
                 "requestBody": {
                     "required": true,
@@ -407,12 +407,12 @@
                 }
             }
         },
-        "/me": {
+        "/api/me": {
             "get": {
-                "summary": "GET /me",
-                "operationId": "get.me",
+                "summary": "GET /api/me",
+                "operationId": "get.api.me",
                 "tags": [
-                    "me"
+                    "api"
                 ],
                 "security": [
                     {
@@ -477,12 +477,12 @@
                 }
             }
         },
-        "/model/chat": {
+        "/api/model/chat": {
             "post": {
                 "summary": "PretendModel",
                 "operationId": "PretendModel",
                 "tags": [
-                    "model"
+                    "api"
                 ],
                 "requestBody": {
                     "required": true,
@@ -533,12 +533,12 @@
                 }
             }
         },
-        "/orders": {
+        "/api/orders": {
             "get": {
                 "summary": "ListMyOrders",
                 "operationId": "ListMyOrders",
                 "tags": [
-                    "orders"
+                    "api"
                 ],
                 "parameters": [
                     {
@@ -673,7 +673,7 @@
                 "summary": "PlaceOrder",
                 "operationId": "PlaceOrder",
                 "tags": [
-                    "orders"
+                    "api"
                 ],
                 "requestBody": {
                     "required": true,
@@ -780,12 +780,12 @@
                 }
             }
         },
-        "/orders/{id}": {
+        "/api/orders/{id}": {
             "get": {
                 "summary": "ShowOrder",
                 "operationId": "ShowOrder",
                 "tags": [
-                    "orders"
+                    "api"
                 ],
                 "parameters": [
                     {
@@ -951,12 +951,12 @@
                 }
             }
         },
-        "/orders/{id}/ship": {
+        "/api/orders/{id}/ship": {
             "put": {
                 "summary": "ShipOrder",
                 "operationId": "ShipOrder",
                 "tags": [
-                    "orders"
+                    "api"
                 ],
                 "parameters": [
                     {
@@ -1076,12 +1076,12 @@
                 }
             }
         },
-        "/products": {
+        "/api/products": {
             "get": {
                 "summary": "ListProducts",
                 "operationId": "ListProducts",
                 "tags": [
-                    "products"
+                    "api"
                 ],
                 "parameters": [
                     {
@@ -1294,7 +1294,7 @@
                 "summary": "CreateProduct",
                 "operationId": "CreateProduct",
                 "tags": [
-                    "products"
+                    "api"
                 ],
                 "requestBody": {
                     "required": true,
@@ -1449,12 +1449,12 @@
                 }
             }
         },
-        "/products.csv": {
+        "/api/products.csv": {
             "get": {
                 "summary": "ExportProducts",
                 "operationId": "ExportProducts",
                 "tags": [
-                    "products.csv"
+                    "api"
                 ],
                 "responses": {
                     "200": {
@@ -1478,12 +1478,12 @@
                 }
             }
         },
-        "/products/{id}": {
+        "/api/products/{id}": {
             "get": {
                 "summary": "ShowProduct",
                 "operationId": "ShowProduct",
                 "tags": [
-                    "products"
+                    "api"
                 ],
                 "parameters": [
                     {
@@ -1596,12 +1596,12 @@
                 }
             }
         },
-        "/products/{id}/stock": {
+        "/api/products/{id}/stock": {
             "get": {
                 "summary": "WatchStock",
                 "operationId": "WatchStock",
                 "tags": [
-                    "products"
+                    "api"
                 ],
                 "parameters": [
                     {
@@ -1660,7 +1660,7 @@
                 "summary": "SetStock",
                 "operationId": "SetStock",
                 "tags": [
-                    "products"
+                    "api"
                 ],
                 "parameters": [
                     {
@@ -1828,12 +1828,12 @@
                 }
             }
         },
-        "/ready": {
+        "/api/ready": {
             "get": {
                 "summary": "Ready",
                 "operationId": "Ready",
                 "tags": [
-                    "ready"
+                    "api"
                 ],
                 "responses": {
                     "200": {
@@ -1874,12 +1874,12 @@
                 }
             }
         },
-        "/register": {
+        "/api/register": {
             "post": {
                 "summary": "Register",
                 "operationId": "Register",
                 "tags": [
-                    "register"
+                    "api"
                 ],
                 "requestBody": {
                     "required": true,
@@ -1983,6 +1983,56 @@
                     },
                     "429": {
                         "description": "Too Many Requests",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            },
+                            "text/plain": {
+                                "schema": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/ws/ticket": {
+            "post": {
+                "summary": "IssueTicket",
+                "operationId": "IssueTicket",
+                "tags": [
+                    "api"
+                ],
+                "security": [
+                    {
+                        "bearer": []
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "ticket": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "required": [
+                                        "ticket"
+                                    ],
+                                    "additionalProperties": false
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Authentication is required.",
                         "content": {
                             "application/json": {
                                 "schema": {
@@ -2581,56 +2631,6 @@
                         "description": "The product ID is invalid.",
                         "content": {
                             "text/html": {
-                                "schema": {
-                                    "type": "string"
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        },
-        "/ws/ticket": {
-            "post": {
-                "summary": "IssueTicket",
-                "operationId": "IssueTicket",
-                "tags": [
-                    "ws"
-                ],
-                "security": [
-                    {
-                        "bearer": []
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "type": "object",
-                                    "properties": {
-                                        "ticket": {
-                                            "type": "string"
-                                        }
-                                    },
-                                    "required": [
-                                        "ticket"
-                                    ],
-                                    "additionalProperties": false
-                                }
-                            }
-                        }
-                    },
-                    "401": {
-                        "description": "Authentication is required.",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/Error"
-                                }
-                            },
-                            "text/plain": {
                                 "schema": {
                                     "type": "string"
                                 }

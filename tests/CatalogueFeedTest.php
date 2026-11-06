@@ -15,12 +15,12 @@ final class CatalogueFeedTest extends ShopTestCase
 {
     public function testTheFeedIsDownloadedIntoItsFileAsSent(): void
     {
-        $feed = $this->api->get('/products.csv')->assertStatus(200);
+        $feed = $this->api->get('/api/products.csv')->assertStatus(200);
         self::assertStringStartsWith('text/csv', $feed->response->getHeaderLine('Content-Type'));
         $csv = (string) $feed->response->getBody();
         self::assertStringStartsWith("sku,name,category,price,stock\n", $csv);
 
-        $http = new FakeClient(['GET https://supplier.example/products.csv' => FakeClient::response(200, $csv)]);
+        $http = new FakeClient(['GET https://supplier.example/api/products.csv' => FakeClient::response(200, $csv)]);
         $this->app->container->instance(Client::class, $http);
         $file = $this->directory . '/catalogue.csv';
 

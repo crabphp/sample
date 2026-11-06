@@ -20,7 +20,7 @@ final class AssistantTest extends ShopTestCase
     {
         $prompts = [];
         $http = new FakeClient([
-            'POST */model/chat' => static function (RequestInterface $request) use (&$prompts) {
+            'POST */api/model/chat' => static function (RequestInterface $request) use (&$prompts) {
                 $prompts[] = json_decode((string) $request->getBody(), true)['prompt'];
                 return FakeClient::response(
                     200,
@@ -33,7 +33,7 @@ final class AssistantTest extends ShopTestCase
         ]);
         $this->app->container->instance(Client::class, $http);
 
-        $response = $this->api->post('/assistant', ['question' => 'a blue mug'])->assertStatus(200);
+        $response = $this->api->post('/api/assistant', ['question' => 'a blue mug'])->assertStatus(200);
 
         self::assertSame('text/event-stream; charset=utf-8', $response->header('Content-Type'));
         self::assertSame(
@@ -51,7 +51,7 @@ final class AssistantTest extends ShopTestCase
     {
         $this->app->container->instance(Client::class, new FakeClient(['*' => FakeClient::response(503, 'down')]));
 
-        $this->api->post('/assistant', ['question' => 'lamp'])->assertStatus(502);
+        $this->api->post('/api/assistant', ['question' => 'lamp'])->assertStatus(502);
     }
 
     public function testAModelConnectionFailureIsA502BeforeAnyEvent(): void
@@ -60,6 +60,6 @@ final class AssistantTest extends ShopTestCase
             '*' => new NetworkException('Connection refused.', new Request('POST', 'https://model.example/chat')),
         ]));
 
-        $this->api->post('/assistant', ['question' => 'lamp'])->assertStatus(502);
+        $this->api->post('/api/assistant', ['question' => 'lamp'])->assertStatus(502);
     }
 }

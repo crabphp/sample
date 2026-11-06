@@ -11,7 +11,7 @@ final class DashboardTest extends ShopTestCase
 {
     public function testTheDashboardIsThereAndNeedsItsToken(): void
     {
-        $this->api->get('/products')->assertStatus(200);
+        $this->api->get('/api/products')->assertStatus(200);
         $this->api->get('/clockwerk')->assertStatus(200);
         $this->api->get('/clockwerk/api')->assertStatus(401);
         $state = $this->api

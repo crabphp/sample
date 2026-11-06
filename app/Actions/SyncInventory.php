@@ -37,7 +37,7 @@ final readonly class SyncInventory
             $http = $this->http->timeout(5);
             foreach ($productIds as $productId) {
                 // A failed response retries the job, just like a failed connection.
-                $http->request('GET', "{$warehouse}/products/{$productId}", cancellation: $cancellation)->throw();
+                $http->request('GET', "{$warehouse}/api/products/{$productId}", cancellation: $cancellation)->throw();
             }
         }
 

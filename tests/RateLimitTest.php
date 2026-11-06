@@ -48,12 +48,12 @@ final class RateLimitTest extends ShopTestCase
         $this->app->container->instance(Clock::class, $this->clock);
         $this->api = new \Crab\Testing\Api($this->app);
         for ($try = 0; $try < $login; ++$try) {
-            $this->api->post('/login', ['email' => 'ada@example.com', 'password' => 'wrong'])->assertStatus(401);
+            $this->api->post('/api/login', ['email' => 'ada@example.com', 'password' => 'wrong'])->assertStatus(401);
         }
-        $this->api->post('/login', ['email' => 'ada@example.com', 'password' => 'wrong'])->assertStatus(429);
+        $this->api->post('/api/login', ['email' => 'ada@example.com', 'password' => 'wrong'])->assertStatus(429);
         for ($try = 0; $try < $register; ++$try) {
-            $this->api->post('/register', [])->assertStatus(422);
+            $this->api->post('/api/register', [])->assertStatus(422);
         }
-        $this->api->post('/register', [])->assertStatus(429);
+        $this->api->post('/api/register', [])->assertStatus(429);
     }
 }

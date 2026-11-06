@@ -21,7 +21,7 @@ use Crab\Validation\Length;
  * client's stream() reads the model's events, and each value this action
  * yields is an event of its own.
  *
- *     curl -N -X POST localhost:8080/assistant -H 'Content-Type: application/json' -d '{"question":"a blue mug"}'
+ *     curl -N -X POST localhost:8080/api/assistant -H 'Content-Type: application/json' -d '{"question":"a blue mug"}'
  */
 final readonly class AskAssistant
 {
@@ -70,7 +70,7 @@ final readonly class AskAssistant
         try {
             $reply = $this->http->timeout(60)->stream(
                 'POST',
-                config('shop.model_url') . '/model/chat',
+                config('shop.model_url') . '/api/model/chat',
                 json: ['prompt' => $prompt],
                 cancellation: $request->cancellation(),
             );

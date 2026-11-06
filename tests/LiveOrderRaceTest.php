@@ -36,7 +36,7 @@ final class LiveOrderRaceTest extends ShopTestCase
             $wait->suspend();
         };
         $this->app->container->instance(Database::class, $db);
-        $socket = $this->api->actingAs($owner)->websocket("/orders/{$id}/live");
+        $socket = $this->api->actingAs($owner)->websocket("/api/orders/{$id}/live");
         $messages = [$socket->receive(), $socket->receive()];
         self::assertSame(['status', 'ready'], array_column($messages, 'type'));
         self::assertSame(['shipped', 'paid'], array_column($messages, 'status'));

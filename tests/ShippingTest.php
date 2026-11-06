@@ -16,7 +16,7 @@ final class ShippingTest extends ShopTestCase
     {
         $id = $this->api
             ->actingAs($this->user('ada@example.com'))
-            ->post('/orders', [
+            ->post('/api/orders', [
                 'lines' => [['productId' => 1]],
             ])
             ->assertStatus(201)
@@ -28,7 +28,7 @@ final class ShippingTest extends ShopTestCase
         $unavailable->method('signal')->willThrowException(new \RuntimeException('The run store is unavailable.'));
         $this->app->container->instance(Runs::class, $unavailable);
 
-        $this->api->actingAs($this->user('admin@example.com'))->put("/orders/{$id}/ship")->assertStatus(200);
+        $this->api->actingAs($this->user('admin@example.com'))->put("/api/orders/{$id}/ship")->assertStatus(200);
 
         self::assertSame('shipped', $this->db->table('orders')->where('id', $id)->value('status'));
         $this->app->container->instance(Runs::class, $runs);
@@ -43,7 +43,7 @@ final class ShippingTest extends ShopTestCase
         $queue->method('push')->willThrowException(new \RuntimeException('The job could not be stored.'));
         $this->app->container->instance(Queue::class, $queue);
 
-        $this->api->actingAs($this->user('admin@example.com'))->put('/orders/1/ship')->assertStatus(500);
+        $this->api->actingAs($this->user('admin@example.com'))->put('/api/orders/1/ship')->assertStatus(500);
 
         self::assertSame('paid', $this->db->table('orders')->where('id', 1)->value('status'));
         self::assertSame(1, $this->db->table('orders')->where('id', 1)->value('version'));
@@ -51,7 +51,7 @@ final class ShippingTest extends ShopTestCase
 
     public function testARunLinkedAfterShippingStillHearsTheShipment(): void
     {
-        $this->api->actingAs($this->user('admin@example.com'))->put('/orders/1/ship')->assertStatus(200);
+        $this->api->actingAs($this->user('admin@example.com'))->put('/api/orders/1/ship')->assertStatus(200);
         // The order committed, but its listener was delayed until after shipping.
         $this->app->container->get(QueueOrderWork::class)->handle(new OrderPlaced(1, 2, 1400, [1]));
         $run = $this->db->table('orders')->where('id', 1)->value('follow_up_run');
@@ -64,11 +64,11 @@ final class ShippingTest extends ShopTestCase
     public function testRetryingShippingKeepsItsOriginalVersionAndTime(): void
     {
         $admin = $this->api->actingAs($this->user('admin@example.com'));
-        $admin->put('/orders/1/ship')->assertStatus(200);
+        $admin->put('/api/orders/1/ship')->assertStatus(200);
         $before = $this->db->table('orders')->find(1);
         $this->clock->advance('+1 hour');
 
-        $admin->put('/orders/1/ship')->assertStatus(200);
+        $admin->put('/api/orders/1/ship')->assertStatus(200);
 
         self::assertSame($before, $this->db->table('orders')->find(1));
     }
