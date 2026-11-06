@@ -5,8 +5,8 @@
     "license": "MIT",
     "require": {
         "php": "^8.4",
-        "crabphp/arc": "@dev",
-        "crabphp/framework": "@dev",
+        "crabphp/arc": "0.1.1",
+        "crabphp/framework": "0.6.2",
         "crabphp/runs": "@dev",
         "crabphp/actors": "@dev",
         "crabphp/redis": "@dev",
@@ -41,14 +41,20 @@
             "type": "path",
             "url": "../framework",
             "options": {
-                "symlink": true
+                "symlink": true,
+                "versions": {
+                    "crabphp/framework": "0.6.2"
+                }
             }
         },
         {
             "type": "path",
             "url": "../arc",
             "options": {
-                "symlink": true
+                "symlink": true,
+                "versions": {
+                    "crabphp/arc": "0.1.1"
+                }
             }
         },
         {

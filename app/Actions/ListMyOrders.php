@@ -17,7 +17,7 @@ use Crab\Routing\FromQuery;
  * holds. A client scrolls through them, so they are paged by a cursor: an
  * order placed meanwhile does not push one onto the next page twice. Each
  * is read into an OrderSummary, so the page holds typed records.
- * GET /orders, then GET /orders?cursor=<next_cursor>
+ * GET /api/orders, then GET /api/orders?cursor=<next_cursor>
  */
 final readonly class ListMyOrders
 {

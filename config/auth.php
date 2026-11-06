@@ -3,5 +3,5 @@
 declare(strict_types=1);
 
 return [
-    'cookie' => ['login' => '/shop/login'],
+    'cookie' => ['login' => '/login'],
 ];

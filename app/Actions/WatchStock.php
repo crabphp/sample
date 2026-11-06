@@ -13,7 +13,7 @@ use Crab\OpenApi\Attributes\Response;
 
 /**
  * A product's stock as server-sent events, for a page that shows it live:
- * GET /products/{id}/stock. Returning a generator streams; each value
+ * GET /api/products/{id}/stock. Returning a generator streams; each value
  * yielded is one event, sent at once. Between two of them it waits a
  * second, and the worker serves everyone else meanwhile.
  *

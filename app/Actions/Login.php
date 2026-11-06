@@ -34,7 +34,8 @@ final readonly class Login
         Data $credentials,
     ): array {
         $row = $this->db->table('users')->where('email', $credentials->email)->first();
-        if ($row === null || !$this->passwords->verify($credentials->password, (string) $row['password'])) {
+        $hash = $row['password'] ?? '$2y$12$.....................................................';
+        if (!$this->passwords->verify($credentials->password, $hash) || $row === null) {
             throw new HttpException(401, 'These credentials do not match.');
         }
 

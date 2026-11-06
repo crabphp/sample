@@ -80,8 +80,8 @@ final class CatalogueTest extends ShopTestCase
 
         // A filter the catalogue does not have is refused, not quietly ignored.
         self::assertSame(
-            ['sort' => ['is not expected']],
-            $this->api->get('/api/products', ['sort' => 'price'])->assertStatus(422)->json('error.query'),
+            ['unknown' => ['is not expected']],
+            $this->api->get('/api/products', ['unknown' => 'price'])->assertStatus(422)->json('error.query'),
         );
     }
 

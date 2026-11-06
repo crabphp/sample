@@ -32,7 +32,11 @@ final class OpenApiTest extends TestCase
                 ['type' => 'apiKey', 'in' => 'cookie', 'name' => $cookie->name],
                 $document['components']['securitySchemes']['cookie'],
             );
-            self::assertSame([['cookie' => []]], $document['paths']['/shop/checkout']['post']['security']);
+            self::assertSame([['cookie' => []]], $document['paths']['/checkout']['post']['security']);
+            self::assertSame([['cookie' => []]], $document['paths']['/admin/products']['post']['security']);
+            self::assertArrayHasKey('text/html', $document['paths']['/']['get']['responses']['200']['content']);
+            self::assertArrayHasKey('text/html', $document['paths']['/login']['post']['responses']['401']['content']);
+            self::assertSame([['bearer' => []]], $document['paths']['/api/orders']['post']['security']);
         } finally {
             putenv($before === false ? 'APP_URL' : 'APP_URL=' . $before);
         }

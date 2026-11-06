@@ -39,24 +39,50 @@ use Crab\Http\RateLimit;
 use Crab\OpenApi\Attributes\Response;
 use Crab\Route;
 
-// Browser pages share the token store with the API, using an HttpOnly cookie.
+Route::get('/assets/shop-v1/{file}', \App\Actions\ShopAssets::class);
+Route::get('/openapi.json', [\App\Actions\ShopAssets::class, 'openapi']);
+Route::get('/shop', [\App\Actions\ShopLegacy::class, 'index']);
+Route::get('/shop/{path:.*}', \App\Actions\ShopLegacy::class);
+Route::post('/shop/{path:.*}', [\App\Actions\ShopLegacy::class, 'post'])->middleware(new CookieAuth(required: false));
+
 Route::middleware(new CookieAuth(required: false))->group(static function (): void {
-    Route::get('/shop', ShopCatalogue::class);
-    Route::get('/shop/products/{id}', ShopProduct::class);
-    Route::get('/shop/cart', ShopCart::class);
-    Route::get('/shop/login', [ShopLogin::class, 'show']);
-    Route::post('/shop/login', ShopLogin::class)->middleware(
+    Route::get('/', \App\Actions\ShopHome::class);
+    Route::get('/products', ShopCatalogue::class);
+    Route::get('/products/{id}', ShopProduct::class);
+    Route::get('/cart', ShopCart::class);
+    Route::post('/cart/{id}/add', [ShopCart::class, 'add']);
+    Route::post('/cart/{id}/update', [ShopCart::class, 'update']);
+    Route::post('/cart/{id}/remove', [ShopCart::class, 'remove']);
+    Route::get('/login', [ShopLogin::class, 'show']);
+    Route::post('/login', ShopLogin::class)->middleware(
         new RateLimit((int) config('shop.login_limit'), name: 'shop-login'),
     );
-    Route::post('/shop/logout', ShopLogout::class);
-    // An anonymous visitor gets the same 404 as any other non-owner.
-    Route::get('/shop/orders/{id}', ShopOrder::class);
+    Route::get('/register', [\App\Actions\ShopRegister::class, 'show']);
+    Route::post('/register', \App\Actions\ShopRegister::class)->middleware(
+        new RateLimit((int) config('shop.register_limit'), name: 'shop-register'),
+    );
+    Route::post('/logout', ShopLogout::class);
+    Route::get('/orders/{id}', ShopOrder::class);
+    Route::get('/assistant', [\App\Actions\ShopAssistant::class, 'show']);
+    Route::post('/assistant', \App\Actions\ShopAssistant::class);
+    Route::post('/assistant/stream', [\App\Actions\ShopAssistant::class, 'stream']);
 });
-
 Route::middleware(CookieAuth::class)->group(static function (): void {
-    Route::get('/shop/checkout', [ShopCheckout::class, 'show']);
-    Route::post('/shop/checkout', ShopCheckout::class);
-    Route::get('/shop/orders', ShopOrders::class);
+    Route::get('/checkout', [ShopCheckout::class, 'show']);
+    Route::post('/checkout', ShopCheckout::class);
+    Route::get('/orders', ShopOrders::class);
+    Route::websocket('/orders/{id}/live', WatchOrder::class);
+    Route::post('/assistant/chat', [\App\Actions\ShopAssistant::class, 'chat']);
+    Route::middleware(AdminsOnly::class)->group(static function (): void {
+        Route::get('/admin', [\App\Actions\ShopAdmin::class, 'index']);
+        Route::get('/admin/products', [\App\Actions\ShopAdmin::class, 'products']);
+        Route::post('/admin/products', [\App\Actions\ShopAdmin::class, 'create']);
+        Route::post('/admin/products/{id}/stock', [\App\Actions\ShopAdmin::class, 'stock']);
+        Route::get('/admin/orders', [\App\Actions\ShopAdmin::class, 'orders']);
+        Route::post('/admin/orders/{id}/ship', [\App\Actions\ShopAdmin::class, 'ship']);
+        Route::get('/admin/reports', [\App\Actions\ShopAdmin::class, 'reports']);
+        Route::post('/admin/reports', [\App\Actions\ShopAdmin::class, 'report']);
+    });
 });
 
 Route::prefix('/api')->group(static function (): void {

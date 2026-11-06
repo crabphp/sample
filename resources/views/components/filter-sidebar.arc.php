@@ -1,25 +1,16 @@
 @props(array $categories, App\Http\ProductSearch $search, string $slot = '')
-<form class="filters" method="get" action="/shop">
-    <h2>Filter</h2>
-    <label for="shop-q">Search</label>
-    <input id="shop-q" name="q" value="{{ $search->q }}" placeholder="Mug, lamp...">
-    <label for="shop-category">Category</label>
-    <select id="shop-category" name="category">
-        <option value="">All categories</option>
-        @foreach($categories as $category)
-            <option value="{{ $category['category'] }}" @if($search->category === $category['category']) selected @endif>{{ $category['category'] }} ({{ $category['products'] }})</option>
-        @endforeach
-    </select>
-    <label for="shop-colour">Colour</label>
-    <select id="shop-colour" name="colour">
-        <option value="">Any colour</option>
-        <option value="blue" @if($search->colour === 'blue') selected @endif>Blue</option>
-        <option value="black" @if($search->colour === 'black') selected @endif>Black</option>
-    </select>
-    <label for="shop-min">Minimum price (cents)</label>
-    <input id="shop-min" name="minPrice" type="number" min="0" value="{{ $search->minPrice ?? '' }}">
-    <label for="shop-max">Maximum price (cents)</label>
-    <input id="shop-max" name="maxPrice" type="number" min="0" value="{{ $search->maxPrice ?? '' }}">
-    <button type="submit">Apply filters</button>
-</form>
-{!! $slot !!}
+<?php $options = ['' => 'All categories']; foreach ($categories as $category) { $options[$category['category']] = ucfirst($category['category']) . ' (' . $category['products'] . ')'; } ?>
+<form class="filters" method="get" action="/products">
+<div class="section-heading">
+<h2>Filters</h2>
+<a class="small muted" href="/products">Reset</a>
+</div>
+<Input name="q" label="Search" :value="$search->q" placeholder="Mug, lamp, notebook…" type="search" />
+<Select name="category" label="Category" :value="$search->category ?? ''" :options="$options" />
+<Select name="colour" label="Colour" :value="$search->colour ?? ''" :options="['' => 'All colours', 'black' => 'Black', 'blue' => 'Blue', 'green' => 'Green', 'natural' => 'Natural', 'red' => 'Red', 'white' => 'White']" />
+<div class="field-pair">
+<Input name="minPrice" label="Min price (¢)" type="number" min="0" :value="(string) ($search->minPrice ?? '')" />
+<Input name="maxPrice" label="Max price (¢)" type="number" min="0" :value="(string) ($search->maxPrice ?? '')" />
+</div>
+<Select name="sort" label="Sort by" :value="$search->sort" :options="['name' => 'Name, A–Z', 'price-asc' => 'Price, low to high', 'price-desc' => 'Price, high to low', 'newest' => 'Newest first']" />
+<Button>Apply filters</Button>{!! $slot !!}</form>

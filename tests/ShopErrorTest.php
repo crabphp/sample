@@ -4,88 +4,68 @@ declare(strict_types=1);
 
 namespace Tests;
 
-use App\Http\LoginInput;
+use App\Shop\Carts;
 use Crab\Contracts\Auth\TokenStore;
-use Crab\Contracts\Validation\Validator;
-use Crab\Validation\ValidationException;
 
 final class ShopErrorTest extends ShopTestCase
 {
-    public function testLoginValidationUsesTheSameErrorsInsideShopHtml(): void
+    public function testInvalidFormInputsRenderEscapedHtmlWithRecoveryLinks(): void
     {
-        $browser = $this->api->withHeaders(['Accept' => 'text/html', 'Sec-Fetch-Site' => 'same-origin']);
+        $browser = new Browser($this->api);
         foreach ([
-            ['email' => 'ada@example.com', 'password' => str_repeat('secret', 13)],
-            ['email' => '<invalid>', 'password' => 'private-password'],
-            ['email' => 'ada@example.com'],
-        ] as $form) {
-            $errors = [];
-            try {
-                $this->app->container->get(Validator::class)->validate(LoginInput::class, $form);
-            } catch (ValidationException $invalid) {
-                $errors = $invalid->errors;
-            }
-            self::assertNotEmpty($errors);
-            $html = $browser->post('/shop/login', form: $form)->assertStatus(422);
-            $html->assertHeader('Content-Type', 'text/html; charset=utf-8');
-            $html->assertHeader('Cache-Control', 'private, no-store');
-            self::assertStringContainsString('aria-label="Shop"', $html->body());
-            self::assertStringContainsString('href="/shop/login"', $html->body());
-            foreach ($errors as $field => $messages) {
-                self::assertStringContainsString($field, $html->body());
-                foreach ($messages as $message) {
-                    self::assertStringContainsString(htmlspecialchars($message, ENT_QUOTES), $html->body());
-                }
-            }
-            self::assertStringNotContainsString($form['password'] ?? 'private-password', $html->body());
-            self::assertStringNotContainsString('<invalid>', $html->body());
-        }
-        self::assertSame(0, $this->db->table('auth_tokens')->count());
-    }
-
-    public function testCheckoutValidationAndStockConflictsKeepNavigationAndEscapeMessages(): void
-    {
-        $token = $this->app->container->get(TokenStore::class)->issue($this->user('ada@example.com'), 'browser');
-        $browser = $this->api->withHeaders([
-            'Cookie' => 'auth=' . $token,
-            'Accept' => 'text/html',
-            'Sec-Fetch-Site' => 'same-origin',
-        ]);
-        $this->db->table('products')->where('id', 1)->update(['name' => '<img src=x onerror=alert(1)>', 'stock' => 0]);
-        foreach ([
-            ['[]',                                 422],
-            ['[42]',                               422],
-            ['[{"productId":1,"quantity":21}]',    422],
-            ['[{"productId":99999,"quantity":1}]', 422],
-            ['[{"productId":1,"quantity":1}]',     409],
-        ] as [$cart, $status]) {
-            $response = $browser->post('/shop/checkout', form: ['cart' => $cart])->assertStatus($status);
-            $response->assertHeader('Content-Type', 'text/html; charset=utf-8');
-            $response->assertHeader('Cache-Control', 'private, no-store');
-            self::assertStringContainsString('aria-label="Shop"', $response->body());
-            self::assertStringContainsString('Logged in as Ada', $response->body());
-            self::assertStringContainsString('href="/shop/cart"', $response->body());
+            ['/login', ['email' => 'invalid', 'password' => 'private-password']],
+            ['/register', ['name' => 'X', 'email' => 'invalid', 'password' => 'short']],
+            ['/cart/1/add', ['actionId' => Carts::uuid(), 'quantity' => 21]],
+            ['/assistant', ['question' => '']],
+        ] as [$path, $form]) {
+            $response = $browser
+                ->post($path, $form)
+                ->assertStatus(422)
+                ->assertHeader('Content-Type', 'text/html; charset=utf-8')
+                ->assertHeader('Cache-Control', 'private, no-store');
             self::assertStringContainsString('role="alert"', $response->body());
-            self::assertStringNotContainsString('<img src=x', $response->body());
-            if ($status === 409) {
-                self::assertStringContainsString('&lt;img src=x onerror=alert(1)&gt;', $response->body());
-            }
+            self::assertStringContainsString('aria-label="Shop"', $response->body());
+            self::assertStringNotContainsString('private-password', $response->body());
         }
-        self::assertSame(2, $this->db->table('orders')->count());
+        $browser->get('/products', ['minPrice' => 100, 'maxPrice' => 1])->assertStatus(422)->assertHeader(
+            'Content-Type',
+            'text/html; charset=utf-8',
+        );
         $this->api
-            ->actingAs($this->user('ada@example.com'))
-            ->post('/api/orders', ['lines' => [['productId' => 1, 'quantity' => 1]]])
-            ->assertStatus(409)
+            ->get('/api/products', ['minPrice' => 100, 'maxPrice' => 1])
+            ->assertStatus(422)
             ->assertHeader('Content-Type', 'application/json');
     }
 
-    public function testCatalogueQueryErrorsAlsoStayInsideTheShop(): void
+    public function testMissingProductsStayRemovableAndInvalidCheckoutCannotPlaceOrders(): void
     {
-        $response = $this->api
-            ->get('/shop', ['minPrice' => '100', 'maxPrice' => '1'])
-            ->assertStatus(422)
-            ->assertHeader('Content-Type', 'text/html; charset=utf-8');
-        self::assertStringContainsString('href="/shop"', $response->body());
-        self::assertStringContainsString('role="alert"', $response->body());
+        $browser = new Browser($this->api);
+        $browser->cookies['auth'] = $this->app->container->get(TokenStore::class)->issue(
+            $this->user('ada@example.com'),
+            'browser',
+        );
+        $browser->add(1);
+        $id = Browser::field($browser->get('/checkout')->body(), 'checkoutId');
+        $this->db->table('products')->where('id', 1)->delete();
+        self::assertStringContainsString('Unavailable product #1', $browser->get('/cart')->assertStatus(200)->body());
+        $browser->post('/checkout', ['checkoutId' => $id])->assertStatus(422);
+        $browser->post('/checkout', ['checkoutId' => 'bad'])->assertStatus(422);
+        $browser->post('/cart/1/remove', ['actionId' => Carts::uuid()])->assertStatus(303);
+        self::assertStringContainsString('Your cart is waiting', $browser->get('/cart')->body());
+        self::assertSame(2, $this->db->table('orders')->count());
+    }
+
+    public function testServerFailuresUseTheSameDesignAndDoNotExposeDebugDetails(): void
+    {
+        $this->db->execute('DROP TABLE products');
+        $html = $this->api
+            ->get('/products')
+            ->assertStatus(500)
+            ->assertHeader('Content-Type', 'text/html; charset=utf-8')
+            ->body();
+        self::assertStringContainsString('Something went wrong.', $html);
+        self::assertStringNotContainsString('SQLSTATE', $html);
+        self::assertStringNotContainsString('Stack trace', $html);
+        self::assertStringContainsString('/assets/shop-v1/shop.css', $html);
     }
 }

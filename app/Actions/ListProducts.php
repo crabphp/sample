@@ -13,7 +13,7 @@ use Crab\OpenApi\Attributes\Response;
 use Crab\Routing\FromQuery;
 
 /**
- * The catalogue, a page at a time: GET /products?q=mug&category=kitchen&colour=blue&page=2
+ * The catalogue, a page at a time: GET /api/products?q=mug&category=kitchen&colour=blue&page=2
  */
 final readonly class ListProducts
 {
@@ -50,7 +50,15 @@ final readonly class ListProducts
                 '<=',
                 $search->maxPrice,
             ))
-            ->orderBy('name')
+            ->orderBy(
+                match ($search->sort) {
+                    'price-asc', 'price-desc' => 'price',
+                    'newest' => 'id',
+                    default => 'name',
+                },
+                in_array($search->sort, ['price-desc', 'newest'], true) ? 'desc' : 'asc',
+            )
+            ->orderBy('id')
             ->paginate($search->perPage, $search->page);
     }
 }

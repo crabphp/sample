@@ -17,7 +17,7 @@ use Crab\Validation\Fields;
 use Crab\Validation\Length;
 
 /**
- * POST /assistant/chat {"question": "a mug"}, logged in: asks the
+ * POST /api/assistant/chat {"question": "a mug"}, logged in: asks the
  * customer's own ShoppingAssistant actor, which remembers what was said
  * before. Ask "another one?" next.
  */

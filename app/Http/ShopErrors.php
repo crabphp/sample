@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http;
 
+use App\Shop\Pages;
 use App\User;
 use Crab\Auth\CookieAuth;
 use Crab\Contracts\Auth\Identity;
@@ -19,6 +20,7 @@ use Psr\Http\Message\ServerRequestInterface;
 final readonly class ShopErrors implements ErrorRenderer
 {
     public function __construct(
+        private Pages $pages,
         private CookieAuth $auth,
         private TokenStore $tokens,
         private IdentityResolver $users,
@@ -27,8 +29,22 @@ final readonly class ShopErrors implements ErrorRenderer
     public function render(Problem $problem, ServerRequestInterface $request): ResponseInterface
     {
         $path = $request->getUri()->getPath();
-        if ($path !== '/shop' && !str_starts_with($path, '/shop/') || !in_array($problem->status, [409, 422], true)) {
+        if (
+            $path === '/api'
+            || str_starts_with($path, '/api/')
+            || str_starts_with($path, '/clockwerk')
+            || $path === '/up'
+        ) {
             return ErrorResponse::render($problem, $request);
+        }
+
+        if ($problem->status >= 500) {
+            // Error rendering must still work when the database is unavailable.
+            return view(
+                'shop.error',
+                ['user' => null, 'cart' => [], 'flash' => null, 'problem' => $problem, 'errors' => [], 'path' => $path],
+                $problem->status,
+            )->withHeader('Cache-Control', 'private, no-store');
         }
 
         // The renderer receives the original request, before CookieAuth adds its user attribute.
@@ -39,8 +55,10 @@ final readonly class ShopErrors implements ErrorRenderer
             $user = $owner === null ? null : $this->users->resolve($owner);
         }
 
-        return view(
+        return $this->pages->render(
             'shop.error',
+            $request,
+            $user instanceof User ? $user : null,
             [
                 'user' => $user instanceof User ? $user : null,
                 'problem' => $problem,

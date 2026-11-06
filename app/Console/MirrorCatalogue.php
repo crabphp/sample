@@ -11,7 +11,7 @@ use Crab\Contracts\HttpClient\Client;
 
 /**
  * Downloads the "supplier's" catalogue feed into a file: this
- * application's own /products.csv, standing in for someone else's.
+ * application's own /api/products.csv, standing in for someone else's.
  *
  * The body goes straight into the file as it arrives, the file appears
  * only once it is all there, a feed larger than it should be is given up

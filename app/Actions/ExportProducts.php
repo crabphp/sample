@@ -9,7 +9,7 @@ use Crab\Http\Response;
 use Crab\OpenApi\Attributes\Response as ApiResponse;
 
 /**
- * The whole catalogue as a spreadsheet: GET /products.csv. It is what
+ * The whole catalogue as a spreadsheet: GET /api/products.csv. It is what
  * `shop:mirror-catalogue` downloads, standing in for a supplier's feed.
  */
 final readonly class ExportProducts

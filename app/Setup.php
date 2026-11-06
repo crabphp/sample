@@ -107,6 +107,11 @@ final class Setup implements Plugin
 
         $schedule = $container->get(Schedule::class);
         // Every ten seconds: closer than cron can come.
+        $schedule
+            ->call(\App\Actions\PruneShopData::class)
+            ->daily('04:00')
+            ->onOneServer()
+            ->name('prune-shop-data');
         $schedule->call(SettlePayments::class)->everySeconds(10)->onOneServer()->name('settle-payments');
         $schedule->command('order:cancel-stale')->everyMinute()->onOneServer();
         $schedule->call(Restock::class)->everyMinute()->onOneServer()->name('restock');

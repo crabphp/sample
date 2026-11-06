@@ -15,7 +15,7 @@ use Crab\Validation\Fields;
 use Crab\Validation\Length;
 
 /**
- * The shop's assistant: POST /assistant {"question": "a blue mug"}. It
+ * The shop's assistant: POST /api/assistant {"question": "a blue mug"}. It
  * finds the products the question is about, asks a model, and relays the
  * model's answer to the client word by word as it arrives: the HTTP
  * client's stream() reads the model's events, and each value this action

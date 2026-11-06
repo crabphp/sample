@@ -1,18 +1,23 @@
-<SiteLayout title="Log in" :user="$user">
-    <div class="checkout-panel">
-        <p class="eyebrow">Your account</p>
-        <h1>Log in to the shop</h1>
-        <p>Log in to check out and see your orders. Your cart stays in this browser.</p>
-        @if($error !== null)
-            <p class="notice" role="alert">{{ $error }}</p>
-        @endif
-        <form method="post" action="/shop/login">
-            <label for="login-email">Email</label>
-            <input id="login-email" name="email" type="email" autocomplete="username" value="{{ $email }}" required>
-            <label for="login-password">Password</label>
-            <input id="login-password" name="password" type="password" autocomplete="current-password" maxlength="72" required>
-            <button type="submit">Log in</button>
-        </form>
-        <p><a href="/shop/cart">Back to cart</a></p>
-    </div>
+<SiteLayout title="Sign in" :user="$user" :cart="$cart" :flash="$flash">
+<div class="auth-layout">
+<div class="auth-intro">
+<p class="eyebrow">Your everyday, together</p>
+<h1>Welcome<br>back.</h1>
+<p class="muted">Your favourites, your cart, your orders.<br>Right where you left them.</p>
+<span class="mono small">CRAB / YOUR ACCOUNT</span>
+</div>
+<Card title="Sign in to Crab">
+<p class="muted">Enter your details to continue.</p>
+@if($error !== null)<p class="flash" role="alert">{{ $error }}</p>
+@endif
+<form method="post" action="/login" class="stack">
+<Input name="email" label="Email address" type="email" :value="$email" autocomplete="username" :required="true" />
+<Input name="password" label="Password" type="password" autocomplete="current-password" :required="true" />
+<Button>Sign in →</Button>
+</form>
+<p class="small muted">New here? <a href="/register">Create an account</a>
+</p>
+<p class="small muted">Your guest cart will join your account when you sign in.</p>
+</Card>
+</div>
 </SiteLayout>

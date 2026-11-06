@@ -5,59 +5,60 @@ declare(strict_types=1);
 namespace App\Actions;
 
 use App\Http\LoginInput;
+use App\Shop\BrowserCookies;
+use App\Shop\Carts;
+use App\Shop\Pages;
 use App\User;
 use Crab\Auth\CookieAuth;
-use Crab\Contracts\Auth\PasswordHasher;
-use Crab\Contracts\Auth\TokenStore;
-use Crab\Contracts\Database\Database;
+use Crab\Http\HttpException;
 use Crab\Http\Response;
 use Crab\OpenApi\Attributes\Response as ApiResponse;
+use Crab\Validation\Data;
+use Psr\Http\Message\ServerRequestInterface;
 
+#[ApiResponse(403, body: ['type' => 'string'], contentType: 'text/html')]
+#[ApiResponse(422, body: ['type' => 'string'], contentType: 'text/html')]
+#[ApiResponse(429, body: ['type' => 'string'], contentType: 'text/html')]
 final readonly class ShopLogin
 {
     public function __construct(
-        private Database $db,
-        private PasswordHasher $passwords,
-        private TokenStore $tokens,
+        private Login $login,
         private CookieAuth $auth,
+        private Carts $carts,
+        private Pages $pages,
     ) {}
 
-    #[ApiResponse(200, description: 'The HTML login form.', contentType: 'text/html')]
-    public function show(?User $user): Response
+    #[ApiResponse(200, body: ['type' => 'string'], contentType: 'text/html')]
+    public function show(?User $user, ServerRequestInterface $request): Response
     {
-        return view('shop.login', ['user' => $user, 'email' => '', 'error' => null]);
+        return $this->pages->render('shop.login', $request, $user, ['email' => '', 'error' => null]);
     }
 
-    #[ApiResponse(303, description: 'Logged in; continue shopping.', headers: ['Location', 'Set-Cookie'])]
-    #[ApiResponse(
-        401,
-        body: ['type' => 'string'],
-        description: 'These credentials do not match.',
-        contentType: 'text/html',
-    )]
-    #[ApiResponse(403, description: 'The request did not come from this application’s pages.')]
-    #[ApiResponse(
-        422,
-        body: ['type' => 'string'],
-        description: 'The login details are invalid.',
-        contentType: 'text/html',
-    )]
-    public function handle(#[\SensitiveParameter] LoginInput $input, ?User $user): Response
-    {
-        $row = $this->db->table('users')->where('email', $input->email)->first();
-        // Match PHP 8.4's default bcrypt cost even when the account is unknown.
-        $hash = $row['password'] ?? '$2y$12$.....................................................';
-        if (!$this->passwords->verify($input->password, $hash) || $row === null) {
-            return view('shop.login', [
-                'user' => $user,
-                'email' => $input->email,
-                'error' => 'These credentials do not match.',
-            ])->withStatus(401);
+    #[ApiResponse(303, headers: ['Location', 'Set-Cookie'])]
+    #[ApiResponse(401, body: ['type' => 'string'], contentType: 'text/html')]
+    public function handle(
+        #[\SensitiveParameter]
+        LoginInput $input,
+        ?User $user,
+        ServerRequestInterface $request,
+    ): Response {
+        try {
+            $result = $this->login->handle(new Data(['email' => $input->email, 'password' => $input->password]));
+        } catch (HttpException $error) {
+            if ($error->status !== 401) {
+                throw $error;
+            }
+            return $this->pages->render(
+                'shop.login',
+                $request,
+                $user,
+                ['email' => $input->email, 'error' => 'These credentials do not match.'],
+                401,
+            );
         }
-
-        return Response::redirect('/shop', 303)->withCookie($this->auth->cookie($this->tokens->issue(
-            User::from($row),
-            'browser',
-        )));
+        $this->carts->merge($request, $result['user']);
+        return Pages::redirect('/cart', 'login')
+            ->withCookie($this->auth->cookie($result['token']))
+            ->withCookie(BrowserCookies::make('shop_cart'));
     }
 }

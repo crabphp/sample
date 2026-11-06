@@ -11,6 +11,7 @@ use Crab\Contracts\Database\Connection;
 use Crab\Contracts\Database\Database;
 use Crab\Contracts\Validation\Validator;
 use Crab\Http\HttpException;
+use Crab\Validation\ValidationException;
 use Psr\Clock\ClockInterface;
 use Psr\Http\Message\ServerRequestInterface;
 
@@ -65,11 +66,14 @@ final readonly class Carts
     {
         $row = $key === null ? null : $this->db->table('carts')->where('id', $key)->first();
         $quantities = $row === null ? [] : json_decode($row['lines'], true, flags: JSON_THROW_ON_ERROR);
+        $products = $quantities === []
+            ? []
+            : array_column($this->db->table('products')->whereIn('id', array_keys($quantities))->get(), null, 'id');
         $lines = [];
         $total = 0;
         $count = 0;
         foreach ($quantities as $id => $quantity) {
-            $product = $this->db->table('products')->find((int) $id);
+            $product = $products[$id] ?? null;
             $subtotal = (int) ($product['price'] ?? 0) * $quantity;
             $lines[] = ['id' => (int) $id, 'quantity' => $quantity, 'product' => $product, 'subtotal' => $subtotal];
             $total += $subtotal;
@@ -146,7 +150,11 @@ final readonly class Carts
             foreach (json_decode($cart['lines'], true, flags: JSON_THROW_ON_ERROR) as $productId => $quantity) {
                 $lines[] = ['productId' => (int) $productId, 'quantity' => $quantity];
             }
-            $input = $this->validator->validate(OrderInput::class, ['lines' => $lines]);
+            try {
+                $input = $this->validator->validate(OrderInput::class, ['lines' => $lines]);
+            } catch (ValidationException $error) {
+                throw new HttpException(422, 'Review your cart: ' . $error->getMessage(), previous: $error);
+            }
             $placed = $orders->within($db, $user, $input);
             $db->table('cart_checkouts')->insert(['id' => $id, 'user_id' => $user->id, 'order_id' => $placed['id']]);
             $this->save($db, $key, []);

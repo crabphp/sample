@@ -147,7 +147,19 @@ final readonly class Seed implements Command
             }
         }
         $this->jobs->forget(null);
-        foreach (['auth_tokens', 'run_steps', 'runs', 'order_items', 'orders', 'products', 'users'] as $table) {
+        foreach ([
+            'assistant_replies',
+            'cart_checkouts',
+            'cart_operations',
+            'carts',
+            'auth_tokens',
+            'run_steps',
+            'runs',
+            'order_items',
+            'orders',
+            'products',
+            'users',
+        ] as $table) {
             $this->db->table($table)->delete();
         }
         if ($sized) {

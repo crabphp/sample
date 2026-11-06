@@ -5,11 +5,13 @@ declare(strict_types=1);
 namespace App\Actions;
 
 use App\Http\ProductSearch;
+use App\Shop\Pages;
 use App\User;
 use Crab\Contracts\Database\Page;
 use Crab\Http\Response;
 use Crab\OpenApi\Attributes\Response as ApiResponse;
 use Crab\Routing\FromQuery;
+use Psr\Http\Message\ServerRequestInterface;
 
 /**
  * The Arc catalogue page uses the same paged product and category actions as
@@ -18,13 +20,14 @@ use Crab\Routing\FromQuery;
 final readonly class ShopCatalogue
 {
     public function __construct(
+        private Pages $pages,
         private ListProducts $products,
         private ListCategories $categories,
     ) {}
 
-    #[ApiResponse(200, description: 'The HTML catalogue.', contentType: 'text/html')]
+    #[ApiResponse(200, body: ['type' => 'string'], description: 'The HTML catalogue.', contentType: 'text/html')]
     #[ApiResponse(422, body: ['type' => 'string'], description: 'The filters are invalid.', contentType: 'text/html')]
-    public function handle(#[FromQuery] ProductSearch $search, ?User $user): Response
+    public function handle(ServerRequestInterface $request, #[FromQuery] ProductSearch $search, ?User $user): Response
     {
         // A normal GET form includes the empty "All" options. They mean no filter.
         $search = new ProductSearch(
@@ -35,6 +38,7 @@ final readonly class ShopCatalogue
             maxPrice: $search->maxPrice,
             page: $search->page,
             perPage: $search->perPage,
+            sort: $search->sort,
         );
         $page = $this->products->handle($search);
         $query = array_filter(
@@ -45,11 +49,12 @@ final readonly class ShopCatalogue
                 'minPrice' => $search->minPrice,
                 'maxPrice' => $search->maxPrice,
                 'perPage' => $search->perPage,
+                'sort' => $search->sort,
             ],
             static fn(mixed $value): bool => $value !== null && $value !== '',
         );
 
-        return view('shop.catalogue', [
+        return $this->pages->render('shop.catalogue', $request, $user, [
             'user' => $user,
             'page' => $page,
             'categories' => $this->categories->handle(),
@@ -63,7 +68,7 @@ final readonly class ShopCatalogue
      * @param array<string, int|string> $query
      * @return list<array{number: int, url: string}>
      */
-    private static function pagination(Page $page, array $query): array
+    public static function pagination(Page $page, array $query, string $path = '/products'): array
     {
         if ($page->lastPage === null) {
             return [];
@@ -74,7 +79,7 @@ final readonly class ShopCatalogue
         for ($number = $first; $number <= $last; ++$number) {
             $links[] = [
                 'number' => $number,
-                'url' => '/shop?' . http_build_query([...$query, 'page' => $number]),
+                'url' => $path . '?' . http_build_query([...$query, 'page' => $number]),
             ];
         }
         return $links;

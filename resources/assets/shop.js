@@ -106,5 +106,6 @@
       } finally { if (button) button.disabled = false; }
     });
   });
+  window.addEventListener('pageshow', event => { if (event.persisted) location.reload(); });
   window.addEventListener('pagehide', () => close.forEach(stop => stop()), { once: true });
 })();
