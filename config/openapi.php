@@ -27,7 +27,8 @@ return [
     ],
     'security' => [
         'bearer' => ['type' => 'http', 'scheme' => 'bearer'],
-        'cookie' => ['type' => 'apiKey', 'in' => 'cookie', 'name' => 'auth'],
+        // Setup supplies the name from the bound CookieAuth when the document is built.
+        'cookie' => ['type' => 'apiKey', 'in' => 'cookie'],
     ],
     'middleware' => [
         TokenAuth::class => ['security' => 'bearer', 'responses' => [401]],

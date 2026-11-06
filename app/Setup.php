@@ -11,6 +11,7 @@ use App\Actions\Restock;
 use App\Actions\SettlePayments;
 use App\Events\OrderPlaced;
 use App\Http\ShopErrors;
+use Crab\Auth\CookieAuth;
 use Crab\Contracts\Auth\IdentityResolver;
 use Crab\Contracts\Config\Config;
 use Crab\Contracts\Container\Container;
@@ -18,9 +19,11 @@ use Crab\Contracts\Events\Dispatcher;
 use Crab\Contracts\Http\ErrorRenderer;
 use Crab\Contracts\Http\MiddlewareStack;
 use Crab\Contracts\Plugin;
+use Crab\Contracts\Routing\Router;
 use Crab\Contracts\Schedule\Schedule;
 use Crab\Contracts\Servers;
 use Crab\Http\Concurrency;
+use Crab\OpenApi\DocumentBuilder;
 use Psr\Clock\ClockInterface;
 
 /**
@@ -77,6 +80,21 @@ final class Setup implements Plugin
                 failRate: (float) config('mail.fail_rate'),
             ),
         );
+        $container->singleton(DocumentBuilder::class, static function (Container $container): DocumentBuilder {
+            $config = $container->get(Config::class);
+            $config->check('openapi');
+            // Resolve auth only for generation, after all application bindings are in place.
+            $cookie = $container->get(CookieAuth::class)->cookie('');
+            $security = $config->get('openapi.security', []);
+            $security['cookie']['name'] = $cookie->name;
+            $config->defaults('openapi', ['security' => $security]);
+            return new DocumentBuilder(
+                $container->get(Router::class),
+                $config,
+                $container->has(ErrorRenderer::class),
+                $container->get(MiddlewareStack::class)->layers(),
+            );
+        });
 
         $limit = config('shop.max_requests');
         if ($limit !== null) {
