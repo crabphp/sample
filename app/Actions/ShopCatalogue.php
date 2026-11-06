@@ -25,6 +25,16 @@ final readonly class ShopCatalogue
     #[ApiResponse(200, description: 'The HTML catalogue.', contentType: 'text/html')]
     public function handle(#[FromQuery] ProductSearch $search, ?User $user): Response
     {
+        // A normal GET form includes the empty "All" options. They mean no filter.
+        $search = new ProductSearch(
+            q: $search->q,
+            category: $search->category === '' ? null : $search->category,
+            colour: $search->colour === '' ? null : $search->colour,
+            minPrice: $search->minPrice,
+            maxPrice: $search->maxPrice,
+            page: $search->page,
+            perPage: $search->perPage,
+        );
         $page = $this->products->handle($search);
         $query = array_filter(
             [

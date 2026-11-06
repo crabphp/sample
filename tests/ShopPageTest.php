@@ -13,6 +13,22 @@ use Crab\Testing\Api;
  */
 final class ShopPageTest extends ShopTestCase
 {
+    public function testEmptyOptionalFormFiltersDoNotExcludeMatchingProducts(): void
+    {
+        $defaults = ['q' => '', 'category' => '', 'colour' => '', 'minPrice' => '', 'maxPrice' => ''];
+        foreach ([
+            ['q' => 'Mug'],
+            ['category' => 'kitchen'],
+            ['colour' => 'blue'],
+            [],
+        ] as $filters) {
+            $expected = $this->api->get('/shop', $filters)->assertStatus(200)->body();
+            $submitted = $this->api->get('/shop', [...$defaults, ...$filters])->assertStatus(200)->body();
+            self::assertSame($expected, $submitted, 'The form must behave like the same filters without blank values.');
+            self::assertStringContainsString('Stoneware Mug', $submitted);
+        }
+    }
+
     public function testCatalogueAndProductPagesRenderHtmlAndEscapeProductData(): void
     {
         $catalogue = $this->api->get('/shop')->assertStatus(200);
