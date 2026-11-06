@@ -1,6 +1,6 @@
 @props(?App\User $user = null, string $slot = '')
 <form method="post" action="/assistant" class="assistant-form" data-assistant-form>
-<Input name="question" label="What are you looking for?" placeholder="Something for my morning coffee…" :required="true" />
+<Input name="question" label="What are you looking for?" placeholder="A mug, a lamp, a notebook…" :required="true" />
 <div class="actions">
 <Button>Ask the assistant <span aria-hidden="true">↗</span>
 </Button>
