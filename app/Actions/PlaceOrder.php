@@ -36,21 +36,31 @@ final readonly class PlaceOrder
     #[ApiResponse(409, description: 'There is not enough stock to place the order.')]
     public function handle(User $user, OrderInput $order): Response
     {
+        $placed = $this->db->transaction(fn(Connection $db): array => $this->within($db, $user, $order));
+        $this->announce($user, $placed);
+        return Response::created($placed, "/api/orders/{$placed['id']}");
+    }
+
+    /** Uses the caller's connection so cart consumption and order creation commit together. */
+    public function within(Connection $db, User $user, OrderInput $order): array
+    {
         $quantities = [];
         foreach ($order->lines as $line) {
             $quantities[$line->productId] = ($quantities[$line->productId] ?? 0) + ($line->quantity ?? 1);
         }
-
-        // Lock products in a consistent order to avoid deadlocks between overlapping orders.
         ksort($quantities);
+        return $this->createOrder($db, $user, $quantities);
+    }
 
-        $placed = $this->db->transaction(fn(Connection $db): array => $this->createOrder($db, $user, $quantities));
-
-        // A listener failure must not invite a retry of an order that already committed.
+    /** Called after the transaction releases its connection, including for SQLite pools of one. */
+    public function announce(User $user, array $placed): void
+    {
         try {
-            $this->events->dispatch(
-                new OrderPlaced($placed['id'], $user->id, $placed['total'], array_keys($quantities)),
+            $productIds = array_map(
+                intval(...),
+                $this->db->table('order_items')->where('order_id', $placed['id'])->pluck('product_id'),
             );
+            $this->events->dispatch(new OrderPlaced($placed['id'], $user->id, $placed['total'], $productIds));
         } catch (Throwable $error) {
             $this->log->error('Order {order} was placed, but its follow-up work failed: {message}', [
                 'order' => $placed['id'],
@@ -58,8 +68,6 @@ final readonly class PlaceOrder
                 'exception' => $error,
             ]);
         }
-
-        return Response::created($placed, "/api/orders/{$placed['id']}");
     }
 
     /**
