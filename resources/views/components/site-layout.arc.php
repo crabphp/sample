@@ -183,15 +183,29 @@
             }
         };
         checkout.addEventListener('submit', event => {
-            if (checkout.dataset.submitting) { event.preventDefault(); return; }
+            // A preparation failure must never submit empty hidden fields.
+            event.preventDefault();
+            if (checkout.dataset.submitting) return;
             const cart = read();
-            if (reviewedCart !== JSON.stringify(cart)) { event.preventDefault(); refreshSummary(); return; }
-            const id = crypto.randomUUID();
-            sessionStorage.setItem(checkoutKey, JSON.stringify({ id, cart }));
-            checkout.querySelector('[name=cart]').value = JSON.stringify(cart);
-            checkout.querySelector('[name=checkoutId]').value = id;
+            if (reviewedCart !== JSON.stringify(cart)) { refreshSummary(); return; }
+            try {
+                // getRandomValues also works on ordinary HTTP development hostnames.
+                const bytes = crypto.getRandomValues(new Uint8Array(16));
+                bytes[6] = (bytes[6] & 0x0f) | 0x40;
+                bytes[8] = (bytes[8] & 0x3f) | 0x80;
+                const hex = Array.from(bytes, byte => byte.toString(16).padStart(2, '0')).join('');
+                const id = [hex.slice(0, 8), hex.slice(8, 12), hex.slice(12, 16), hex.slice(16, 20), hex.slice(20)].join('-');
+                sessionStorage.setItem(checkoutKey, JSON.stringify({ id, cart }));
+                checkout.querySelector('[name=cart]').value = JSON.stringify(cart);
+                checkout.querySelector('[name=checkoutId]').value = id;
+            } catch (_) {
+                submit.disabled = true;
+                summary.innerHTML = '<p role="alert">We could not prepare your order. Your cart has been kept. <a href="/shop/checkout">Try again</a>.</p>';
+                return;
+            }
             checkout.dataset.submitting = 'true';
             submit.disabled = true;
+            checkout.submit();
         });
         window.addEventListener('pageshow', () => {
             delete checkout.dataset.submitting;

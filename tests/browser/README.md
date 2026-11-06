@@ -15,3 +15,13 @@ APP_URL=http://127.0.0.1:8080 node --test tests/browser/shop.test.mjs
 `PLAYWRIGHT_MODULE` may point to an existing Playwright `index.mjs` outside the
 repository. Set `SHOP_SCREENSHOTS` to an output directory to capture the fixed
 flows. The PHP suite remains available without Node or a browser via `composer test`.
+
+The HTTP checkout regression starts and stops its own isolated, seeded SQLite
+shop. It checks both `http://shop.checkout.test` (mapped to loopback in Chromium,
+without the localhost secure-context exemption) and `http://127.0.0.1`:
+
+```sh
+node --test tests/browser/http-checkout.test.mjs
+```
+
+It uses the same `PLAYWRIGHT_MODULE` override and needs no Redis server.
