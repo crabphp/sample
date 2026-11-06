@@ -2,313 +2,320 @@ import assert from 'node:assert/strict';
 import { after, before, test } from 'node:test';
 import { mkdir } from 'node:fs/promises';
 import { randomUUID } from 'node:crypto';
+import http from 'node:http';
 
-// Point this at an isolated, seeded shop: these tests create products and orders.
 const base = process.env.APP_URL;
-assert.ok(base, 'Set APP_URL to the isolated shop running php cua dev.');
+assert.ok(base, 'Set APP_URL to an isolated seeded shop; these tests create accounts, products and orders.');
 const { chromium } = await import(process.env.PLAYWRIGHT_MODULE || 'playwright');
 let browser;
 before(async () => { browser = await chromium.launch({ headless: true }); });
 after(async () => { await browser?.close(); });
 
-async function visit(t) {
-    const context = await browser.newContext({ baseURL: base, viewport: { width: 1280, height: 900 } });
-    const page = await context.newPage();
-    page.setDefaultTimeout(8000);
-    const errors = [];
-    page.on('pageerror', error => errors.push(error.message));
-    t.after(async () => {
-        await context.close();
-        assert.deepEqual(errors, [], 'No browser JavaScript errors');
-    });
-    return page;
+async function visit(t, javaScriptEnabled = false) {
+  const context = await browser.newContext({ baseURL: base, javaScriptEnabled, viewport: { width: 1440, height: 1000 }, colorScheme: 'light' });
+  const page = await context.newPage();
+  page.setDefaultTimeout(12000);
+  const errors = [];
+  page.on('pageerror', error => errors.push(error.message));
+  t.after(async () => { await context.close(); assert.deepEqual(errors, [], 'No unexpected browser errors'); });
+  return { page, context };
 }
-
-async function screenshot(page, name) {
-    if (!process.env.SHOP_SCREENSHOTS) return;
-    await mkdir(process.env.SHOP_SCREENSHOTS, { recursive: true });
-    await page.screenshot({ path: `${process.env.SHOP_SCREENSHOTS}/${name}.png`, fullPage: true });
+async function capture(page, name) {
+  if (!process.env.SHOP_SCREENSHOTS) return;
+  await mkdir(process.env.SHOP_SCREENSHOTS, { recursive: true });
+  for (const colorScheme of ['light', 'dark']) {
+    await page.emulateMedia({ colorScheme });
+    await page.waitForTimeout(200);
+    await page.screenshot({ path: `${process.env.SHOP_SCREENSHOTS}/shop-ui-${name}-${colorScheme}.png`, fullPage: true, animations: 'disabled' });
+  }
+  await page.emulateMedia({ colorScheme: 'light' });
 }
-
-async function createProduct(page, values = {}) {
-    const login = await page.request.post('/login', { data: { email: 'admin@example.com', password: 'password' } });
-    assert.equal(login.status(), 200);
-    const { token } = await login.json();
-    const response = await page.request.post('/products', {
-        headers: { Authorization: `Bearer ${token}` },
-        data: { sku: randomUUID().toUpperCase(), name: 'Browser product', category: 'browser', price: 1234, stock: 100, ...values },
-    });
-    assert.equal(response.status(), 201, await response.text());
-    return response.json();
+async function login(page, email, password = 'password') {
+  await page.goto('/login');
+  await page.getByLabel('Email address', { exact: true }).fill(email);
+  await page.getByLabel('Password', { exact: true }).fill(password);
+  await Promise.all([page.waitForURL('**/cart'), page.getByRole('button', { name: 'Sign in →', exact: true }).click()]);
 }
-
-async function cart(page) {
-    return page.evaluate(() => JSON.parse(localStorage.getItem('crab-shop-cart') || '[]'));
+async function logout(page) {
+  await page.locator('.account-menu > summary').click();
+  await Promise.all([page.waitForURL(base + '/'), page.getByRole('button', { name: 'Sign out', exact: true }).click()]);
 }
-
-async function setCart(page, lines) {
-    await page.evaluate(lines => localStorage.setItem('crab-shop-cart', JSON.stringify(lines)), lines);
+async function add(page, id, quantity = 1) {
+  assert.equal((await page.goto('/products/' + id)).status(), 200, 'The isolated fixture must contain the requested product.');
+  await page.getByLabel('Quantity', { exact: true }).fill(String(quantity));
+  await Promise.all([page.waitForURL('**/cart'), page.getByRole('button', { name: /Add to cart/ }).click()]);
 }
+function ownOrigin() { return { Origin: base, 'Sec-Fetch-Site': 'same-origin' }; }
 
-async function login(page) {
-    await page.goto('/shop/login');
-    await page.getByLabel('Email', { exact: true }).fill('ada@example.com');
-    await page.getByLabel('Password', { exact: true }).fill('password');
-    await Promise.all([
-        page.waitForURL(base + '/shop'),
-        page.getByRole('button', { name: 'Log in', exact: true }).click(),
-    ]);
-}
-
-async function placeOrder(page) {
-    await Promise.all([
-        page.waitForURL(url => /^\/shop\/orders\/\d+$/.test(url.pathname)),
-        page.getByRole('button', { name: 'Place order', exact: true }).click(),
-    ]);
-    await page.waitForLoadState('load');
-    return new URL(page.url()).pathname;
-}
-
-test('S1: actual filter submissions preserve search, category, colour and default results', async t => {
-    const page = await visit(t);
-    for (const filters of [{ q: 'Mug' }, { category: 'kitchen' }, { colour: 'blue' }, {}]) {
-        await page.goto('/shop?' + new URLSearchParams(filters));
-        const expected = await page.locator('.card h2').allTextContents();
-        assert.ok(expected.length > 0 && !expected.includes('No products found'));
-        if (filters.q) assert.ok(expected.includes('Stoneware Mug'));
-        await page.goto('/shop');
-        for (const [field, value] of Object.entries(filters)) {
-            const input = page.locator(`[name=${field}]`);
-            if (field === 'q') await input.fill(value); else await input.selectOption(value);
-        }
-        await Promise.all([
-            page.waitForURL(url => url.searchParams.has('maxPrice')),
-            page.getByRole('button', { name: 'Apply filters' }).click(),
-        ]);
-        assert.deepEqual(await page.locator('.card h2').allTextContents(), expected);
-    }
-    await screenshot(page, 'filter');
-});
-
-test('S3: products beyond the first 50 and unavailable products stay in the cart', async t => {
-    const page = await visit(t);
-    await page.goto('/shop');
-    // Ensure more than 50 names sort before the product we will add through the UI.
-    const firstPage = await (await page.request.get('/products?perPage=50')).json();
-    for (let i = firstPage.data.length; i <= 50; i++) {
-        await createProduct(page, { name: `Browser filler ${i}` });
-    }
-    const product = await createProduct(page, { name: 'ZZZZ browser last product' });
-    const first50 = await (await page.request.get('/products?perPage=50')).json();
-    assert.ok(!first50.data.some(item => item.id === product.id));
-    await page.goto(`/shop/products/${product.id}`);
-    await page.getByRole('button', { name: 'Add to cart' }).click();
-    const saved = await cart(page);
-    await page.goto('/shop/cart');
-    await page.waitForFunction(() => !document.querySelector('[data-cart-lines]').textContent.includes('Loading'));
-    assert.deepEqual(await cart(page), saved);
-    assert.ok((await page.locator('[data-cart-lines]').innerText()).includes(product.name));
-    await screenshot(page, 'cart-beyond-50');
-
-    for (const failure of ['missing', 'server', 'json', 'network']) {
-        await page.route(`**/products/${product.id}`, route => {
-            if (failure === 'network') return route.abort();
-            return route.fulfill({
-                status: failure === 'missing' ? 404 : failure === 'server' ? 500 : 200,
-                contentType: 'application/json', body: failure === 'json' ? 'broken' : '{}',
-            });
-        });
-        await page.reload();
-        await page.waitForFunction(() => !document.querySelector('[data-cart-lines]').textContent.includes('Loading'));
-        assert.deepEqual(await cart(page), saved, failure + ' must not delete the cart');
-        const text = await page.locator('[data-cart-lines]').innerText();
-        assert.match(text, failure === 'missing' ? /no longer available/ : /could not load/);
-        if (failure === 'missing') assert.equal(await page.getByRole('button', { name: 'Remove', exact: true }).count(), 1);
-        await page.unroute(`**/products/${product.id}`);
-    }
-});
-
-test('S2: only a successful checkout removes the submitted purchase, once', async t => {
-    const page = await visit(t);
-    await page.goto('/shop');
-    const product = await createProduct(page);
-    const extra = await createProduct(page, { name: 'Later shopping' });
-    const purchase = [{ productId: product.id, quantity: 2 }];
-    await setCart(page, purchase);
-    await login(page);
-    assert.deepEqual(await cart(page), purchase, 'Login preserves the cart');
-    await page.goto('/shop/checkout');
-    const receipt = await placeOrder(page);
-    assert.deepEqual(await cart(page), []);
-    assert.equal(await page.locator('[data-cart-count]').innerText(), '0');
-    await screenshot(page, 'receipt');
-    await page.goto('/shop/cart');
-    await page.getByText('Your cart is empty.', { exact: false }).waitFor();
-
-    const later = [{ productId: product.id, quantity: 1 }, { productId: extra.id, quantity: 1 }];
-    await setCart(page, later);
-    await page.goto(receipt);
-    await page.reload();
-    assert.deepEqual(await cart(page), later, 'Old receipts never empty a new cart');
-
-    await setCart(page, purchase);
-    await page.goto('/shop/checkout');
-    // Another tab adds more of the same product and a different product during checkout.
-    const otherTab = await page.context().newPage();
-    await otherTab.goto('/shop');
-    await page.route('**/shop/checkout', async route => {
-        if (route.request().method() === 'POST') {
-            await setCart(otherTab, [{ productId: product.id, quantity: 3 }, { productId: extra.id, quantity: 1 }]);
-        }
-        await route.continue();
-    });
-    await placeOrder(page);
-    assert.deepEqual(await cart(page), later, 'Only purchased quantities are removed');
-    await page.unroute('**/shop/checkout');
-
-    const failed = purchase;
-    await setCart(page, failed);
-    await page.goto('/shop/checkout');
-    await page.route('**/shop/checkout', route => {
-        const form = new URLSearchParams(route.request().postData());
-        form.set('cart', '[{"productId":2147483647,"quantity":1}]');
-        return route.continue({ postData: form.toString() });
-    });
-    const [response] = await Promise.all([
-        page.waitForNavigation({ waitUntil: 'load' }),
-        page.getByRole('button', { name: 'Place order', exact: true }).click(),
-    ]);
-    assert.equal(response.status(), 422);
-    await page.unroute('**/shop/checkout');
-    assert.deepEqual(await cart(page), failed, 'Failed checkout preserves the cart');
-    await page.goto(receipt);
-    assert.deepEqual(await cart(page), failed, 'A failed attempt does not make an old receipt a success');
-    await page.goto('/shop');
-    await Promise.all([
-        page.waitForNavigation({ waitUntil: 'load' }),
-        page.getByRole('button', { name: 'Log out' }).click(),
-    ]);
-    assert.deepEqual(await cart(page), failed, 'Logout preserves the cart');
-});
-
-test('P3 errors: validation and stock errors retain shop HTML and the cart', async t => {
-    const page = await visit(t);
-    await page.goto('/shop/login');
-    await page.getByLabel('Email', { exact: true }).fill('ada@example.com');
-    await page.getByLabel('Password', { exact: true }).evaluate(input => input.removeAttribute('maxlength'));
-    const password = 'private-password'.repeat(5);
-    await page.getByLabel('Password', { exact: true }).fill(password);
-    const [invalid] = await Promise.all([
-        page.waitForNavigation({ waitUntil: 'load' }),
-        page.getByRole('button', { name: 'Log in', exact: true }).click(),
-    ]);
-    assert.equal(invalid.status(), 422);
-    assert.match(invalid.headers()['content-type'], /text\/html/);
-    assert.equal(await page.getByRole('navigation', { name: 'Shop', exact: true }).count(), 1);
-    assert.ok(!(await page.content()).includes(password));
-    await screenshot(page, 'login-validation');
-    await login(page);
-
-    const name = '<img src=x onerror="window.shopXss=1">';
-    const product = await createProduct(page, { name, stock: 0 });
-    const saved = [{ productId: product.id, quantity: 1 }];
-    await setCart(page, saved);
-    await page.goto('/shop/checkout');
-    const [conflict] = await Promise.all([
-        page.waitForNavigation({ waitUntil: 'load' }),
-        page.getByRole('button', { name: 'Place order', exact: true }).click(),
-    ]);
-    assert.equal(conflict.status(), 409);
-    assert.match(conflict.headers()['content-type'], /text\/html/);
-    assert.equal(await page.getByRole('navigation', { name: 'Shop', exact: true }).count(), 1);
-    assert.ok((await page.getByRole('alert').innerText()).includes(name));
-    assert.ok((await page.locator('body').innerText()).includes('Logged in as Ada'));
-    assert.equal(await page.locator('[onerror]').count(), 0);
-    assert.deepEqual(await cart(page), saved);
-    await screenshot(page, 'checkout-conflict');
-});
-
-test('P3 pagination: page links meet normal-text contrast on their actual backgrounds', async t => {
-    const page = await visit(t);
-    await page.goto('/shop');
-    const colours = await page.locator('.pagination a, .topbar nav a').evaluateAll(links => links.map(link => {
-        let background = 'rgb(255, 255, 255)';
-        for (let element = link; element; element = element.parentElement) {
-            const value = getComputedStyle(element).backgroundColor;
-            if (value !== 'rgba(0, 0, 0, 0)' && value !== 'transparent') { background = value; break; }
-        }
-        return { label: link.textContent, foreground: getComputedStyle(link).color, background };
-    }));
-    const luminance = colour => {
-        const rgb = colour.match(/[\d.]+/g).slice(0, 3).map(Number).map(value => {
-            value /= 255;
-            return value <= 0.04045 ? value / 12.92 : ((value + 0.055) / 1.055) ** 2.4;
-        });
-        return rgb[0] * 0.2126 + rgb[1] * 0.7152 + rgb[2] * 0.0722;
-    };
-    assert.ok(await page.locator('.pagination a:not(.current)').count());
-    for (const colour of colours) {
-        const values = [luminance(colour.foreground), luminance(colour.background)].sort((a, b) => b - a);
-        const contrast = (values[0] + 0.05) / (values[1] + 0.05);
-        assert.ok(contrast >= 4.5, `${colour.label}: contrast ${contrast.toFixed(2)} must be at least 4.5`);
-    }
-    await screenshot(page, 'pagination');
-});
-
-test('P3 summary: checkout reviews quantities, unit prices, line totals and the total before ordering', async t => {
-    const page = await visit(t);
-    await login(page);
-    const first = await createProduct(page, { name: '<b>Summary mug</b>', price: 1234 });
-    const second = await createProduct(page, { name: 'Summary towel', price: 505 });
-    const saved = [{ productId: first.id, quantity: 2 }, { productId: second.id, quantity: 3 }];
-    await setCart(page, saved);
-    await page.goto('/shop/checkout');
-    const summary = page.getByRole('region', { name: 'Order summary', exact: true });
-    assert.equal(await summary.count(), 1, 'Checkout must show a cart summary');
-    const button = page.getByRole('button', { name: 'Place order', exact: true });
-    await page.waitForFunction(() => !document.querySelector('[data-checkout-form] button').disabled);
-    const lines = await summary.locator('[data-checkout-line]').allTextContents();
-    assert.equal(lines.length, 2);
-    assert.match(lines[0], /2 × <b>Summary mug<\/b>/);
-    assert.match(lines[0], /Unit price: \$ 12\.34/);
-    assert.match(lines[0], /\$ 24\.68/);
-    assert.match(lines[1], /3 × Summary towel/);
-    assert.match(lines[1], /Unit price: \$ 5\.05/);
-    assert.match(lines[1], /\$ 15\.15/);
-    assert.equal(await summary.locator('b').count(), 0, 'Product names are text');
-    assert.equal(await page.locator('[data-checkout-total]').innerText(), '$ 39.83');
-    const summaryBox = await summary.boundingBox();
-    const buttonBox = await button.boundingBox();
-    assert.ok(summaryBox.y + summaryBox.height <= buttonBox.y);
-    await screenshot(page, 'checkout-summary');
+for (const javaScriptEnabled of [false, true]) {
+  test(`Complete native shop and admin journey, JavaScript ${javaScriptEnabled ? 'on' : 'off'}`, { timeout: 180000 }, async t => {
+    const { page, context } = await visit(t, javaScriptEnabled);
+    const screen = async name => { if (!javaScriptEnabled) await capture(page, name); };
+    let response = await page.goto('/');
+    assert.equal(response.status(), 200);
+    assert.match(response.headers()['content-type'], /^text\/html/);
+    assert.match(await page.locator('main').innerText(), /Built with Crab\./);
+    await screen('home');
+    await page.goto('/products');
+    await screen('catalogue');
+    await page.locator('.filters [name=q]').fill('Mug');
+    await page.locator('.filters [name=sort]').selectOption('price-asc');
+    await Promise.all([page.waitForNavigation(), page.getByRole('button', { name: 'Apply filters' }).click()]);
+    assert.match(await page.locator('main').innerText(), /Stoneware Mug/);
+    await page.goto('/products?category=kitchen&perPage=4');
+    await page.getByRole('link', { name: '2', exact: true }).click();
+    assert.equal(new URL(page.url()).searchParams.get('category'), 'kitchen');
+    assert.equal(new URL(page.url()).searchParams.get('page'), '2');
+    await page.goto('/products/1');
+    await screen('product');
+    await add(page, 1, 2);
+    assert.match(await page.locator('main').innerText(), /Added to your cart/);
+    assert.equal(await page.locator('[data-cart-count]').innerText(), '2');
+    const guest = (await context.cookies()).find(cookie => cookie.name === 'shop_cart');
+    assert.equal(guest.httpOnly, true);
+    assert.equal(guest.sameSite, 'Lax');
+    await page.getByLabel('Quantity', { exact: true }).fill('3');
+    await Promise.all([page.waitForNavigation(), page.getByRole('button', { name: 'Update', exact: true }).click()]);
+    assert.equal(await page.locator('[data-cart-count]').innerText(), '3');
+    await screen('cart');
     await page.setViewportSize({ width: 390, height: 844 });
-    assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth), false);
-    await screenshot(page, 'checkout-summary-mobile');
-
-    // A changed cart must be reviewed before it can be submitted, including changes without a storage event.
-    const changed = [{ productId: first.id, quantity: 4 }, saved[1]];
-    await setCart(page, changed);
-    let posts = 0;
-    page.on('request', request => { if (request.method() === 'POST') posts++; });
-    await button.click();
-    await page.waitForFunction(() => document.querySelector('[data-checkout-total]')?.textContent === '$ 64.51');
-    assert.equal(posts, 0);
-    const otherTab = await page.context().newPage();
-    await otherTab.goto('/shop');
-    await setCart(otherTab, saved);
-    await page.waitForFunction(() => document.querySelector('[data-checkout-total]')?.textContent === '$ 39.83');
-
-    for (const status of [500, 404]) {
-        await page.route(`**/products/${first.id}`, route => route.fulfill({ status, body: '{}' }));
-        await page.reload();
-        await summary.getByRole('alert').waitFor();
-        assert.equal(await button.isDisabled(), true);
-        assert.equal(await page.locator('[data-checkout-total]').count(), 0);
-        assert.deepEqual(await cart(page), saved);
-        await page.unroute(`**/products/${first.id}`);
+    await screen('cart-mobile');
+    await page.setViewportSize({ width: 1440, height: 1000 });
+    await Promise.all([page.waitForNavigation(), page.getByRole('button', { name: 'Remove', exact: true }).click()]);
+    assert.match(await page.locator('main').innerText(), /Your cart is waiting/);
+    await screen('empty-cart');
+    await add(page, 1, 2);
+    await page.getByRole('link', { name: 'Continue to checkout' }).click();
+    assert.equal(new URL(page.url()).pathname, '/login');
+    await screen('login');
+    await page.getByRole('link', { name: 'Create an account', exact: true }).click();
+    await screen('register');
+    const email = `browser-${randomUUID()}@example.com`;
+    const password = 'browser-password';
+    await page.getByLabel('Full name', { exact: true }).fill('Alex Morgan');
+    await page.getByLabel('Email address', { exact: true }).fill(email);
+    await page.getByLabel('Password', { exact: true }).fill(password);
+    await Promise.all([page.waitForURL('**/cart'), page.getByRole('button', { name: 'Create account →', exact: true }).click()]);
+    assert.equal(await page.locator('[data-cart-count]').innerText(), '2');
+    assert.equal((await context.cookies()).some(cookie => cookie.name === 'shop_cart'), false);
+    await logout(page);
+    assert.equal(await page.locator('[data-cart-count]').innerText(), '0');
+    await login(page, email, password);
+    assert.equal(await page.locator('[data-cart-count]').innerText(), '2');
+    await page.getByRole('link', { name: 'Continue to checkout' }).click();
+    assert.match(await page.locator('.order-summary').innerText(), /\$28\.00/);
+    const checkoutId = await page.locator('[name=checkoutId]').inputValue();
+    assert.match(checkoutId, /^[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/);
+    await screen('checkout');
+    await page.setViewportSize({ width: 390, height: 844 });
+    await screen('checkout-mobile');
+    await page.setViewportSize({ width: 1440, height: 1000 });
+    await Promise.all([page.waitForURL(/\/orders\/\d+$/), page.getByRole('button', { name: 'Place order →', exact: true }).click()]);
+    const receipt = new URL(page.url()).pathname;
+    assert.equal(await page.locator('[data-cart-count]').innerText(), '0');
+    assert.match(await page.locator('[data-order-receipt]').innerText(), /Stoneware Mug/);
+    await screen('order');
+    const replay = await page.request.post('/checkout', { headers: ownOrigin(), form: { checkoutId }, maxRedirects: 0 });
+    assert.equal(replay.status(), 303);
+    assert.equal(replay.headers().location, receipt);
+    const stranger = await browser.newContext({ baseURL: base, javaScriptEnabled: false });
+    assert.equal((await stranger.request.get(receipt)).status(), 404);
+    await stranger.close();
+    await page.goto('/orders');
+    assert.equal(await page.locator('tbody tr').count(), 1);
+    await screen('orders');
+    assert.equal((await page.goto('/admin/products')).status(), 403);
+    await screen('forbidden');
+    assert.equal((await page.goto('/not-a-page')).status(), 404);
+    await screen('404');
+    await page.goto('/products?minPrice=500&maxPrice=1');
+    await screen('validation');
+    await page.goto('/assistant');
+    await page.getByLabel('What are you looking for?').fill('a mug');
+    if (javaScriptEnabled) {
+      await page.getByRole('button', { name: /Ask the assistant/ }).click();
+      await page.locator('[data-assistant-answer] a').first().waitFor();
+      assert.match(await page.locator('[data-assistant-answer]').innerText(), /Stoneware Mug/);
+      await page.getByRole('button', { name: 'Read full answer', exact: true }).click();
+      await page.waitForURL(/\/assistant\?reply=/);
+    } else {
+      await Promise.all([page.waitForURL(/\/assistant\?reply=/), page.getByRole('button', { name: /Ask the assistant/ }).click()]);
     }
-    await setCart(page, []);
-    await page.reload();
-    await summary.getByText('Your cart is empty.', { exact: false }).waitFor();
-    assert.equal(await button.isDisabled(), true);
+    assert.match(await page.locator('.conversation').innerText(), /Stoneware Mug/);
+    await screen('assistant');
+    await page.getByLabel('What are you looking for?').fill('a mug');
+    await Promise.all([page.waitForNavigation(), page.getByRole('button', { name: 'Continue my conversation', exact: true }).click()]);
+    assert.match(await page.locator('.conversation').innerText(), /Turn 1/i);
+    await page.getByLabel('What are you looking for?').fill('another one?');
+    await Promise.all([page.waitForNavigation(), page.getByRole('button', { name: 'Continue my conversation', exact: true }).click()]);
+    assert.match(await page.locator('.conversation').innerText(), /Turn 2/i);
+    await logout(page);
+    await login(page, 'admin@example.com');
+    await page.locator('.account-menu > summary').click();
+    await page.getByRole('link', { name: 'Administration', exact: true }).click();
+    assert.equal(new URL(page.url()).pathname, '/admin/products');
+    await screen('admin-products');
+    const sku = 'UI-' + randomUUID().slice(0, 12).toUpperCase();
+    await page.getByLabel('Product name', { exact: true }).fill('Studio Notebook');
+    await page.getByLabel('SKU', { exact: true }).fill(sku);
+    await page.getByLabel('Category', { exact: true }).fill('desk');
+    await page.getByLabel('Price (cents)', { exact: true }).fill('1999');
+    await page.getByLabel('Initial stock', { exact: true }).fill('50');
+    await Promise.all([page.waitForNavigation(), page.getByRole('button', { name: 'Create product', exact: true }).click()]);
+    await page.locator('.inline-search [name=q]').fill('Studio Notebook');
+    await Promise.all([page.waitForNavigation(), page.locator('.inline-search button').click()]);
+    const row = page.locator('tbody tr').filter({ hasText: sku });
+    await row.locator('[name=stock]').fill('77');
+    const stockPath = await row.locator('form').getAttribute('action');
+    await Promise.all([page.waitForNavigation(), row.getByRole('button', { name: 'Save', exact: true }).click()]);
+    const productId = stockPath.match(/products\/(\d+)/)[1];
+    const product = await page.request.get('/api/products/' + productId);
+    assert.equal((await product.json()).stock, 77);
+    await page.goto('/admin/orders');
+    await screen('admin-orders');
+    const ship = page.getByRole('button', { name: 'Ship order →', exact: true }).first();
+    if (await ship.count()) {
+      await Promise.all([page.waitForNavigation(), ship.click()]);
+      assert.match(await page.locator('main').innerText(), /Order marked as shipped/);
+    }
+    await page.goto('/admin/reports');
+    await page.getByLabel('Report date', { exact: true }).fill('2026-11-06');
+    await Promise.all([page.waitForNavigation(), page.getByRole('button', { name: 'Generate report', exact: true }).click()]);
+    assert.match(await page.locator('main').innerText(), /Daily report generated/);
+    await screen('admin-report');
+    await page.goto('/');
+    await page.setViewportSize({ width: 390, height: 844 });
+    await screen('home-mobile');
+    // Layout inspection is diagnostics; all functional steps above use native forms.
+    assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
+    await logout(page);
+    t.diagnostic(`Completed ${receipt}, native forms, account persistence, assistant turns, and admin actions.`);
+  });
+}
+
+test('Concurrent checkout requests create one order and stale forms preserve later cart items', { timeout: 45000 }, async t => {
+  const { page } = await visit(t);
+  const email = `race-${randomUUID()}@example.com`;
+  await page.request.post('/register', { headers: ownOrigin(), form: { name: 'Race Customer', email, password: 'password' } });
+  await add(page, 1, 2);
+  await page.goto('/checkout');
+  const checkoutId = await page.locator('[name=checkoutId]').inputValue();
+  const results = await Promise.all([1, 2].map(() => page.request.post('/checkout', { headers: ownOrigin(), form: { checkoutId }, maxRedirects: 0 })));
+  assert.deepEqual(results.map(result => result.status()), [303, 303]);
+  assert.equal(results[0].headers().location, results[1].headers().location);
+  await page.goto('/orders');
+  assert.equal(await page.locator('tbody tr').count(), 1);
+  await add(page, 2);
+  await page.request.post('/checkout', { headers: ownOrigin(), form: { checkoutId }, maxRedirects: 0 });
+  await page.goto('/cart');
+  assert.equal(await page.locator('[data-cart-count]').innerText(), '1');
+  await page.goto('/checkout');
+  const stale = await page.locator('[name=checkoutId]').inputValue();
+  await add(page, 1);
+  const failure = await page.request.post('/checkout', { headers: ownOrigin(), form: { checkoutId: stale }, maxRedirects: 0 });
+  assert.equal(failure.status(), 409);
+  await page.goto('/cart');
+  assert.equal(await page.locator('[data-cart-count]').innerText(), '2');
+});
+
+test('Stock SSE and cookie-authenticated WebSocket update the rendered fallback', { timeout: 40000 }, async t => {
+  const { page } = await visit(t, true);
+  const adminLogin = await page.request.post('/api/login', { data: { email: 'admin@example.com', password: 'password' } });
+  const token = (await adminLogin.json()).token;
+  await page.goto('/products/1');
+  await page.locator('[data-stock-status]').filter({ hasText: 'connected' }).waitFor();
+  await page.request.put('/api/products/1/stock', { headers: { Authorization: `Bearer ${token}` }, data: { stock: 222 } });
+  await page.locator('[data-stock-value]').filter({ hasText: /^222$/ }).waitFor();
+  await login(page, 'ada@example.com');
+  await add(page, 1);
+  await page.goto('/checkout');
+  await page.getByRole('button', { name: 'Place order →', exact: true }).click();
+  await page.waitForURL(/\/orders\/\d+$/);
+  await page.locator('[data-order-connection]').filter({ hasText: 'connected' }).waitFor();
+  let orderId = Number(new URL(page.url()).pathname.split('/').pop());
+  // The sample intentionally leaves each tenth order unpaid. Exercise a paying order too.
+  if (orderId % 10 === 0) {
+    await add(page, 1);
+    await page.goto('/checkout');
+    await page.getByRole('button', { name: 'Place order →', exact: true }).click();
+    await page.waitForURL(/\/orders\/\d+$/);
+    orderId = Number(new URL(page.url()).pathname.split('/').pop());
+    await page.locator('[data-order-connection]').filter({ hasText: 'connected' }).waitFor();
+  }
+  await page.waitForFunction(() => /Paid|Shipped/.test(document.querySelector('[data-order-status]').textContent), null, { timeout: 22000 });
+  const shipment = await page.request.put('/api/orders/' + orderId + '/ship', { headers: { Authorization: `Bearer ${token}` } });
+  assert.equal(shipment.status(), 200);
+  await page.locator('[data-order-status]').filter({ hasText: 'Shipped' }).waitFor();
+  t.diagnostic(`Order ${orderId} received payment and shipment updates over its live WebSocket.`);
+});
+
+test('Real foreign-origin forms are refused, including with ambient cookies', { timeout: 45000 }, async t => {
+  const { page, context } = await visit(t);
+  await login(page, 'ada@example.com');
+  const auth = (await context.cookies()).find(cookie => cookie.name === 'auth');
+  const attacker = http.createServer((req, res) => {
+    const path = new URL(req.url, 'http://example.test').searchParams.get('path');
+    res.writeHead(200, { 'Content-Type': 'text/html' });
+    res.end(`<form method="post" action="${base}${path}"><input name="email" value="ada@example.com"><input name="password" value="password"><input name="checkoutId" value="${randomUUID()}"><input name="actionId" value="${randomUUID()}"><button>Send foreign form</button></form>`);
+  });
+  await new Promise(resolve => attacker.listen(0, '0.0.0.0', resolve));
+  t.after(() => new Promise(resolve => attacker.close(resolve)));
+  for (const host of ['127.0.0.1', 'localhost']) {
+    for (const path of ['/login', '/logout', '/cart/1/add', '/checkout']) {
+      await page.goto(`http://${host}:${attacker.address().port}/?path=${path}`);
+      const [response] = await Promise.all([page.waitForNavigation(), page.getByRole('button', { name: 'Send foreign form' }).click()]);
+      assert.equal(response.status(), 403, host + path);
+    }
+  }
+  assert.equal((await context.cookies()).find(cookie => cookie.name === 'auth').value, auth.value);
+  assert.equal((await page.goto(base + '/orders')).status(), 200);
+});
+
+test('Stored HTML remains text through catalogue, cart, checkout, receipt and admin', { timeout: 45000 }, async t => {
+  const { page } = await visit(t, true);
+  const auth = await page.request.post('/api/login', { data: { email: 'admin@example.com', password: 'password' } });
+  const created = await page.request.post('/api/products', { headers: { Authorization: `Bearer ${(await auth.json()).token}` }, data: { sku: randomUUID().toUpperCase(), name: '<img src=x onerror="window.shopXss=1">', category: 'desk', price: 1234, stock: 100 } });
+  assert.equal(created.status(), 201);
+  const { id } = await created.json();
+  await login(page, 'grace@example.com');
+  await add(page, id);
+  for (const path of ['/products?q=onerror', '/products/' + id, '/cart', '/checkout']) {
+    await page.goto(path);
+    assert.equal(await page.locator('img[onerror]').count(), 0);
+    assert.match(await page.locator('main').innerText(), /<img src=x/);
+  }
+  await page.getByRole('button', { name: 'Place order →', exact: true }).click();
+  await page.waitForURL(/\/orders\/\d+$/);
+  assert.equal(await page.locator('img[onerror]').count(), 0);
+  assert.match(await page.locator('[data-order-receipt]').innerText(), /<img src=x/);
+  assert.equal(await page.evaluate(() => window.shopXss), undefined);
+});
+
+test('System themes, contrast, keyboard focus and small screens remain accessible', { timeout: 45000 }, async t => {
+  const { page } = await visit(t);
+  await page.goto('/');
+  await page.keyboard.press('Tab');
+  assert.equal(await page.locator('.skip-link').evaluate(element => element === document.activeElement), true);
+  assert.notEqual(await page.locator('.skip-link').evaluate(element => getComputedStyle(element).outlineStyle), 'none');
+  await page.keyboard.press('Enter');
+  assert.equal(await page.evaluate(() => document.activeElement.id), 'main');
+  const luminance = hex => {
+    let s = hex.trim().replace('#', '');
+    if (s.length === 3) s = [...s].map(c => c + c).join('');
+    const rgb = [0, 2, 4].map(i => parseInt(s.slice(i, i + 2), 16) / 255).map(v => v <= .04045 ? v / 12.92 : ((v + .055) / 1.055) ** 2.4);
+    return rgb[0] * .2126 + rgb[1] * .7152 + rgb[2] * .0722;
+  };
+  for (const colorScheme of ['light', 'dark']) {
+    await page.emulateMedia({ colorScheme });
+    const tokens = await page.evaluate(() => Object.fromEntries(['text', 'muted', 'background', 'surface', 'surface-raised', 'primary', 'on-primary'].map(key => [key, getComputedStyle(document.documentElement).getPropertyValue('--' + key)])));
+    for (const [text, background] of [['text', 'background'], ['muted', 'background'], ['muted', 'surface'], ['muted', 'surface-raised'], ['on-primary', 'primary']]) {
+      const values = [luminance(tokens[text]), luminance(tokens[background])].sort((a, b) => b - a);
+      assert.ok((values[0] + .05) / (values[1] + .05) >= 4.5, `${colorScheme}: ${text} on ${background}`);
+    }
+  }
+  await page.setViewportSize({ width: 390, height: 844 });
+  for (const path of ['/', '/products', '/products/1', '/cart', '/login', '/register', '/assistant', '/missing']) {
+    await page.goto(path);
+    assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true, path);
+  }
 });

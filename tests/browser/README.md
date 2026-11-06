@@ -1,27 +1,53 @@
-# Shop browser regressions
+# Browser verification
 
-Run against an isolated shop started with `php cua dev`, after migrations and
-`shop:seed`. The tests use seeded accounts and create products and orders, so use
-a separate `CRAB_STORAGE`, Redis prefix and free HTTP port. Match `APP_URL` to
-`SERVER_ADDRESS` in the server environment. Set `LOGIN_LIMIT=1000` for repeated
-test runs.
+The shop is usable without JavaScript. These tests drive actual native forms
+with Chromium scripting disabled, then repeat the complete journey with it
+enabled. They cover guest carts, registration and login merges, updates and
+removal, account persistence, checkout and duplicate submissions, receipts,
+private order history, administrator actions, assistant fallback and actor
+conversations. Additional cases check concurrent checkout requests, SSE stock,
+WebSocket status changes, stored HTML escaping and real foreign-origin forms.
 
-Install Playwright and its Chromium browser in your test environment, then run:
-
-```sh
-APP_URL=http://127.0.0.1:8080 node --test tests/browser/shop.test.mjs
-```
-
-`PLAYWRIGHT_MODULE` may point to an existing Playwright `index.mjs` outside the
-repository. Set `SHOP_SCREENSHOTS` to an output directory to capture the fixed
-flows. The PHP suite remains available without Node or a browser via `composer test`.
-
-The HTTP checkout regression starts and stops its own isolated, seeded SQLite
-shop. It checks both `http://shop.checkout.test` (mapped to loopback in Chromium,
-without the localhost secure-context exemption) and `http://127.0.0.1`:
+Use an **isolated**, migrated, seeded shop with its own Redis container and
+`APP_URL` matching `SERVER_ADDRESS`. The tests create data. Never point them at
+your normal development shop. Node and Playwright are verification tools only;
+the application has no frontend package manager or build step.
 
 ```sh
-node --test tests/browser/http-checkout.test.mjs
+APP_URL=http://127.0.0.1:48000 node --test tests/browser/shop.test.mjs
 ```
 
-It uses the same `PLAYWRIGHT_MODULE` override and needs no Redis server.
+Set `PLAYWRIGHT_MODULE` to an existing Playwright `index.mjs` if it is installed
+outside this repository. `SHOP_SCREENSHOTS` selects an output folder: the
+JavaScript-disabled journey captures the main pages in light and dark themes,
+including mobile views, with a `shop-ui-` prefix.
+
+The optional helper creates a full isolated development process group and a
+Redis container through Podman. It records its environment in ignored storage.
+The server runs in the foreground; use another terminal for the browser tests.
+After stopping **this helper's** server with Ctrl-C, remove its Redis container.
+The user's existing server is never stopped or reconfigured.
+
+```sh
+python3 tests/browser/runtime.py init
+python3 tests/browser/runtime.py serve
+# In another terminal:
+python3 tests/browser/runtime.py browser
+python3 tests/browser/runtime.py redis-tests
+# Stop the helper's server, then:
+python3 tests/browser/runtime.py cleanup
+```
+
+`http-checkout.test.mjs` starts two short-lived HTTP workers with separate
+SQLite databases and isolated Redis prefixes, one for an ordinary HTTP
+hostname and one for loopback. Each completes checkout with scripting disabled
+and enabled. The enabled case deliberately disables browser randomness:
+checkout identifiers come from PHP, so this does not affect submission. Point
+it at the same isolated test Redis container before cleanup:
+
+```sh
+SHOP_TEST_REDIS_URL=redis://127.0.0.1:48001 node --test tests/browser/http-checkout.test.mjs
+```
+
+The PHP suite, including form actions, authentication, administration and
+escaping tests, needs no Node or browser: `composer test`.
