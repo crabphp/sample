@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Actions;
 
-use App\Http\ProductSearch;
+use App\Http\ShopProductSearch;
 use App\Shop\Pages;
 use App\User;
 use Crab\Contracts\Database\Page;
@@ -27,20 +27,13 @@ final readonly class ShopCatalogue
 
     #[ApiResponse(200, body: ['type' => 'string'], description: 'The HTML catalogue.', contentType: 'text/html')]
     #[ApiResponse(422, body: ['type' => 'string'], description: 'The filters are invalid.', contentType: 'text/html')]
-    public function handle(ServerRequestInterface $request, #[FromQuery] ProductSearch $search, ?User $user): Response
-    {
-        // A normal GET form includes the empty "All" options. They mean no filter.
-        $search = new ProductSearch(
-            q: $search->q,
-            category: $search->category === '' ? null : $search->category,
-            colour: $search->colour === '' ? null : $search->colour,
-            minPrice: $search->minPrice,
-            maxPrice: $search->maxPrice,
-            page: $search->page,
-            perPage: $search->perPage,
-            sort: $search->sort,
-        );
-        $page = $this->products->handle($search);
+    public function handle(
+        ServerRequestInterface $request,
+        #[FromQuery]
+        ShopProductSearch $search,
+        ?User $user,
+    ): Response {
+        $page = $this->products->handle($search->inCents());
         $query = array_filter(
             [
                 'q' => $search->q === '' ? null : $search->q,

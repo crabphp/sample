@@ -14,7 +14,13 @@ final readonly class PriceRangeInOrder implements ObjectRule
 {
     public function check(object $input): array
     {
-        if ($input->minPrice === null || $input->maxPrice === null || $input->minPrice <= $input->maxPrice) {
+        if (
+            $input->minPrice === null
+            || $input->minPrice === ''
+            || $input->maxPrice === null
+            || $input->maxPrice === ''
+            || $input->minPrice <= $input->maxPrice
+        ) {
             return [];
         }
 

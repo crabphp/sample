@@ -37,7 +37,7 @@ Open <http://127.0.0.1:8080/>. The shop is the main site:
 | Page | What you can do |
 | --- | --- |
 | `/` | Featured products and categories, live stock, a shopping assistant, your latest order, and links to the Crab features behind the store |
-| `/products` | Search; filter by category, colour and price in cents; sort by name, price or newest; page through results |
+| `/products` | Search; filter by category, colour and price in dollars (`12` or `12.50`); sort by name, price or newest; page through results |
 | `/products/{id}` | Product details, current stock and an add-to-cart form |
 | `/cart`, `/checkout` | Change quantities, remove items, review the server-rendered summary and place an order |
 | `/orders`, `/orders/{id}` | Your order history and private receipts; only the owner can read a receipt, including when the other visitor is an administrator |
@@ -45,6 +45,11 @@ Open <http://127.0.0.1:8080/>. The shop is the main site:
 | `/assistant` | Ask for product suggestions; signed-in customers can continue their actor-backed conversation |
 | `/admin/products` | Administrators can create products and update stock |
 | `/admin/orders`, `/admin/reports` | Administrators can ship paid orders and generate or read a daily report |
+
+Catalogue price filters accept dollars with up to two decimal places, from
+`0` to `9999999.99`. An empty bound leaves that end open. The server validates
+the input and converts it exactly to cents; filter values and pagination
+links stay in dollars. `/api/products` continues to accept integer cents.
 
 Old `/shop/...` links redirect permanently with **301**. `/shop` redirects to
 `/`; catalogue filters on `/shop?...` redirect to `/products?...`. The JSON API
@@ -129,7 +134,7 @@ The other seeded customers are `alan`, `katherine`, `linus`, `margaret`,
 | | | |
 | --- | --- | --- |
 | `GET` | `/up`, `/api/ready` | Whether a worker answers, and whether it reaches the database and the cache: a liveness and a readiness probe |
-| `GET` | `/api/products` | The catalogue, a page at a time: `?q=mug&category=kitchen&colour=blue&minPrice=1000&maxPrice=5000&page=2&perPage=12&sort=price-asc`; sort is `name`, `price-asc`, `price-desc` or `newest`; the colour is read from each product's JSON details. An unknown filter, or a range the wrong way round, is a `422` |
+| `GET` | `/api/products` | The catalogue, a page at a time: `?q=mug&category=kitchen&colour=blue&minPrice=1000&maxPrice=5000&page=2&perPage=12&sort=price-asc`; API prices and price filters are integer cents. Sort is `name`, `price-asc`, `price-desc` or `newest`; the colour is read from each product's JSON details. An unknown filter, or a range the wrong way round, is a `422` |
 | `GET` | `/api/products.csv` | The whole catalogue as a spreadsheet, the feed `shop:mirror-catalogue` downloads |
 | `GET` | `/api/products/{id}` | One product |
 | `GET` | `/api/products/{id}/stock` | Its stock live, as server-sent events: `curl -N` it and change the stock |

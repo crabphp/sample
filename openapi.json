@@ -3802,10 +3802,10 @@
                         "required": false,
                         "schema": {
                             "type": [
-                                "integer",
+                                "string",
                                 "null"
                             ],
-                            "minimum": 0,
+                            "pattern": "^(?:[0-9]{1,7}(?:\\.[0-9]{1,2})?)?$",
                             "default": null
                         },
                         "style": "form",
@@ -3817,10 +3817,10 @@
                         "required": false,
                         "schema": {
                             "type": [
-                                "integer",
+                                "string",
                                 "null"
                             ],
-                            "minimum": 0,
+                            "pattern": "^(?:[0-9]{1,7}(?:\\.[0-9]{1,2})?)?$",
                             "default": null
                         },
                         "style": "form",
