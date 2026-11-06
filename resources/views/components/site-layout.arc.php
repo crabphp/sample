@@ -29,6 +29,7 @@
         input, select, button { width: 100%; border: 1px solid #b9c2bd; border-radius: 7px; padding: .65rem .7rem; font: inherit; }
         button, .button { background: #d96545; color: #fff; border: 0; cursor: pointer; font-weight: 750; text-align: center; text-decoration: none; }
         button:hover, .button:hover { background: #bd5035; }
+        button:disabled { background: #68746f; cursor: wait; }
         .button.secondary { background: #173f3a; }
         .catalogue-head { display: flex; justify-content: space-between; align-items: end; gap: 1rem; margin-bottom: 1rem; }
         .catalogue-head h1 { margin-bottom: .25rem; }
@@ -52,6 +53,10 @@
         .cart-line { display: grid; grid-template-columns: 1fr 90px max-content; gap: .75rem; align-items: center; border-bottom: 1px solid #e2ded5; padding: .75rem 0; }
         .cart-line:last-child { border-bottom: 0; }
         .cart-line input { width: 90px; }
+        .checkout-line { display: flex; justify-content: space-between; gap: 1rem; border-bottom: 1px solid #e2ded5; padding: .75rem 0; }
+        .checkout-line > div { min-width: 0; overflow-wrap: anywhere; }
+        .checkout-line p { margin: 0; }
+        .checkout-line > strong { white-space: nowrap; }
         .total { display: flex; justify-content: space-between; font-size: 1.15rem; font-weight: 800; padding-top: 1rem; }
         .notice { padding: .75rem 1rem; background: #edf5ef; border-left: 4px solid #287253; border-radius: 5px; }
         footer { border-top: 1px solid #e2ded5; padding: 1.5rem 0 3rem; color: #68746f; }
@@ -134,22 +139,69 @@
     }
     const checkout = document.querySelector('[data-checkout-form]');
     if (checkout) {
+        const summary = document.querySelector('[data-checkout-summary]');
+        const submit = checkout.querySelector('button[type=submit]');
+        const money = cents => '$ ' + (cents / 100).toFixed(2);
+        let reviewedCart = null;
+        let revision = 0;
+        const refreshSummary = async () => {
+            const currentRevision = ++revision;
+            const cart = read();
+            reviewedCart = null;
+            submit.disabled = true;
+            summary.innerHTML = '<p>Loading your order summary…</p>';
+            try {
+                const products = await loadProducts(cart);
+                if (currentRevision !== revision) return;
+                if (JSON.stringify(cart) !== JSON.stringify(read())) { refreshSummary(); return; }
+                if (!cart.length) {
+                    summary.innerHTML = '<p>Your cart is empty. <a href="/shop">Browse the catalogue</a>.</p>';
+                    return;
+                }
+                let total = 0;
+                let missing = false;
+                summary.innerHTML = cart.map(line => {
+                    const product = products[line.productId];
+                    if (!product) {
+                        missing = true;
+                        return '<p>Product #' + escapeHtml(line.productId) + ' is no longer available.</p>';
+                    }
+                    const subtotal = product.price * line.quantity;
+                    total += subtotal;
+                    return '<div class="checkout-line" data-checkout-line><div><p>' + escapeHtml(line.quantity) + ' × ' + escapeHtml(product.name) + '</p><small>Unit price: ' + money(product.price) + '</small></div><strong>' + money(subtotal) + '</strong></div>';
+                }).join('');
+                if (missing) {
+                    summary.innerHTML += '<p role="alert">Remove unavailable products from <a href="/shop/cart">your cart</a> before ordering.</p>';
+                    return;
+                }
+                summary.innerHTML += '<p class="total"><span>Total</span><span data-checkout-total>' + money(total) + '</span></p>';
+                reviewedCart = JSON.stringify(cart);
+                submit.disabled = false;
+            } catch (_) {
+                if (currentRevision !== revision) return;
+                summary.innerHTML = '<p role="alert">We could not load your order summary. Your cart has been kept. <a href="/shop/checkout">Try again</a>.</p>';
+            }
+        };
         checkout.addEventListener('submit', event => {
             if (checkout.dataset.submitting) { event.preventDefault(); return; }
             const cart = read();
-            if (!cart.length) { event.preventDefault(); alert('Your cart is empty.'); return; }
+            if (reviewedCart !== JSON.stringify(cart)) { event.preventDefault(); refreshSummary(); return; }
             const id = crypto.randomUUID();
             sessionStorage.setItem(checkoutKey, JSON.stringify({ id, cart }));
             checkout.querySelector('[name=cart]').value = JSON.stringify(cart);
             checkout.querySelector('[name=checkoutId]').value = id;
             checkout.dataset.submitting = 'true';
-            checkout.querySelector('button[type=submit]').disabled = true;
+            submit.disabled = true;
         });
         window.addEventListener('pageshow', () => {
             delete checkout.dataset.submitting;
-            checkout.querySelector('button[type=submit]').disabled = false;
+            refreshSummary();
+        });
+        window.addEventListener('storage', event => {
+            if (event.key === key && !checkout.dataset.submitting) refreshSummary();
         });
     }
+    window.addEventListener('storage', updateCount);
     updateCount();
 })();
 </script>

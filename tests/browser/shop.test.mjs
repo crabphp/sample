@@ -254,3 +254,61 @@ test('P3 pagination: page links meet normal-text contrast on their actual backgr
     }
     await screenshot(page, 'pagination');
 });
+
+test('P3 summary: checkout reviews quantities, unit prices, line totals and the total before ordering', async t => {
+    const page = await visit(t);
+    await login(page);
+    const first = await createProduct(page, { name: '<b>Summary mug</b>', price: 1234 });
+    const second = await createProduct(page, { name: 'Summary towel', price: 505 });
+    const saved = [{ productId: first.id, quantity: 2 }, { productId: second.id, quantity: 3 }];
+    await setCart(page, saved);
+    await page.goto('/shop/checkout');
+    const summary = page.getByRole('region', { name: 'Order summary', exact: true });
+    assert.equal(await summary.count(), 1, 'Checkout must show a cart summary');
+    const button = page.getByRole('button', { name: 'Place order', exact: true });
+    await page.waitForFunction(() => !document.querySelector('[data-checkout-form] button').disabled);
+    const lines = await summary.locator('[data-checkout-line]').allTextContents();
+    assert.equal(lines.length, 2);
+    assert.match(lines[0], /2 × <b>Summary mug<\/b>/);
+    assert.match(lines[0], /Unit price: \$ 12\.34/);
+    assert.match(lines[0], /\$ 24\.68/);
+    assert.match(lines[1], /3 × Summary towel/);
+    assert.match(lines[1], /Unit price: \$ 5\.05/);
+    assert.match(lines[1], /\$ 15\.15/);
+    assert.equal(await summary.locator('b').count(), 0, 'Product names are text');
+    assert.equal(await page.locator('[data-checkout-total]').innerText(), '$ 39.83');
+    const summaryBox = await summary.boundingBox();
+    const buttonBox = await button.boundingBox();
+    assert.ok(summaryBox.y + summaryBox.height <= buttonBox.y);
+    await screenshot(page, 'checkout-summary');
+    await page.setViewportSize({ width: 390, height: 844 });
+    assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth), false);
+    await screenshot(page, 'checkout-summary-mobile');
+
+    // A changed cart must be reviewed before it can be submitted, including changes without a storage event.
+    const changed = [{ productId: first.id, quantity: 4 }, saved[1]];
+    await setCart(page, changed);
+    let posts = 0;
+    page.on('request', request => { if (request.method() === 'POST') posts++; });
+    await button.click();
+    await page.waitForFunction(() => document.querySelector('[data-checkout-total]')?.textContent === '$ 64.51');
+    assert.equal(posts, 0);
+    const otherTab = await page.context().newPage();
+    await otherTab.goto('/shop');
+    await setCart(otherTab, saved);
+    await page.waitForFunction(() => document.querySelector('[data-checkout-total]')?.textContent === '$ 39.83');
+
+    for (const status of [500, 404]) {
+        await page.route(`**/products/${first.id}`, route => route.fulfill({ status, body: '{}' }));
+        await page.reload();
+        await summary.getByRole('alert').waitFor();
+        assert.equal(await button.isDisabled(), true);
+        assert.equal(await page.locator('[data-checkout-total]').count(), 0);
+        assert.deepEqual(await cart(page), saved);
+        await page.unroute(`**/products/${first.id}`);
+    }
+    await setCart(page, []);
+    await page.reload();
+    await summary.getByText('Your cart is empty.', { exact: false }).waitFor();
+    assert.equal(await button.isDisabled(), true);
+});
