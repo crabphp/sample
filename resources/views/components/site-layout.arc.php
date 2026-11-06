@@ -15,7 +15,8 @@
         .topbar .shell { display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding: 1rem 0; }
         .brand { color: #fff; font-weight: 800; text-decoration: none; letter-spacing: .04em; }
         nav { display: flex; flex-wrap: wrap; align-items: center; gap: 1rem; }
-        nav a { color: #d9f2e5; text-decoration: none; }
+        nav a { text-decoration: none; }
+        .topbar nav a { color: #d9f2e5; }
         nav form { margin: 0; }
         nav button { width: auto; padding: .35rem .65rem; }
         main { padding: 2rem 0 4rem; }
@@ -40,7 +41,7 @@
         .stock.out { color: #a14338; }
         .card .button, .card button { margin-top: auto; }
         .pagination { display: flex; justify-content: center; gap: .4rem; margin-top: 2rem; }
-        .pagination a { padding: .4rem .7rem; border: 1px solid #b9c2bd; border-radius: 7px; text-decoration: none; }
+        .pagination a { color: #145c55; padding: .4rem .7rem; border: 1px solid #b9c2bd; border-radius: 7px; text-decoration: none; }
         .pagination a.current { background: #173f3a; color: #fff; }
         .product-detail { display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; }
         .product-detail .price { font-size: 1.7rem; }

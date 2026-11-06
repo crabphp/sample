@@ -227,3 +227,30 @@ test('P3 errors: validation and stock errors retain shop HTML and the cart', asy
     assert.deepEqual(await cart(page), saved);
     await screenshot(page, 'checkout-conflict');
 });
+
+test('P3 pagination: page links meet normal-text contrast on their actual backgrounds', async t => {
+    const page = await visit(t);
+    await page.goto('/shop');
+    const colours = await page.locator('.pagination a, .topbar nav a').evaluateAll(links => links.map(link => {
+        let background = 'rgb(255, 255, 255)';
+        for (let element = link; element; element = element.parentElement) {
+            const value = getComputedStyle(element).backgroundColor;
+            if (value !== 'rgba(0, 0, 0, 0)' && value !== 'transparent') { background = value; break; }
+        }
+        return { label: link.textContent, foreground: getComputedStyle(link).color, background };
+    }));
+    const luminance = colour => {
+        const rgb = colour.match(/[\d.]+/g).slice(0, 3).map(Number).map(value => {
+            value /= 255;
+            return value <= 0.04045 ? value / 12.92 : ((value + 0.055) / 1.055) ** 2.4;
+        });
+        return rgb[0] * 0.2126 + rgb[1] * 0.7152 + rgb[2] * 0.0722;
+    };
+    assert.ok(await page.locator('.pagination a:not(.current)').count());
+    for (const colour of colours) {
+        const values = [luminance(colour.foreground), luminance(colour.background)].sort((a, b) => b - a);
+        const contrast = (values[0] + 0.05) / (values[1] + 0.05);
+        assert.ok(contrast >= 4.5, `${colour.label}: contrast ${contrast.toFixed(2)} must be at least 4.5`);
+    }
+    await screenshot(page, 'pagination');
+});
