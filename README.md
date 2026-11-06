@@ -173,6 +173,12 @@ curl -s -X POST localhost:8080/api/orders -H "Authorization: Bearer $TOKEN" -H '
     -d '{"lines":[{"productId":1,"quantity":2}]}'
 ```
 
+Both assistants call `/api/model/chat` on `MODEL_URL` when it is set, or on
+`app.url` otherwise. `APP_URL` sets that application URL; when omitted it follows
+`SERVER_ADDRESS`, including its port. Set `APP_URL` to the address where the app
+is served when using a proxy or a `--address` command-line override. A failed
+model request writes one warning with the attempted URL and these settings.
+
 ## What it exercises
 
 | Part of the framework | Where to look |

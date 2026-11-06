@@ -4,15 +4,18 @@ declare(strict_types=1);
 
 namespace App\Actions;
 
+use App\AssistantModel;
 use Crab\Contracts\Database\Database;
 use Crab\Contracts\HttpClient\Client;
-use Crab\Http\HttpException;
+use Crab\Http\ErrorResponse;
 use Crab\Http\Request;
 use Crab\HttpClient\NetworkException;
 use Crab\OpenApi\Attributes\Response;
 use Crab\Validation\Data;
 use Crab\Validation\Fields;
 use Crab\Validation\Length;
+use Psr\Http\Message\ResponseInterface;
+use Psr\Log\LoggerInterface;
 
 /**
  * The shop's assistant: POST /api/assistant {"question": "a blue mug"}. It
@@ -28,6 +31,7 @@ final readonly class AskAssistant
     public function __construct(
         private Database $db,
         private Client $http,
+        private LoggerInterface $log,
     ) {}
 
     #[Response(
@@ -41,7 +45,7 @@ final readonly class AskAssistant
         #[Fields(['question' => ['string', new Length(1, 200)]])]
         Data $input,
         Request $request,
-    ): \Generator {
+    ): \Generator|ResponseInterface {
         $words = array_filter(
             preg_split('/\W+/', strtolower((string) $input->question), flags: PREG_SPLIT_NO_EMPTY) ?: [],
             static fn(string $word): bool => strlen($word) > 2,
@@ -67,18 +71,21 @@ final readonly class AskAssistant
         }
 
         // Asked before the first yield, so that a model that is down is a 502, not a stream cut short.
+        $url = AssistantModel::url();
         try {
             $reply = $this->http->timeout(60)->stream(
                 'POST',
-                config('shop.model_url') . '/api/model/chat',
+                $url,
                 json: ['prompt' => $prompt],
                 cancellation: $request->cancellation(),
             );
         } catch (NetworkException $error) {
-            throw new HttpException(502, 'The assistant is not available. Try again in a moment.', previous: $error);
+            AssistantModel::unavailable($this->log, $url, $error->getMessage());
+            return ErrorResponse::make($request, 502, AssistantModel::UNAVAILABLE);
         }
         if (!$reply->ok()) {
-            throw new HttpException(502, 'The assistant is not available. Try again in a moment.');
+            AssistantModel::unavailable($this->log, $url, 'HTTP ' . $reply->getStatusCode());
+            return ErrorResponse::make($request, 502, AssistantModel::UNAVAILABLE);
         }
 
         return (static function () use ($reply, $products): \Generator {

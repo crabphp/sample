@@ -19,6 +19,7 @@ use Crab\Validation\Data;
 use Crab\Validation\Fields;
 use Crab\Validation\Length;
 use Psr\Clock\ClockInterface;
+use Psr\Http\Message\ResponseInterface;
 
 #[ApiResponse(403, body: ['type' => 'string'], contentType: 'text/html')]
 #[ApiResponse(422, body: ['type' => 'string'], contentType: 'text/html')]
@@ -58,10 +59,14 @@ final readonly class ShopAssistant
         Data $input,
         Request $request,
         ?User $user,
-    ): Response {
+    ): ResponseInterface {
+        $reply = $this->ask->handle($input, $request);
+        if ($reply instanceof ResponseInterface) {
+            return $reply;
+        }
         $answer = '';
         $products = [];
-        foreach ($this->ask->handle($input, $request) as $event) {
+        foreach ($reply as $event) {
             $answer .= $event['token'] ?? '';
             $products = $event['products'] ?? $products;
         }
@@ -75,8 +80,9 @@ final readonly class ShopAssistant
         Data $input,
         Request $request,
         User $user,
-    ): Response {
-        return $this->keep($input, $request, $user, $this->chat->handle($user, $input, $request));
+    ): ResponseInterface {
+        $reply = $this->chat->handle($user, $input, $request);
+        return $reply instanceof ResponseInterface ? $reply : $this->keep($input, $request, $user, $reply);
     }
 
     #[ApiResponse(200, body: ['type' => 'string'], contentType: 'text/event-stream')]
@@ -84,7 +90,7 @@ final readonly class ShopAssistant
         #[Fields(['question' => ['string', new Length(1, 200)]])]
         Data $input,
         Request $request,
-    ): \Generator {
+    ): \Generator|ResponseInterface {
         return $this->ask->handle($input, $request);
     }
 

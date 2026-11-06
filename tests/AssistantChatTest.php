@@ -12,6 +12,7 @@ use Crab\Contracts\HttpClient\Client;
 use Crab\Engine\Async\Cancellation;
 use Crab\HttpClient\FakeClient;
 use Psr\Http\Message\RequestInterface;
+use Psr\Log\LoggerInterface;
 
 /**
  * Each customer has an assistant of their own, an actor that remembers
@@ -109,6 +110,24 @@ final class AssistantChatTest extends ShopTestCase
         self::assertStringContainsString('question 7 /', $prompts[7]);
     }
 
+    public function testAFailedModelRequestDoesNotAdvanceTheConversationOrHideProducts(): void
+    {
+        $calls = 0;
+        $this->app->container->instance(Client::class, new FakeClient([
+            '*' => static function () use (&$calls) {
+                if (++$calls === 2) {
+                    return 503;
+                }
+                return FakeClient::response(200, "data: {\"delta\":\"Here you go.\"}\n\ndata: [DONE]\n\n");
+            },
+        ]));
+        $ada = $this->api->actingAs($this->user('ada@example.com'));
+        $ada->post('/api/assistant/chat', ['question' => 'mug'])->assertStatus(200)->assertJson('turn', 1);
+        $ada->post('/api/assistant/chat', ['question' => 'kettle'])->assertStatus(503);
+        $next = $ada->post('/api/assistant/chat', ['question' => 'another one?'])->assertStatus(200);
+        self::assertSame(['answer' => 'Here you go.', 'products' => [2], 'turn' => 2], $next->json());
+    }
+
     public function testAnActiveConversationDoesNotRetainEveryAnswer(): void
     {
         $http = new FakeClient(['*' => FakeClient::response(
@@ -136,7 +155,10 @@ final class AssistantChatTest extends ShopTestCase
                 $growth = memory_get_usage() - $warm;
             });
 
-        new ShoppingAssistant($this->db, $http)->handle($inbox, 'test-conversation');
+        new ShoppingAssistant($this->db, $http, $this->app->container->get(LoggerInterface::class))->handle(
+            $inbox,
+            'test-conversation',
+        );
 
         self::assertSame(256, $lastTurn);
         self::assertLessThan(1024 * 1024, $growth, 'An active actor retained more than a megabyte of old answers.');

@@ -27,7 +27,7 @@ if sys.argv[1] == 'init':
         APP_URL=f'http://127.0.0.1:{http}', SERVER_ADDRESS=f'tcp://127.0.0.1:{http}', SERVER_WORKERS='2',
         REDIS_URL=f'redis://127.0.0.1:{redis}', REDIS_PREFIX='shop-ui:', BROADCAST_PREFIX='shop-ui:',
         BROADCAST_CARRIER='redis', CACHE_STORE='file', QUEUE_STORE='database',
-        WAREHOUSE_URL=f'http://127.0.0.1:{http}', MODEL_URL=f'http://127.0.0.1:{http}',
+        WAREHOUSE_URL=f'http://127.0.0.1:{http}',
         LOG_PATH=str(folder/'app.log'), MAIL_PATH=str(folder/'mail'), REPORTS_PATH=str(folder/'reports'),
         APP_DEBUG='false', CLOCKWERK_TOKEN='shop-ui-test', LOGIN_LIMIT='1000', REGISTER_LIMIT='1000', MAIL_FAIL_RATE='0')
     state['env'] = env

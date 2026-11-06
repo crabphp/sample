@@ -5,16 +5,19 @@ declare(strict_types=1);
 namespace App\Actions;
 
 use App\Actors\ShoppingAssistant;
+use App\AssistantModel;
 use App\Http\OpenApiSchemas;
 use App\User;
 use Crab\Contracts\Actors\Actors;
 use Crab\Contracts\Actors\NoReply;
+use Crab\Http\ErrorResponse;
 use Crab\Http\HttpException;
 use Crab\Http\Request;
 use Crab\OpenApi\Attributes\Response;
 use Crab\Validation\Data;
 use Crab\Validation\Fields;
 use Crab\Validation\Length;
+use Psr\Http\Message\ResponseInterface;
 
 /**
  * POST /api/assistant/chat {"question": "a mug"}, logged in: asks the
@@ -34,15 +37,19 @@ final readonly class ChatWithAssistant
         #[Fields(['question' => ['string', new Length(1, 200)]])]
         Data $input,
         Request $request,
-    ): array {
+    ): array|ResponseInterface {
         try {
-            return $this->actors->ask(
+            $reply = $this->actors->ask(
                 ShoppingAssistant::class,
                 "user:{$user->id}",
                 ['question' => $input->question],
                 timeout: 30,
                 cancellation: $request->cancellation(),
             );
+            if (($reply['unavailable'] ?? false) === true) {
+                return ErrorResponse::make($request, 503, AssistantModel::UNAVAILABLE);
+            }
+            return $reply;
         } catch (NoReply) {
             throw new HttpException(503, 'The assistant is not available. Try again in a moment.');
         }

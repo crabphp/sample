@@ -17,6 +17,16 @@ the application has no frontend package manager or build step.
 APP_URL=http://127.0.0.1:48000 node --test tests/browser/shop.test.mjs
 ```
 
+`assistant.test.mjs` focuses on the home page box, `/assistant/stream`, saved
+answers, and two signed-in conversation turns with JavaScript on and off. Run
+the server with `BROADCAST_CARRIER=redis` so the conversation goes through its
+actors workers. Leave `MODEL_URL` unset to test the application's default model
+address; the runtime helper does this too.
+
+```sh
+APP_URL=http://127.0.0.1:48000 node --test tests/browser/assistant.test.mjs
+```
+
 Set `PLAYWRIGHT_MODULE` to an existing Playwright `index.mjs` if it is installed
 outside this repository. `SHOP_SCREENSHOTS` selects an output folder: the
 JavaScript-disabled journey captures the main pages in light and dark themes,

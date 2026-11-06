@@ -4,9 +4,13 @@ declare(strict_types=1);
 
 namespace App\Actors;
 
+use App\AssistantModel;
 use Crab\Contracts\Actors\Inbox;
 use Crab\Contracts\Database\Database;
 use Crab\Contracts\HttpClient\Client;
+use Crab\HttpClient\NetworkException;
+use Crab\HttpClient\ResponseException;
+use Psr\Log\LoggerInterface;
 
 /**
  * One customer's shopping assistant, an actor: one runs for each
@@ -24,6 +28,7 @@ final readonly class ShoppingAssistant
     public function __construct(
         private Database $db,
         private Client $http,
+        private LoggerInterface $log,
     ) {}
 
     public function handle(Inbox $inbox, string $key): void
@@ -36,12 +41,6 @@ final readonly class ShoppingAssistant
         foreach ($inbox as $message) {
             $question = (string) ($message->data['question'] ?? '');
             $products = $this->find($question, $shown, $shelf);
-            $shelf = $products[0]['category'] ?? $shelf;
-            $shown = array_slice([
-                ...$shown,
-                ...array_map(static fn(array $product): int => (int) $product['id'], $products),
-            ], -256);
-
             $prompt = "Answer the customer's question from these products.\n";
             foreach ($turns as [$asked, $answered]) {
                 $prompt .= "Earlier: {$asked} / {$answered}\n";
@@ -52,23 +51,36 @@ final readonly class ShoppingAssistant
             }
 
             $answer = '';
-            $reply = $this->http
-                ->timeout(30)
-                ->request(
-                    'POST',
-                    config('shop.model_url') . '/api/model/chat',
-                    json: ['prompt' => $prompt],
-                    cancellation: $inbox->cancellation(),
-                    maxBytes: 64 * 1024,
-                )
-                ->throw();
-            foreach ($reply->events() as $event) {
-                if ($event->data === '[DONE]') {
-                    break;
+            $url = AssistantModel::url();
+            try {
+                $reply = $this->http
+                    ->timeout(30)
+                    ->request(
+                        'POST',
+                        $url,
+                        json: ['prompt' => $prompt],
+                        cancellation: $inbox->cancellation(),
+                        maxBytes: 64 * 1024,
+                    )
+                    ->throw();
+                foreach ($reply->events() as $event) {
+                    if ($event->data === '[DONE]') {
+                        break;
+                    }
+                    $answer .= $event->json()['delta'] ?? '';
                 }
-                $answer .= $event->json()['delta'] ?? '';
+            } catch (NetworkException|ResponseException $error) {
+                AssistantModel::unavailable($this->log, $url, $error->getMessage());
+                $message->reply(['unavailable' => true]);
+                continue;
             }
             $answer = trim($answer);
+            // A failed request must not mark unseen products as shown or change the conversation's shelf.
+            $shelf = $products[0]['category'] ?? $shelf;
+            $shown = array_slice([
+                ...$shown,
+                ...array_map(static fn(array $product): int => (int) $product['id'], $products),
+            ], -256);
             // Keep the next prompt within the model's 4000-character input and bound an actor that never idles.
             $turns = array_slice([...$turns, [$question, mb_substr($answer, 0, 500)]], -4);
 
