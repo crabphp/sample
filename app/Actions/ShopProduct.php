@@ -29,7 +29,6 @@ final readonly class ShopProduct
             $details = is_array($decoded) ? $decoded : [];
         }
         return $this->pages->render('shop.product', $request, $user, [
-            'user' => $user,
             'product' => $product,
             'details' => $details,
         ]);

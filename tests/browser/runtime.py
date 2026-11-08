@@ -33,7 +33,7 @@ if sys.argv[1] == 'init':
     state['env'] = env
     STATE.write_text(json.dumps(state, indent=2))
     subprocess.run(['podman', 'run', '-d', '--name', state['container'], '-p', f'127.0.0.1:{redis}:6379', 'docker.io/library/redis:7-alpine'], check=True)
-    for command in [['migrate'], ['shop:seed'], ['arc:cache']]:
+    for command in [['migrate'], ['shop:seed'], ['view:cache']]:
         subprocess.run(['php', 'cua', *command], cwd=ROOT, env=os.environ | env, check=True)
     print(json.dumps({key: value for key,value in state.items() if key != 'env'}))
 else:

@@ -48,7 +48,6 @@ final readonly class ShopCatalogue
         );
 
         return $this->pages->render('shop.catalogue', $request, $user, [
-            'user' => $user,
             'page' => $page,
             'categories' => $this->categories->handle(),
             'search' => $search,

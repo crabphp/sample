@@ -41,9 +41,8 @@ final readonly class ShopOrder
             ->select('products.name', 'order_items.quantity', 'order_items.price')
             ->get();
         return $this->pages->render('shop.order', $request, $user, [
-            'user' => $user,
             'order' => $order,
             'lines' => $lines,
-        ])->withHeader('Cache-Control', 'private, no-store');
+        ]);
     }
 }

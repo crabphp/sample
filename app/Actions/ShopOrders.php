@@ -36,8 +36,7 @@ final readonly class ShopOrders
     public function handle(ServerRequestInterface $request, User $user, #[FromQuery] ?string $cursor = null): Response
     {
         return $this->pages->render('shop.orders', $request, $user, [
-            'user' => $user,
             'page' => $this->orders->handle($user, $cursor),
-        ])->withHeader('Cache-Control', 'private, no-store');
+        ]);
     }
 }
