@@ -141,14 +141,14 @@ for (const javaScriptEnabled of [false, true]) {
     } else {
       await Promise.all([page.waitForURL(/\/assistant\?reply=/), page.getByRole('button', { name: /Ask the assistant/ }).click()]);
     }
-    assert.match(await page.locator('.conversation').innerText(), /Stoneware Mug/);
+    assert.match(await page.locator('.chat-thread').innerText(), /Stoneware Mug/);
     await screen('assistant');
     await page.getByLabel('What are you looking for?').fill('a mug');
-    await Promise.all([page.waitForNavigation(), page.getByRole('button', { name: 'Continue my conversation', exact: true }).click()]);
-    assert.match(await page.locator('.conversation').innerText(), /Turn 1/i);
+    await Promise.all([page.waitForNavigation(), page.getByRole('button', { name: 'Send message', exact: true }).click()]);
+    assert.match(await page.locator('.chat-thread').innerText(), /Turn 1/i);
     await page.getByLabel('What are you looking for?').fill('another one?');
-    await Promise.all([page.waitForNavigation(), page.getByRole('button', { name: 'Continue my conversation', exact: true }).click()]);
-    assert.match(await page.locator('.conversation').innerText(), /Turn 2/i);
+    await Promise.all([page.waitForNavigation(), page.getByRole('button', { name: 'Send message', exact: true }).click()]);
+    assert.match(await page.locator('.chat-thread').innerText(), /Turn 2/i);
     await logout(page);
     await login(page, 'admin@example.com');
     await page.locator('.account-menu > summary').click();

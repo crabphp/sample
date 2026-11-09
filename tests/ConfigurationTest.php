@@ -23,6 +23,7 @@ final class ConfigurationTest extends TestCase
         foreach ([
             'APP_URL' => $appUrl,
             'MODEL_URL' => $modelUrl,
+            'MODEL_ENDPOINT' => 'responses',
             'SERVER_ADDRESS' => $serverAddress,
         ] as $name => $value) {
             $before[$name] = getenv($name);
@@ -32,7 +33,10 @@ final class ConfigurationTest extends TestCase
         try {
             $app = require dirname(__DIR__) . '/app.php';
             $app->config->check('app', 'shop', 'server');
-            self::assertSame($expected . '/api/model/chat', AssistantModel::url());
+            self::assertSame(
+                $modelUrl === null ? $expected . '/api/model/chat' : rtrim($modelUrl, '/') . '/responses',
+                AssistantModel::url(),
+            );
             if ($modelUrl === null) {
                 self::assertSame($expected, rtrim($app->config->get('app.url'), '/'));
             }
@@ -60,7 +64,7 @@ final class ConfigurationTest extends TestCase
             'tcp://127.0.0.1:9123',
             'https://shop.example.test',
             'https://model.example.test/base/',
-            'https://model.example.test/base',
+            'https://model.example.test/base/responses',
         ];
     }
 

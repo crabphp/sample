@@ -173,11 +173,13 @@ curl -s -X POST localhost:8080/api/orders -H "Authorization: Bearer $TOKEN" -H '
     -d '{"lines":[{"productId":1,"quantity":2}]}'
 ```
 
-Both assistants call `/api/model/chat` on `MODEL_URL` when it is set, or on
-`app.url` otherwise. `APP_URL` sets that application URL; when omitted it follows
-`SERVER_ADDRESS`, including its port. Set `APP_URL` to the address where the app
-is served when using a proxy or a `--address` command-line override. A failed
-model request writes one warning with the attempted URL and these settings.
+Both assistants use the built-in deterministic model when `MODEL_URL` is
+unset. To use a real OpenAI Responses-compatible model, set `MODEL_URL`,
+`MODEL_API_KEY`, `MODEL_NAME` and `MODEL_ENDPOINT=responses`; the app sends a
+Bearer token and streams `response.output_text.delta` events. Chat Completions
+is also supported with `MODEL_ENDPOINT=chat/completions`. `APP_URL` still sets the public application
+address; when omitted it follows `SERVER_ADDRESS`, including its port. A failed
+model request writes one warning with the attempted URL and settings.
 
 ## What it exercises
 
@@ -200,7 +202,7 @@ model request writes one warning with the attempted URL and these settings.
 | Queue and supervisors | `app/Actions/`; `config/queue.php` gives mail and the warehouse workers of their own; `SyncInventory` has a `#[Timeout]` and passes its `Cancellation` to the HTTP client |
 | One command for it all | `start` runs, beside HTTP, the server of every plugin listed in `app.php`: here `queue`, `schedule` and `actors`, and `dispatch` from `app/Setup.php` |
 | Streaming | `WatchStock` returns SSE; the home and product pages show its live stock with a server-rendered fallback. `resources/assets/shop.js` also connects order WebSockets |
-| Client streaming | `AskAssistant` reads the pretend model's answer with `$http->stream()` and `events()`, and relays each word as it comes; `PretendModel` stands in for a language model's API (`shop.model_url`). `tests/AssistantTest.php` fakes the model with `FakeClient` |
+| Client streaming | `AskAssistant` reads the configured model's answer with `$http->stream()` and `events()`, and relays each delta as it comes; `PretendModel` is the no-credential local fallback. `tests/AssistantTest.php` fakes the model with `FakeClient` |
 | Actors package | `app/Actors/ShoppingAssistant` is an actor: one per customer, `ChatWithAssistant` asks it, and it keeps the conversation in its variables until a minute without a question. With Redis it runs in the `actors` server, so a customer has one assistant whichever HTTP worker their request lands on. `tests/AssistantChatTest.php`; `ShopAssistant` exposes native form conversations and private, expiring answer pages |
 | Runs package | `FollowUpOrder` waits for its order to ship, sleeps three days, then asks for a review; `ShipOrder` queues `SignalOrderShipped` to signal it. `php cua runs:list` |
 | Retries and failed jobs | The pretend mail server refuses some messages (`mail.fail_rate` in `config/mail.php`) |

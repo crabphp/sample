@@ -65,6 +65,11 @@ abstract class ShopTestCase extends TestCase
             'REPORTS_DISK' => 'reports',
             'CATALOGUE_PATH' => $this->directory . '/catalogue.csv',
             'WAREHOUSE_URL' => '',
+            // Tests use the deterministic in-process fallback, regardless of a developer's local model settings.
+            'MODEL_URL' => 'null',
+            'MODEL_API_KEY' => 'null',
+            'MODEL_NAME' => 'gpt-6-astra',
+            'MODEL_ENDPOINT' => 'api/model/chat',
             'CLOCKWERK_TOKEN' => 'test-token',
         ] as $name => $value) {
             $this->environment[$name] = getenv($name);

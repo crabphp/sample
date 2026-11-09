@@ -38,19 +38,33 @@ final readonly class ShopAssistant
     #[ApiResponse(200, body: ['type' => 'string'], contentType: 'text/html')]
     public function show(Request $request, ?User $user, #[FromQuery] ?string $reply = null): Response
     {
-        $answer = null;
-        $products = [];
-        if ($reply !== null) {
-            $answer = $this->db
-                ->table('assistant_replies')
-                ->where('id', $reply)
-                ->where('owner', $this->owner($request, $user))
-                ->where('expires_at', '>', $this->clock->now()->getTimestamp())
-                ->first() ?? throw new HttpException(404, 'This answer is no longer available.');
-            $ids = json_decode($answer['products'], true, flags: JSON_THROW_ON_ERROR);
-            $products = $ids === [] ? [] : $this->db->table('products')->whereIn('id', $ids)->get();
+        $owner = $this->owner($request, $user);
+        $rows = $this->db
+            ->table('assistant_replies')
+            ->where('owner', $owner)
+            ->where('expires_at', '>', $this->clock->now()->getTimestamp())
+            ->orderBy('created_at')
+            ->get();
+        if ($reply !== null && !array_filter($rows, static fn(array $row): bool => $row['id'] === $reply)) {
+            throw new HttpException(404, 'This answer is no longer available.');
         }
-        return $this->pages->render('shop.assistant', $request, $user, ['answer' => $answer, 'products' => $products]);
+
+        $messages = array_map(static function (array $row): array {
+            return [
+                'question' => (string) $row['question'],
+                'answer' => (string) $row['answer'],
+                'turn' => (int) $row['turn'],
+                'products' => json_decode($row['products'], true, flags: JSON_THROW_ON_ERROR),
+            ];
+        }, $rows);
+        $latest = $messages === [] ? null : $messages[array_key_last($messages)];
+        $ids = $latest['products'] ?? [];
+        $products = $ids === [] ? [] : $this->db->table('products')->whereIn('id', $ids)->get();
+
+        return $this->pages->render('shop.assistant', $request, $user, [
+            'messages' => $messages,
+            'products' => $products,
+        ]);
     }
 
     #[ApiResponse(303, headers: ['Location', 'Set-Cookie'])]
@@ -115,6 +129,7 @@ final readonly class ShopAssistant
                 'answer' => $reply['answer'],
                 'turn' => $reply['turn'],
                 'products' => json_encode($reply['products'], JSON_THROW_ON_ERROR),
+                'created_at' => $this->clock->now()->getTimestamp(),
                 'expires_at' => $this->clock->now()->getTimestamp() + 86_400,
             ]);
         $response = Response::redirect('/assistant?reply=' . $id, 303)->withHeader(

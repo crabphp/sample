@@ -50,8 +50,8 @@ final class AssistantUnavailableTest extends ShopTestCase
         self::assertCount(1, explode("\n", $log), 'A model failure should log one warning without a duplicate error.');
         self::assertStringContainsString(' WARNING The assistant model at ' . $http->requests[0]->getUri(), $log);
         self::assertStringContainsString($modelStatus === null ? 'Connection refused.' : (string) $modelStatus, $log);
-        self::assertStringContainsString('Set MODEL_URL to the model base URL', $log);
-        self::assertStringContainsString('set APP_URL to the address the app is served on', $log);
+        self::assertStringContainsString('Set MODEL_URL and MODEL_API_KEY', $log);
+        self::assertStringContainsString('built-in demo model', $log);
     }
 
     public static function failures(): iterable

@@ -9,17 +9,26 @@
 </div>
 <div class="assistant-page">
 <Card title="Let’s find something good.">
-<AssistantForm :user="$user" />
-@if($answer !== null)<div class="conversation">
-<p class="eyebrow">You asked</p>
-<p>{{ $answer['question'] }}</p>
-<hr>
-<p class="eyebrow">
-@if($answer['turn'] > 0)Your personal assistant · Turn {{ $answer['turn'] }}@else Crab assistant@endif
-</p>
-<p>{{ $answer['answer'] }}</p>
+<div class="chat-thread" data-chat-thread>
+@if($messages === [])<div class="chat-empty">
+<p class="eyebrow">Start a conversation</p>
+<p class="muted">Ask for a product, a colour, or something for a particular room.</p>
 </div>
+@else
+@foreach($messages as $message)<article class="chat-turn">
+<div class="chat-message chat-message-user">
+<p class="eyebrow">You</p>
+<p>{{ $message['question'] }}</p>
+</div>
+<div class="chat-message chat-message-assistant">
+<p class="eyebrow">Crab assistant · Turn {{ $message['turn'] }}</p>
+<p>{{ $message['answer'] }}</p>
+</div>
+</article>
+@endforeach
 @endif
+</div>
+<AssistantForm :user="$user" />
 </Card>
 </div>
 @if($products !== [])<section class="section">

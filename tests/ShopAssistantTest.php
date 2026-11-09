@@ -33,6 +33,8 @@ final class ShopAssistantTest extends ShopTestCase
         self::assertStringContainsString('&lt;script&gt;bad()&lt;/script&gt;', $html);
         self::assertStringContainsString('&lt;img src=x&gt;', $html);
         self::assertStringContainsString('Stoneware Mug', $html);
+        self::assertStringContainsString('chat-message-user', $html);
+        self::assertStringContainsString('chat-message-assistant', $html);
         self::assertStringNotContainsString('<script>bad()', $html);
         new Browser($this->api)->get($location)->assertStatus(404);
         $this->clock->advance('2 days');
@@ -48,12 +50,15 @@ final class ShopAssistantTest extends ShopTestCase
             'browser',
         );
         $first = $browser->post('/assistant/chat', ['question' => 'mug'])->assertStatus(303)->header('Location');
-        self::assertStringContainsString('Turn 1', $browser->get($first)->assertStatus(200)->body());
+        $firstHtml = $browser->get($first)->assertStatus(200)->body();
+        self::assertStringContainsString('Turn 1', $firstHtml);
+        self::assertStringContainsString('chat-message-user', $firstHtml);
         $next = $browser
             ->post('/assistant/chat', ['question' => 'another one?'])
             ->assertStatus(303)
             ->header('Location');
         $html = $browser->get($next)->assertStatus(200)->body();
+        self::assertStringContainsString('Turn 1', $html);
         self::assertStringContainsString('Turn 2', $html);
         self::assertStringContainsString('Pour-over Kettle', $html);
         new Browser($this->api)

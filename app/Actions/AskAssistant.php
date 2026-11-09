@@ -76,7 +76,8 @@ final readonly class AskAssistant
             $reply = $this->http->timeout(60)->stream(
                 'POST',
                 $url,
-                json: ['prompt' => $prompt],
+                headers: AssistantModel::headers(),
+                json: AssistantModel::payload($prompt),
                 cancellation: $request->cancellation(),
             );
         } catch (NetworkException $error) {
@@ -90,10 +91,13 @@ final readonly class AskAssistant
 
         return (static function () use ($reply, $products): \Generator {
             foreach ($reply->events() as $event) {
-                if ($event->data === '[DONE]') {
+                if (AssistantModel::done($event)) {
                     break;
                 }
-                yield ['token' => $event->json()['delta'] ?? ''];
+                $delta = AssistantModel::delta($event);
+                if ($delta !== '') {
+                    yield ['token' => $delta];
+                }
             }
             yield 'done' => ['products' => array_map(
                 static fn(array $product): int => (int) $product['id'],

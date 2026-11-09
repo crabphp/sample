@@ -58,16 +58,17 @@ final readonly class ShoppingAssistant
                     ->request(
                         'POST',
                         $url,
-                        json: ['prompt' => $prompt],
+                        headers: AssistantModel::headers(),
+                        json: AssistantModel::payload($prompt),
                         cancellation: $inbox->cancellation(),
                         maxBytes: 64 * 1024,
                     )
                     ->throw();
                 foreach ($reply->events() as $event) {
-                    if ($event->data === '[DONE]') {
+                    if (AssistantModel::done($event)) {
                         break;
                     }
-                    $answer .= $event->json()['delta'] ?? '';
+                    $answer .= AssistantModel::delta($event);
                 }
             } catch (NetworkException|ResponseException $error) {
                 AssistantModel::unavailable($this->log, $url, $error->getMessage());

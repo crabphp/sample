@@ -6,6 +6,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="color-scheme" content="light dark">
 <meta name="description" content="Considered essentials for everyday life. Explore the Crab collection.">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
 <title>{{ $title }} · Crab</title>
 <link rel="stylesheet" href="/assets/shop-v1/shop.css">
 <link rel="preload" href="/assets/shop-v1/geist-sans.woff2" as="font" type="font/woff2" crossorigin>

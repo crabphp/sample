@@ -58,7 +58,7 @@ for (const javaScriptEnabled of [false, true]) {
       } else {
         await Promise.all([page.waitForURL(/\/assistant\?reply=/), ask.click()]);
       }
-      assert.match(await page.locator('.conversation').innerText(), /Stoneware Mug/);
+      assert.match(await page.locator('.chat-thread').innerText(), /Stoneware Mug/);
     }
 
     await page.goto('/register');
@@ -74,11 +74,11 @@ for (const javaScriptEnabled of [false, true]) {
       await page.getByLabel('What are you looking for?').fill(question);
       const [response] = await Promise.all([
         page.waitForNavigation(),
-        page.getByRole('button', { name: 'Continue my conversation', exact: true }).click()
+        page.getByRole('button', { name: 'Send message', exact: true }).click()
       ]);
       assert.equal(response.status(), 200);
       assert.match(page.url(), /\/assistant\?reply=/);
-      const answer = await page.locator('.conversation').innerText();
+      const answer = await page.locator('.chat-thread').innerText();
       assert.match(answer, new RegExp('Turn ' + turn, 'i'));
       if (turn === 1) {
         assert.match(answer, /Stoneware Mug/);
