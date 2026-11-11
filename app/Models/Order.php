@@ -41,16 +41,10 @@ final class Order extends Model
     public ?Account $customer;
 
     /**
-     * As the API gives an order: its times as the database holds them, without an offset.
-     *
-     * @return array<string, mixed>
+     * As the API gives a time: as the database holds it, without an offset.
      */
-    public function jsonSerialize(): array
+    protected function serializeDate(\DateTimeInterface $date): string
     {
-        return [
-            ...parent::jsonSerialize(),
-            'created_at' => $this->created_at?->format('Y-m-d H:i:s'),
-            'updated_at' => $this->updated_at?->format('Y-m-d H:i:s'),
-        ];
+        return $date->format('Y-m-d H:i:s');
     }
 }
