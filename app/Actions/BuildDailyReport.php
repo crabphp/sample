@@ -25,7 +25,12 @@ final readonly class BuildDailyReport
      */
     public function handle(?string $day = null): void
     {
-        $day ??= $this->clock->now()->modify('-1 day')->format('Y-m-d');
+        // Yesterday in the application's zone, the one the stored dates are in, whatever zone the clock gives.
+        $day ??= $this->clock
+            ->now()
+            ->setTimezone(new \DateTimeZone(date_default_timezone_get()))
+            ->modify('-1 day')
+            ->format('Y-m-d');
         $date = preg_match('/^\d{4}-\d{2}-\d{2}$/D', $day) === 1
             ? \DateTimeImmutable::createFromFormat('!Y-m-d', $day)
             : false;

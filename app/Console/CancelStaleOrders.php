@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Console;
 
 use App\Models\Order;
+use App\Models\Product;
 use App\OrderStatus;
 use Crab\Contracts\Broadcast\Broadcaster;
 use Crab\Contracts\Cache\Cache;
@@ -60,8 +61,7 @@ final readonly class CancelStaleOrders implements Command
 
             // Restore each product once, in the same lock order used when placing orders.
             foreach ($stock as $line) {
-                $db
-                    ->table('products')
+                Product::query()
                     ->where('id', $line['product_id'])
                     ->increment('stock', (int) $line['quantity']);
             }
