@@ -109,14 +109,17 @@ final readonly class PlaceOrder
         $placed->total = $total;
         $placed->save();
 
+        $items = [];
         foreach ($lines as $line) {
             $item = new OrderItem();
             $item->order_id = $placed->id;
             $item->product_id = $line['product_id'];
             $item->quantity = $line['quantity'];
             $item->price = $line['price'];
-            $item->save();
+            $items[] = $item;
         }
+        // The lines in one statement; nothing here needs their ids.
+        OrderItem::insertMany($items);
 
         return ['id' => $placed->id, 'status' => $placed->status->value, 'total' => $total];
     }
