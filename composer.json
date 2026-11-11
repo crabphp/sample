@@ -6,7 +6,7 @@
     "require": {
         "php": "^8.4",
         "crabphp/arc": "0.2.0",
-        "crabphp/framework": "0.7.0",
+        "crabphp/framework": "0.7.1",
         "crabphp/runs": "@dev",
         "crabphp/actors": "@dev",
         "crabphp/redis": "@dev",
@@ -44,7 +44,7 @@
             "options": {
                 "symlink": true,
                 "versions": {
-                    "crabphp/framework": "0.7.0"
+                    "crabphp/framework": "0.7.1"
                 }
             }
         },
