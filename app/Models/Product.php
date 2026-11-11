@@ -5,13 +5,12 @@ declare(strict_types=1);
 namespace App\Models;
 
 use Crab\Tide\Model;
-use Crab\Tide\Table;
 
 /**
  * One product, as a model: a row that is read, changed and saved.
- * SetStock changes one this way.
+ * SetStock changes one this way. Its table is named after the class, and
+ * its times are kept for it: updated_at is written with every change.
  */
-#[Table('products')]
 final class Product extends Model
 {
     public int $id;

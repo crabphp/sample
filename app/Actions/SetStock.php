@@ -12,7 +12,6 @@ use Crab\OpenApi\Attributes\Response;
 use Crab\Validation\Data;
 use Crab\Validation\Fields;
 use Crab\Validation\Range;
-use Psr\Clock\ClockInterface;
 
 /**
  * Says how many of a product there are, after a delivery or a count.
@@ -22,7 +21,6 @@ final readonly class SetStock
 {
     public function __construct(
         private Cache $cache,
-        private ClockInterface $clock,
     ) {}
 
     #[Response(200, body: OpenApiSchemas::PRODUCT)]
@@ -34,9 +32,8 @@ final readonly class SetStock
     ): Product {
         $product = Product::find($id) ?? throw new HttpException(404, 'No such product.');
 
-        // Only what changed is written: the stock, and the time.
+        // Only what changed is written: the stock, and the time Tide keeps with it.
         $product->stock = $change->stock;
-        $product->updated_at = $this->clock->now();
         $product->save();
 
         $this->cache->delete('categories');

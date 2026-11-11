@@ -7,13 +7,11 @@ namespace App\Models;
 use App\OrderStatus;
 use Crab\Tide\HasMany;
 use Crab\Tide\Model;
-use Crab\Tide\Table;
 
 /**
  * One order, as a model that knows its lines. ShowOrder reads one with
  * its lines and their products in three queries, with no join to write.
  */
-#[Table('orders')]
 final class Order extends Model
 {
     public int $id;
@@ -32,7 +30,7 @@ final class Order extends Model
      *
      * @var list<OrderItem>
      */
-    #[HasMany(OrderItem::class, 'order_id')]
+    #[HasMany(OrderItem::class)]
     public array $lines;
 
     /**

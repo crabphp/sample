@@ -142,4 +142,9 @@ final class SnapshotDatabase implements Database
     {
         $this->db->afterCommit($callback);
     }
+
+    public function afterRollback(\Closure $callback): void
+    {
+        $this->db->afterRollback($callback);
+    }
 }

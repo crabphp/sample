@@ -44,6 +44,8 @@ final readonly class ShopAssistant
             ->where('owner', $owner)
             ->where('expires_at', '>', $this->clock->now()->getTimestamp())
             ->orderBy('created_at')
+            // Two answers in one second are told apart by their turn; the key is random.
+            ->orderBy('turn')
             ->get();
         if ($reply !== null && !array_filter($rows, static fn(array $row): bool => $row['id'] === $reply)) {
             throw new HttpException(404, 'This answer is no longer available.');
