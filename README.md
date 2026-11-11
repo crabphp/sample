@@ -196,6 +196,7 @@ model request writes one warning with the attempted URL and settings.
 | Responsive design and assets | `resources/assets/`, `ShopAssets`; self-hosted OFL fonts, one stylesheet, system light/dark themes |
 | Query builder, transactions, pagination | `PlaceOrder`, `ListProducts`, `ShowOrder` |
 | Rows as records | `app/Order.php` is read with `->into(Order::class)`, its status a backed enum (`OrderStatus`) and its times dates; `ListMyOrders` and `ShipOrder` read orders that way |
+| Models (Tide) | `app/Models/`: `Product`, `Order` and `OrderItem` extend `Crab\Tide\Model`, with `TidePlugin` listed in `app.php`. `SetStock` reads a product, changes it and saves only what changed; `ShowOrder` reads an order with its lines and their products, `Order::query()->with('lines.product')` |
 | Migrations | `database/migrations/` |
 | Cache | `ListCategories` remembers; an order or a change to the catalogue forgets |
 | Events | `OrderPlaced`, and its two listeners in `app/Actions/` |

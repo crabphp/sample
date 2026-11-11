@@ -15,6 +15,7 @@ use Crab\Redis\RedisPlugin;
 use Crab\Runs\RunsPlugin;
 use Crab\S3\S3Plugin;
 use Crab\Schedule\SchedulePlugin;
+use Crab\Tide\TidePlugin;
 
 // A small shop's API with token authentication, Redis and a dashboard, for trying things out.
 // It uses every optional plugin. Redis comes after the queue and broadcast, whose store and carrier it replaces,
@@ -32,6 +33,7 @@ return App::configure(__DIR__)
         S3Plugin::class,
         ClockwerkPlugin::class,
         OpenApiPlugin::class,
+        TidePlugin::class,
     ])
     ->withSetup(Setup::class)
     ->withRouting(routes: 'routes/web.php', commands: 'routes/console.php', health: '/up')

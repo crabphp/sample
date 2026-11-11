@@ -69,6 +69,16 @@ jobs:
           repository: crabphp/s3
           ref: main
           path: s3
+      - uses: actions/checkout@v4
+        with:
+          repository: crabphp/arc
+          ref: main
+          path: arc
+      - uses: actions/checkout@v4
+        with:
+          repository: crabphp/tide
+          ref: main
+          path: tide
       - uses: shivammathur/setup-php@v2
         with:
           php-version: '8.4'

@@ -5,21 +5,18 @@ declare(strict_types=1);
 namespace App\Actions;
 
 use App\Http\OpenApiSchemas;
+use App\Models\Order;
 use App\User;
-use Crab\Contracts\Database\Database;
 use Crab\Http\HttpException;
 use Crab\OpenApi\Attributes\Response;
 
 /**
  * One order with its lines. An administrator may see anyone's; everyone
- * else only their own, and is told nothing of the others.
+ * else only their own, and is told nothing of the others. The order is
+ * a model, read with its lines and each line's product.
  */
 final readonly class ShowOrder
 {
-    public function __construct(
-        private Database $db,
-    ) {}
-
     /**
      * @return array<string, mixed>
      */
@@ -27,16 +24,25 @@ final readonly class ShowOrder
     #[Response(404, description: 'No such order, or it belongs to another customer.')]
     public function handle(User $user, int $id): array
     {
-        $order = $this->db->table('orders')->find($id);
-        if ($order === null || !$user->isAdmin() && (string) $order['user_id'] !== (string) $user->id) {
+        $order = Order::query()->with('lines.product')->find($id);
+        if ($order === null || !$user->isAdmin() && (string) $order->user_id !== (string) $user->id) {
             throw new HttpException(404, 'No such order.');
         }
-        $order['lines'] = $this->db
-            ->table('order_items')
-            ->join('products', 'products.id', '=', 'order_items.product_id')
-            ->where('order_items.order_id', $id)
-            ->select('products.id', 'products.sku', 'products.name', 'order_items.quantity', 'order_items.price')
-            ->get();
-        return $order;
+
+        $lines = [];
+        foreach ($order->lines as $line) {
+            if ($line->product === null) {
+                continue;
+            }
+            $lines[] = [
+                'id' => $line->product->id,
+                'sku' => $line->product->sku,
+                'name' => $line->product->name,
+                'quantity' => $line->quantity,
+                'price' => $line->price,
+            ];
+        }
+
+        return [...$order->jsonSerialize(), 'lines' => $lines];
     }
 }

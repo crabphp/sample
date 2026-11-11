@@ -12,7 +12,8 @@
         "crabphp/redis": "@dev",
         "crabphp/clockwerk": "@dev",
         "crabphp/openapi": "@dev",
-        "crabphp/s3": "@dev"
+        "crabphp/s3": "@dev",
+        "crabphp/tide": "@dev"
     },
     "require-dev": {
         "phpunit/phpunit": "^13.4.4",
@@ -97,6 +98,16 @@
             "url": "../s3",
             "options": {
                 "symlink": true
+            }
+        },
+        {
+            "type": "path",
+            "url": "../tide",
+            "options": {
+                "symlink": true,
+                "versions": {
+                    "crabphp/tide": "dev-main"
+                }
             }
         }
     ],
