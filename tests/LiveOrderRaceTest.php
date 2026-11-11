@@ -88,6 +88,12 @@ final class SnapshotDatabase implements Database
         $this->db->release($connection);
     }
 
+    public function current(): Connection
+    {
+        $current = $this->db->current();
+        return $current === $this->db ? $this : $current;
+    }
+
     public function run(\Closure $callback): mixed
     {
         return $this->db->run($callback);
