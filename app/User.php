@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App;
 
+use Crab\Auth\FromRequest;
 use Crab\Contracts\Auth\Identity;
 
 /**
@@ -11,6 +12,8 @@ use Crab\Contracts\Auth\Identity;
  */
 final readonly class User implements Identity, \JsonSerializable
 {
+    use FromRequest;
+
     public function __construct(
         public int|string $id,
         public string $name,

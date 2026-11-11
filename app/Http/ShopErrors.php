@@ -47,7 +47,7 @@ final readonly class ShopErrors implements ErrorRenderer
         }
 
         // The renderer receives the original request, before CookieAuth adds its user attribute.
-        $user = $request->user(User::class);
+        $user = User::fromRequest($request);
         if ($user === null) {
             $token = $this->auth->token($request);
             $owner = $token === null ? null : $this->tokens->owner($token);
