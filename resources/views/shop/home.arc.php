@@ -77,13 +77,13 @@
 <div class="experience-stack">
 <Card title="On the shelf, right now." eyebrow="02 / Live stock">
 @if($products !== [])<?php $stockProduct = $products[0]; ?>
-<div data-stock="{{ $stockProduct['id'] }}" class="stock-widget">
+<div data-stock="{{ $stockProduct->id }}" class="stock-widget">
 <div>
-<a href="/products/{{ $stockProduct['id'] }}">{{ $stockProduct['name'] }}</a>
+<a href="/products/{{ $stockProduct->id }}">{{ $stockProduct->name }}</a>
 <p class="small muted" data-stock-status>Latest stock. Refresh to check again.</p>
 </div>
 <div class="stock-number mono">
-<span data-stock-value>{{ $stockProduct['stock'] }}</span>
+<span data-stock-value>{{ $stockProduct->stock }}</span>
 <span class="small muted">available</span>
 </div>
 </div>
@@ -155,7 +155,7 @@
 </a>
 </div>
 <div class="feature-footnote">
-<a href="{{ $products === [] ? '/api/products' : '/api/products/' . $products[0]['id'] . '/stock' }}">Stock events ↗</a>
+<a href="{{ $products === [] ? '/api/products' : '/api/products/' . $products[0]->id . '/stock' }}">Stock events ↗</a>
 <a href="/assistant">Streaming &amp; actor conversations ↗</a>
 <a href="/orders">WebSocket order updates ↗</a>
 <a href="/admin/reports">Scheduled daily reports ↗</a>

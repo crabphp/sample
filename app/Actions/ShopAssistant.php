@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Actions;
 
+use App\Models\Product;
 use App\Shop\BrowserCookies;
 use App\Shop\Carts;
 use App\Shop\Pages;
@@ -61,7 +62,7 @@ final readonly class ShopAssistant
         }, $rows);
         $latest = $messages === [] ? null : $messages[array_key_last($messages)];
         $ids = $latest['products'] ?? [];
-        $products = $ids === [] ? [] : $this->db->table('products')->whereIn('id', $ids)->get();
+        $products = $ids === [] ? [] : Product::query()->whereIn('id', $ids)->get();
 
         return $this->pages->render('shop.assistant', $request, $user, [
             'messages' => $messages,

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Actions;
 
 use App\Http\ProductSearch;
+use App\Models\Product;
 use App\Shop\Pages;
 use App\User;
 use Crab\Http\Response;
@@ -15,7 +16,6 @@ final readonly class ShopHome
 {
     public function __construct(
         private Pages $pages,
-        private ListProducts $products,
         private ListCategories $categories,
         private ListMyOrders $orders,
     ) {}
@@ -23,7 +23,7 @@ final readonly class ShopHome
     #[ApiResponse(200, body: ['type' => 'string'], contentType: 'text/html')]
     public function handle(ServerRequestInterface $request, ?User $user): Response
     {
-        $products = $this->products->handle(new ProductSearch(perPage: 4))->items;
+        $products = Product::search(new ProductSearch())->limit(4)->get();
         return $this->pages->render('shop.home', $request, $user, [
             'products' => $products,
             'categories' => $this->categories->handle(),

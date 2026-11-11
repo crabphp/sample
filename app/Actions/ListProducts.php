@@ -6,9 +6,8 @@ namespace App\Actions;
 
 use App\Http\OpenApiSchemas;
 use App\Http\ProductSearch;
-use Crab\Contracts\Database\Database;
+use App\Models\Product;
 use Crab\Contracts\Database\Page;
-use Crab\Contracts\Database\Query;
 use Crab\OpenApi\Attributes\Response;
 use Crab\Routing\FromQuery;
 
@@ -17,48 +16,17 @@ use Crab\Routing\FromQuery;
  */
 final readonly class ListProducts
 {
-    public function __construct(
-        private Database $db,
-    ) {}
-
     #[Response(200, body: OpenApiSchemas::PRODUCT_PAGE)]
     public function handle(#[FromQuery] ProductSearch $search): Page
     {
-        return $this->db
-            ->table('products')
-            ->select('id', 'sku', 'name', 'category', 'price', 'stock')
-            ->when($search->q !== '', static fn(Query $query): Query => $query->where(
-                'name',
-                'like',
-                '%' . $search->q . '%',
-            ))
-            ->when($search->category !== null, static fn(Query $query): Query => $query->where(
-                'category',
-                $search->category,
-            ))
-            // MySQL unquotes JSON null to the text "null" when compared as a string.
-            ->when($search->colour !== null, static fn(Query $query): Query => $query->whereNotNull(
-                'details->colour',
-            )->where('details->colour', $search->colour))
-            ->when($search->minPrice !== null, static fn(Query $query): Query => $query->where(
-                'price',
-                '>=',
-                $search->minPrice,
-            ))
-            ->when($search->maxPrice !== null, static fn(Query $query): Query => $query->where(
-                'price',
-                '<=',
-                $search->maxPrice,
-            ))
-            ->orderBy(
-                match ($search->sort) {
-                    'price-asc', 'price-desc' => 'price',
-                    'newest' => 'id',
-                    default => 'name',
-                },
-                in_array($search->sort, ['price-desc', 'newest'], true) ? 'desc' : 'asc',
-            )
-            ->orderBy('id')
-            ->paginate($search->perPage, $search->page);
+        $page = Product::search($search)->paginate($search->perPage, $search->page);
+
+        return new Page(
+            array_map(static fn(Product $product): array => $product->summary(), $page->items),
+            $page->perPage,
+            $page->currentPage,
+            $page->hasMore,
+            $page->total,
+        );
     }
 }

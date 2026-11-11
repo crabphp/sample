@@ -23,15 +23,15 @@
 </Slot>
 @foreach($page->items as $product)<tr>
 <td>
-<a href="/products/{{ $product['id'] }}">{{ $product['name'] }}</a>
+<a href="/products/{{ $product->id }}">{{ $product->name }}</a>
 </td>
-<td class="mono small">{{ $product['sku'] }}</td>
-<td>{{ $product['category'] }}</td>
-<td class="mono">${{ number_format($product['price'] / 100, 2) }}</td>
+<td class="mono small">{{ $product->sku }}</td>
+<td>{{ $product->category }}</td>
+<td class="mono">${{ number_format($product->price / 100, 2) }}</td>
 <td>
-<form method="post" action="/admin/products/{{ $product['id'] }}/stock" class="stock-form">
-<label class="sr-only" for="stock-{{ $product['id'] }}">Stock for {{ $product['name'] }}</label>
-<input id="stock-{{ $product['id'] }}" name="stock" type="number" min="0" max="100000" value="{{ $product['stock'] }}" required>
+<form method="post" action="/admin/products/{{ $product->id }}/stock" class="stock-form">
+<label class="sr-only" for="stock-{{ $product->id }}">Stock for {{ $product->name }}</label>
+<input id="stock-{{ $product->id }}" name="stock" type="number" min="0" max="100000" value="{{ $product->stock }}" required>
 <Button variant="secondary">Save</Button>
 </form>
 </td>

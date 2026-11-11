@@ -7,6 +7,7 @@ namespace App\Actions;
 use App\Http\NewProduct;
 use App\Http\ProductSearch;
 use App\Models\Order;
+use App\Models\Product;
 use App\Shop\Pages;
 use App\User;
 use Crab\Contracts\Database\Database;
@@ -32,7 +33,6 @@ final readonly class ShopAdmin
 {
     public function __construct(
         private Pages $pages,
-        private ListProducts $products,
         private CreateProduct $create,
         private SetStock $stock,
         private ShipOrder $ship,
@@ -51,7 +51,7 @@ final readonly class ShopAdmin
     #[ApiResponse(200, body: ['type' => 'string'], contentType: 'text/html')]
     public function products(ServerRequestInterface $request, User $user, #[FromQuery] ProductSearch $search): Response
     {
-        $page = $this->products->handle($search);
+        $page = Product::search($search)->paginate($search->perPage, $search->page);
         return $this->pages->render('admin.products', $request, $user, [
             'page' => $page,
             'search' => $search,

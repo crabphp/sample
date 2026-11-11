@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Actions;
 
 use App\Http\ShopProductSearch;
+use App\Models\Product;
 use App\Shop\Pages;
 use App\User;
 use Crab\Contracts\Database\Page;
@@ -21,7 +22,6 @@ final readonly class ShopCatalogue
 {
     public function __construct(
         private Pages $pages,
-        private ListProducts $products,
         private ListCategories $categories,
     ) {}
 
@@ -33,7 +33,8 @@ final readonly class ShopCatalogue
         ShopProductSearch $search,
         ?User $user,
     ): Response {
-        $page = $this->products->handle($search->inCents());
+        $inCents = $search->inCents();
+        $page = Product::search($inCents)->paginate($inCents->perPage, $inCents->page);
         $query = array_filter(
             [
                 'q' => $search->q === '' ? null : $search->q,
