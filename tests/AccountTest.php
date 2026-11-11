@@ -74,6 +74,22 @@ final class AccountTest extends ShopTestCase
         $admin->get("/api/orders/{$notHers}")->assertStatus(200)->assertJson('id', $notHers);
     }
 
+    public function testALoginTokenStopsWorkingThirtyDaysAfterItIsIssued(): void
+    {
+        $token = $this->login('ada@example.com');
+        $ada = $this->api->withToken($token);
+        self::assertSame(
+            '2026-03-03 12:00:00',
+            $this->db->table('auth_tokens')->where('token_hash', hash('sha256', $token))->value('expires_at'),
+            'config/auth.php gives a login token thirty days.',
+        );
+
+        $this->clock->advance('+30 days -1 second');
+        $ada->get('/api/me')->assertStatus(200);
+        $this->clock->advance('+1 second');
+        $ada->get('/api/me')->assertStatus(401);
+    }
+
     /**
      * Tests the real login endpoint and returns its token for the token
      * access checks in this class; other areas use actingAs().
