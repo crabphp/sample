@@ -15,4 +15,7 @@ return [
     'url' => env('APP_URL') ?? $defaultUrl,
     // Show the details of a failure to the client. Never in production.
     'debug' => env('APP_DEBUG', false),
+
+    // The time zone every date is made, stored and read in. Kept in UTC; the shop's schedule says its own.
+    'timezone' => env('APP_TIMEZONE', 'UTC'),
 ];
