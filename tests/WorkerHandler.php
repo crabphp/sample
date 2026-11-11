@@ -4,24 +4,24 @@ declare(strict_types=1);
 
 namespace Tests;
 
+use Crab\Contracts\Http\Handler;
+use Crab\Contracts\Http\Request;
 use Crab\Engine\Async\Task;
 use Crab\Engine\EventLoop;
 use Psr\Http\Message\ResponseInterface;
-use Psr\Http\Message\ServerRequestInterface;
-use Psr\Http\Server\RequestHandlerInterface;
 
 /**
  * Real workers call services in fibers. Do the same when tests use Redis
  * while a test socket stays open; a main-context Redis call drains the
  * loop, which cannot end while that socket is still listening.
  */
-final readonly class WorkerHandler implements RequestHandlerInterface
+final readonly class WorkerHandler implements Handler
 {
     public function __construct(
-        private RequestHandlerInterface $app,
+        private Handler $app,
     ) {}
 
-    public function handle(ServerRequestInterface $request): ResponseInterface
+    public function handle(Request $request): ResponseInterface
     {
         return self::run(fn(): ResponseInterface => $this->app->handle($request));
     }

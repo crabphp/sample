@@ -7,14 +7,13 @@ namespace App\Http;
 use App\Shop\Pages;
 use App\User;
 use Crab\Auth\CookieAuth;
-use Crab\Contracts\Auth\Identity;
 use Crab\Contracts\Auth\IdentityResolver;
 use Crab\Contracts\Auth\TokenStore;
 use Crab\Contracts\Http\ErrorRenderer;
 use Crab\Contracts\Http\Problem;
+use Crab\Contracts\Http\Request;
 use Crab\Http\ErrorResponse;
 use Psr\Http\Message\ResponseInterface;
-use Psr\Http\Message\ServerRequestInterface;
 
 /** Keeps recoverable shop errors in HTML without changing the validation rules or API errors. */
 final readonly class ShopErrors implements ErrorRenderer
@@ -26,7 +25,7 @@ final readonly class ShopErrors implements ErrorRenderer
         private IdentityResolver $users,
     ) {}
 
-    public function render(Problem $problem, ServerRequestInterface $request): ResponseInterface
+    public function render(Problem $problem, Request $request): ResponseInterface
     {
         $path = $request->getUri()->getPath();
         if (
@@ -48,8 +47,8 @@ final readonly class ShopErrors implements ErrorRenderer
         }
 
         // The renderer receives the original request, before CookieAuth adds its user attribute.
-        $user = $request->getAttribute(Identity::ATTRIBUTE);
-        if (!$user instanceof User) {
+        $user = $request->user(User::class);
+        if ($user === null) {
             $token = $this->auth->token($request);
             $owner = $token === null ? null : $this->tokens->owner($token);
             $user = $owner === null ? null : $this->users->resolve($owner);

@@ -5,25 +5,23 @@ declare(strict_types=1);
 namespace App\Http;
 
 use App\User;
-use Crab\Contracts\Auth\Identity;
+use Crab\Contracts\Http\Handler;
+use Crab\Contracts\Http\Middleware;
+use Crab\Contracts\Http\Request;
 use Crab\Http\HttpException;
 use Psr\Http\Message\ResponseInterface;
-use Psr\Http\Message\ServerRequestInterface;
-use Psr\Http\Server\MiddlewareInterface;
-use Psr\Http\Server\RequestHandlerInterface;
 
 /**
  * Lets a request through when its user is an administrator. It goes
  * inside TokenAuth, which is what puts the user on the request.
  */
-final readonly class AdminsOnly implements MiddlewareInterface
+final readonly class AdminsOnly implements Middleware
 {
-    public function process(ServerRequestInterface $request, RequestHandlerInterface $handler): ResponseInterface
+    public function handle(Request $request, Handler $next): ResponseInterface
     {
-        $user = $request->getAttribute(Identity::ATTRIBUTE);
-        if (!$user instanceof User || !$user->isAdmin()) {
+        if ($request->user(User::class)?->isAdmin() !== true) {
             throw new HttpException(403, 'This is for administrators.');
         }
-        return $handler->handle($request);
+        return $next->handle($request);
     }
 }
