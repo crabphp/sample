@@ -9,6 +9,7 @@ use App\Http\OpenApiSchemas;
 use App\Http\OrderInput;
 use App\Models\Order;
 use App\Models\OrderItem;
+use App\Models\Product;
 use App\OrderStatus;
 use App\User;
 use Crab\Contracts\Database\Connection;
@@ -16,7 +17,6 @@ use Crab\Contracts\Database\Database;
 use Crab\Http\HttpException;
 use Crab\Http\Response;
 use Crab\OpenApi\Attributes\Response as ApiResponse;
-use Psr\Clock\ClockInterface;
 use Psr\EventDispatcher\EventDispatcherInterface;
 use Psr\Log\LoggerInterface;
 use Throwable;
@@ -32,7 +32,6 @@ final readonly class PlaceOrder
         private Database $db,
         private EventDispatcherInterface $events,
         private LoggerInterface $log,
-        private ClockInterface $clock,
     ) {}
 
     #[ApiResponse(201, body: OpenApiSchemas::CREATED_ORDER, description: 'Order placed.', headers: ['Location'])]
@@ -79,28 +78,26 @@ final readonly class PlaceOrder
      */
     private function createOrder(Connection $db, User $user, array $quantities): array
     {
-        $now = $this->clock->now()->format('Y-m-d H:i:s');
         $total = 0;
         $lines = [];
 
         foreach ($quantities as $productId => $quantity) {
-            $product = $db
-                ->table('products')
-                ->where('id', $productId)
-                ->lockForUpdate()
-                ->first() ?? throw new HttpException(422, "There is no product {$productId}.");
+            $product = Product::query()->lockForUpdate()->find($productId) ?? throw new HttpException(
+                422,
+                "There is no product {$productId}.",
+            );
 
-            $taken = $db
-                ->table('products')
+            // Taken in one statement, so that two orders cannot both take the last one. Tide writes updated_at.
+            $taken = Product::query()
                 ->where('id', $productId)
                 ->where('stock', '>=', $quantity)
-                ->decrement('stock', $quantity, ['updated_at' => $now]);
+                ->decrement('stock', $quantity);
 
             if ($taken === 0) {
-                throw new HttpException(409, "There is not enough of {$product['name']} in stock.");
+                throw new HttpException(409, "There is not enough of {$product->name} in stock.");
             }
 
-            $price = (int) $product['price'];
+            $price = $product->price;
             $total += $price * $quantity;
             $lines[] = ['product_id' => $productId, 'quantity' => $quantity, 'price' => $price];
         }

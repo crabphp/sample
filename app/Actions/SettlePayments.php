@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Actions;
 
+use App\Models\Order;
+use App\OrderStatus;
 use Crab\Contracts\Broadcast\Broadcaster;
 use Crab\Contracts\Database\Connection;
 use Crab\Contracts\Database\Database;
@@ -28,9 +30,10 @@ final readonly class SettlePayments
     public function handle(): void
     {
         $now = $this->clock->now();
-        $before = $now->modify('-' . (int) config('shop.settle_after') . ' seconds')->format('Y-m-d H:i:s');
+        // A date, not text: it is bound in the application's zone, the one the column is in.
+        $before = $now->modify('-' . (int) config('shop.settle_after') . ' seconds');
 
-        $settled = $this->db->transaction(function (Connection $transaction) use ($before, $now): int {
+        $settled = $this->db->transaction(function (Connection $transaction) use ($before): int {
             $orders = $transaction
                 ->table('orders')
                 ->where('status', 'pending')
@@ -44,13 +47,10 @@ final readonly class SettlePayments
                 return 0;
             }
 
-            $transaction
-                ->table('orders')
-                ->whereIn('id', array_column($orders, 'id'))
-                ->increment('version', 1, [
-                    'status' => 'paid',
-                    'updated_at' => $now->format('Y-m-d H:i:s'),
-                ]);
+            // On the model, in this transaction: Tide writes updated_at.
+            Order::query()->whereIn('id', array_column($orders, 'id'))->increment('version', 1, [
+                'status' => OrderStatus::Paid,
+            ]);
 
             foreach ($orders as $order) {
                 $id = (int) $order['id'];

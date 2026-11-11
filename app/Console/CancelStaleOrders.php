@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Console;
 
+use App\Models\Order;
+use App\OrderStatus;
 use Crab\Contracts\Broadcast\Broadcaster;
 use Crab\Contracts\Cache\Cache;
 use Crab\Contracts\Console\Command;
@@ -30,9 +32,10 @@ final readonly class CancelStaleOrders implements Command
     public function handle(Input $input, Output $output): int
     {
         $now = $this->clock->now();
-        $before = $now->modify('-' . (int) config('shop.cancel_after') . ' minutes')->format('Y-m-d H:i:s');
+        // A date, not text: it is bound in the application's zone, the one the column is in.
+        $before = $now->modify('-' . (int) config('shop.cancel_after') . ' minutes');
 
-        $cancelled = $this->db->transaction(function (Connection $db) use ($before, $now): int {
+        $cancelled = $this->db->transaction(function (Connection $db) use ($before): int {
             $orders = $db
                 ->table('orders')
                 ->where('status', 'pending')
@@ -63,13 +66,8 @@ final readonly class CancelStaleOrders implements Command
                     ->increment('stock', (int) $line['quantity']);
             }
 
-            $db
-                ->table('orders')
-                ->whereIn('id', $ids)
-                ->increment('version', 1, [
-                    'status' => 'cancelled',
-                    'updated_at' => $now->format('Y-m-d H:i:s'),
-                ]);
+            // On the model, in this transaction: Tide writes updated_at.
+            Order::query()->whereIn('id', $ids)->increment('version', 1, ['status' => OrderStatus::Cancelled]);
 
             foreach ($orders as $order) {
                 $id = (int) $order['id'];

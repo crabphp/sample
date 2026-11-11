@@ -4,9 +4,8 @@ declare(strict_types=1);
 
 namespace App\Actions;
 
+use App\Models\Product;
 use Crab\Contracts\Cache\Cache;
-use Crab\Contracts\Database\Database;
-use Psr\Clock\ClockInterface;
 use Psr\Log\LoggerInterface;
 
 /**
@@ -16,18 +15,14 @@ use Psr\Log\LoggerInterface;
 final readonly class Restock
 {
     public function __construct(
-        private Database $db,
         private Cache $cache,
         private LoggerInterface $log,
-        private ClockInterface $clock,
     ) {}
 
     public function handle(): void
     {
-        $filled = $this->db
-            ->table('products')
-            ->where('stock', '<', 10)
-            ->increment('stock', 60, ['updated_at' => $this->clock->now()->format('Y-m-d H:i:s')]);
+        // A bulk change on the model: Tide writes updated_at with it, in the application's zone.
+        $filled = Product::query()->where('stock', '<', 10)->increment('stock', 60);
 
         if ($filled > 0) {
             $this->cache->delete('categories');
