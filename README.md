@@ -1,6 +1,6 @@
 # Crab Shop
 
-A complete server-rendered store on the [Crab framework](../framework), with an Arc interface, a JSON API and working background services. The site uses the released framework **v0.6.2** and Arc **v0.1.1** through the sibling path repositories. Payment and warehouse fulfilment remain simulated; the checkout states this clearly and never collects payment details.
+A complete server-rendered store on the [Crab framework](../framework), with an Arc interface, a JSON API and working background services. The site uses the released framework **v0.7.0**, Arc **v0.2.0** and Tide **v0.1.0** through the sibling path repositories. Payment and warehouse fulfilment remain simulated; the checkout states this clearly and never collects payment details.
 
 It is not the skeleton to start a project from; that is [`crab`](../crab).
 
@@ -294,6 +294,6 @@ SAMPLE_TEST_REDIS_URL=redis://127.0.0.1:6379 composer test
 
 Existing shops must run `php cua migrate` before starting the updated application. New migrations add database carts, cart operation IDs, checkout receipts and private assistant answers. Legacy local-storage carts cannot be recovered by the server; users of the earlier browser-only UI must add those items again. The stale-order command is now `order:cancel-stale`, following the singular command-area convention; update any external invocation of its old plural name. The new migration widens MySQL order totals to hold every accepted order; SQLite already uses 64-bit integers. Rolling that migration back refuses to narrow the column when a total would be lost.
 
-`composer format` applies the shared Mago formatting rules. CI checks out the framework and packages on `main` beside the sample and runs these checks on PHP 8.4, with SQLite, MySQL and Redis stores. The framework and Arc are pinned to their released versions through path repositories; the other optional packages retain their existing `@dev` constraints. Keep the sibling framework and Arc checkouts at v0.6.2 and v0.1.1 respectively.
+`composer format` applies the shared Mago formatting rules. CI checks out the framework and packages on `main` beside the sample and runs these checks on PHP 8.4, with SQLite, MySQL and Redis stores. The framework and Arc are pinned to their released versions through path repositories; the other optional packages retain their existing `@dev` constraints. Keep the sibling framework and Arc checkouts at v0.7.0 and v0.2.0 respectively.
 
 Browser coverage and isolated server instructions are in [`tests/browser/README.md`](tests/browser/README.md). It runs the complete flow with JavaScript disabled and enabled, including real cross-origin forms and concurrent checkout.
