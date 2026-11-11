@@ -6,15 +6,13 @@ namespace App\Actions;
 
 use App\Http\OpenApiSchemas;
 use App\Http\Registration;
-use App\User;
+use App\Models\Account;
 use Crab\Contracts\Auth\PasswordHasher;
 use Crab\Contracts\Auth\TokenStore;
-use Crab\Contracts\Database\Database;
 use Crab\Database\DatabaseException;
 use Crab\Http\HttpException;
 use Crab\Http\Response;
 use Crab\OpenApi\Attributes\Response as ApiResponse;
-use Psr\Clock\ClockInterface;
 
 /**
  * Makes an account and logs it in.
@@ -22,10 +20,8 @@ use Psr\Clock\ClockInterface;
 final readonly class Register
 {
     public function __construct(
-        private Database $db,
         private PasswordHasher $passwords,
         private TokenStore $tokens,
-        private ClockInterface $clock,
     ) {}
 
     #[ApiResponse(
@@ -41,35 +37,25 @@ final readonly class Register
         if (strlen($registration->password) > 72) {
             throw new HttpException(422, 'The password is too long: at most 72 bytes.');
         }
-
-        if ($this->db->table('users')->where('email', $registration->email)->exists()) {
+        if (Account::query()->where('email', $registration->email)->exists()) {
             throw new HttpException(409, 'There is already an account with this email.');
         }
 
-        $now = $this->clock->now()->format('Y-m-d H:i:s');
+        $account = new Account();
+        $account->name = $registration->name;
+        $account->email = $registration->email;
+        $account->password = $this->passwords->hash($registration->password);
         try {
-            $id = $this->db
-                ->table('users')
-                ->insert([
-                    'name' => $registration->name,
-                    'email' => $registration->email,
-                    'password' => $this->passwords->hash($registration->password),
-                    'role' => 'member',
-                    'created_at' => $now,
-                    'updated_at' => $now,
-                ]);
+            $account->save();
         } catch (DatabaseException $error) {
             // The unique index also covers a request that won after the existence check.
-            if (
-                $error->sqlState() === '23000'
-                && $this->db->table('users')->where('email', $registration->email)->exists()
-            ) {
+            if ($error->sqlState() === '23000' && Account::query()->where('email', $registration->email)->exists()) {
                 throw new HttpException(409, 'There is already an account with this email.', previous: $error);
             }
             throw $error;
         }
-        $user = new User((int) $id, $registration->name, $registration->email);
 
+        $user = $account->identity();
         return Response::created([
             'user' => $user,
             'token' => $this->tokens->issue($user, 'registration'),

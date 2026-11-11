@@ -7,6 +7,9 @@ namespace App\Actions;
 use App\Events\OrderPlaced;
 use App\Http\OpenApiSchemas;
 use App\Http\OrderInput;
+use App\Models\Order;
+use App\Models\OrderItem;
+use App\OrderStatus;
 use App\User;
 use Crab\Contracts\Database\Connection;
 use Crab\Contracts\Database\Database;
@@ -58,7 +61,7 @@ final readonly class PlaceOrder
         try {
             $productIds = array_map(
                 intval(...),
-                $this->db->table('order_items')->where('order_id', $placed['id'])->pluck('product_id'),
+                OrderItem::query()->where('order_id', $placed['id'])->pluck('product_id'),
             );
             $this->events->dispatch(new OrderPlaced($placed['id'], $user->id, $placed['total'], $productIds));
         } catch (Throwable $error) {
@@ -102,19 +105,22 @@ final readonly class PlaceOrder
             $lines[] = ['product_id' => $productId, 'quantity' => $quantity, 'price' => $price];
         }
 
-        $id = (int) $db->table('orders')->insert([
-            'user_id' => $user->id,
-            'status' => 'pending',
-            'total' => $total,
-            'created_at' => $now,
-            'updated_at' => $now,
-        ]);
+        // Models in the transaction $db is: they are written, or undone, with the stock taken above.
+        $placed = new Order();
+        $placed->user_id = (int) $user->id;
+        $placed->status = OrderStatus::Pending;
+        $placed->total = $total;
+        $placed->save();
 
-        $db->table('order_items')->insertMany(array_map(static fn(array $line): array => [
-            'order_id' => $id,
-            ...$line,
-        ], $lines));
+        foreach ($lines as $line) {
+            $item = new OrderItem();
+            $item->order_id = $placed->id;
+            $item->product_id = $line['product_id'];
+            $item->quantity = $line['quantity'];
+            $item->price = $line['price'];
+            $item->save();
+        }
 
-        return ['id' => $id, 'status' => 'pending', 'total' => $total];
+        return ['id' => $placed->id, 'status' => $placed->status->value, 'total' => $total];
     }
 }

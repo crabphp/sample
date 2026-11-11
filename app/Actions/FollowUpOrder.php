@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace App\Actions;
 
 use App\Mailer;
-use Crab\Contracts\Database\Database;
+use App\Models\Order;
 use Crab\Contracts\Runs\Run;
 
 /**
@@ -24,7 +24,6 @@ final readonly class FollowUpOrder
     private const ARRIVAL = 3 * 86_400;
 
     public function __construct(
-        private Database $db,
         private Mailer $mailer,
     ) {}
 
@@ -38,16 +37,17 @@ final readonly class FollowUpOrder
 
         // A completed step is kept. A crash after sending but before keeping it can send mail again.
         $asked = $run->step('ask-for-review', function () use ($orderId): bool {
-            $order = $this->db->table('orders')->find($orderId);
-            $user = $order === null ? null : $this->db->table('users')->find($order['user_id']);
-            if ($user === null) {
+            $customer = Order::query()->with('customer')->find($orderId)?->customer;
+            if ($customer === null) {
                 return false;
             }
+
             $this->mailer->send(
-                (string) $user['email'],
+                $customer->email,
                 "How is your order #{$orderId}?",
-                "Hello {$user['name']},\n\nYour order should have arrived. Tell us how you like it.\n",
+                "Hello {$customer->name},\n\nYour order should have arrived. Tell us how you like it.\n",
             );
+
             return true;
         });
 

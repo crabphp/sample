@@ -24,8 +24,8 @@ final readonly class ShopProduct
     {
         $product = $this->products->handle($id);
         $details = [];
-        if (is_string($product['details'] ?? null)) {
-            $decoded = json_decode($product['details'], true);
+        if ($product->details !== null) {
+            $decoded = json_decode($product->details, true);
             $details = is_array($decoded) ? $decoded : [];
         }
         return $this->pages->render('shop.product', $request, $user, [

@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace App\Actions;
 
 use App\Mailer;
-use Crab\Contracts\Database\Database;
+use App\Models\Order;
 
 /**
  * Writes to the customer that their order was received. A mail server
@@ -14,35 +14,28 @@ use Crab\Contracts\Database\Database;
 final readonly class SendOrderConfirmation
 {
     public function __construct(
-        private Database $db,
         private Mailer $mailer,
     ) {}
 
     public function handle(int $orderId): void
     {
-        $order = $this->db->table('orders')->find($orderId);
-        if ($order === null) {
+        $order = Order::query()->with('lines.product', 'customer')->find($orderId);
+        $customer = $order?->customer;
+        if ($order === null || $customer === null) {
             // Deleted since; there is no one to write to, and trying again would not change that.
             return;
         }
 
-        $user = $this->db->table('users')->find($order['user_id']);
-        $lines = $this->db
-            ->table('order_items')
-            ->join('products', 'products.id', '=', 'order_items.product_id')
-            ->where('order_items.order_id', $orderId)
-            ->select('products.name', 'order_items.quantity', 'order_items.price')
-            ->get();
-
-        $body = "Hello {$user['name']},\n\nWe have your order #{$orderId}:\n\n";
-        foreach ($lines as $line) {
-            $quantity = (int) $line['quantity'];
-            $total = self::money((int) $line['price'] * $quantity);
-            $body .= sprintf("  %d x %s  %s\n", $quantity, $line['name'], $total);
+        $body = "Hello {$customer->name},\n\nWe have your order #{$orderId}:\n\n";
+        foreach ($order->lines as $line) {
+            if ($line->product === null) {
+                continue;
+            }
+            $body .= sprintf("  %d x %s  %s\n", $line->quantity, $line->product->name, self::money($line->subtotal()));
         }
-        $body .= "\nTotal: " . self::money((int) $order['total']) . "\n";
+        $body .= "\nTotal: " . self::money($order->total) . "\n";
 
-        $this->mailer->send((string) $user['email'], "Your order #{$orderId}", $body);
+        $this->mailer->send($customer->email, "Your order #{$orderId}", $body);
     }
 
     private static function money(int $cents): string

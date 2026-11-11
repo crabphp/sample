@@ -194,9 +194,9 @@ model request writes one warning with the attempted URL and settings.
 | Sessionless feedback | `app/Shop/Pages.php`, `BrowserCookies.php`, `Flash`; a fixed-code HttpOnly cookie consumed on the next page |
 | Server-side administration | `ShopAdmin`, `resources/views/admin/`, `tests/ShopAdminTest.php`; shared CreateProduct, SetStock, ShipOrder and BuildDailyReport actions |
 | Responsive design and assets | `resources/assets/`, `ShopAssets`; self-hosted OFL fonts, one stylesheet, system light/dark themes |
-| Query builder, transactions, pagination | `PlaceOrder`, `ListProducts`, `ShowOrder` |
-| Rows as records | `app/Order.php` is read with `->into(Order::class)`, its status a backed enum (`OrderStatus`) and its times dates; `ListMyOrders` and `ShipOrder` read orders that way |
-| Models (Tide) | `app/Models/`: `Product`, `Order` and `OrderItem` extend `Crab\Tide\Model`, with `TidePlugin` listed in `app.php`. `SetStock` reads a product, changes it and saves only what changed; `ShowOrder` reads an order with its lines and their products, `Order::query()->with('lines.product')` |
+| Query builder, transactions, pagination | `ListProducts`, `ListCategories`, `BuildDailyReport`, and the stock taken in `PlaceOrder` and `CancelStaleOrders`: lists, reports and atomic changes stay on the builder |
+| Rows as records | `app/OrderSummary.php` is read with `->into(OrderSummary::class)` in `ListMyOrders`, its status a backed enum (`OrderStatus`) and its time a date: the typed shape of one query's result |
+| Models (Tide) | `app/Models/`: `Account`, `Product`, `Order` and `OrderItem` extend `Crab\Tide\Model`, with `TidePlugin` listed in `app.php`. They say only what differs from what Tide assumes: `Account` reads the `users` table, and `Order::$customer` its `user_id`. Accounts are read and made in `Login`, `Register` and `app/Users.php`; products in `ShowProduct`, `CreateProduct` and `SetStock`, which writes only what changed; orders with `Order::query()->with('lines.product', 'customer')` in `ShowOrder`, `ShopOrder`, `SendOrderConfirmation` and `FollowUpOrder`. `PlaceOrder` and `ShipOrder` save models inside a transaction, which they follow without being passed it, and Tide keeps every `created_at` and `updated_at` |
 | Migrations | `database/migrations/` |
 | Cache | `ListCategories` remembers; an order or a change to the catalogue forgets |
 | Events | `OrderPlaced`, and its two listeners in `app/Actions/` |

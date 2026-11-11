@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Models;
 
 use App\OrderStatus;
+use Crab\Tide\BelongsTo;
 use Crab\Tide\HasMany;
 use Crab\Tide\Model;
 
@@ -32,6 +33,12 @@ final class Order extends Model
      */
     #[HasMany(OrderItem::class)]
     public array $lines;
+
+    /**
+     * Who placed it. Named for what it is here, so its key is said: user_id.
+     */
+    #[BelongsTo('user_id')]
+    public ?Account $customer;
 
     /**
      * As the API gives an order: its times as the database holds them, without an offset.

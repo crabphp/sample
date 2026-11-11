@@ -22,4 +22,9 @@ final class OrderItem extends Model
      * A property that is a model belongs to it, by product_id. Null when the product has since been removed.
      */
     public ?Product $product;
+
+    public function subtotal(): int
+    {
+        return $this->price * $this->quantity;
+    }
 }

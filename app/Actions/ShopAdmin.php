@@ -6,6 +6,7 @@ namespace App\Actions;
 
 use App\Http\NewProduct;
 use App\Http\ProductSearch;
+use App\Models\Order;
 use App\Shop\Pages;
 use App\User;
 use Crab\Contracts\Database\Database;
@@ -83,7 +84,7 @@ final readonly class ShopAdmin
     public function orders(ServerRequestInterface $request, User $user, #[FromQuery]
         #[Range(min: 1)] int $page = 1): Response
     {
-        $orders = $this->db->table('orders')->orderByDesc('id')->paginate(20, $page);
+        $orders = Order::query()->orderByDesc('id')->paginate(20, $page);
         return $this->pages->render('admin.orders', $request, $user, ['page' => $orders]);
     }
 

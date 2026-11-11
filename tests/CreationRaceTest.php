@@ -4,10 +4,9 @@ declare(strict_types=1);
 
 namespace Tests;
 
-use App\Actions\CreateProduct;
 use Crab\Contracts\Auth\PasswordHasher;
-use Crab\Contracts\Cache\Cache;
 use Crab\Contracts\Clock\Clock;
+use Crab\Tide\Tide;
 
 final class CreationRaceTest extends ShopTestCase
 {
@@ -59,10 +58,8 @@ final class CreationRaceTest extends ShopTestCase
                     ]);
                 return $this->clock->now();
             });
-        $this->app->container->instance(
-            CreateProduct::class,
-            new CreateProduct($this->db, $this->app->container->get(Cache::class), $clock),
-        );
+        // The product's times are read by Tide as it saves, after the check for the SKU and before the insert.
+        Tide::use($this->db, $clock);
 
         $this->api
             ->actingAs($this->user('admin@example.com'))

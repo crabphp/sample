@@ -19,19 +19,19 @@
 </tr>
 </Slot>
 @foreach($page->items as $order)<tr>
-<td class="mono">#{{ $order['id'] }}</td>
-<td class="mono">#{{ $order['user_id'] }}</td>
-<td>{{ $order['created_at'] }}</td>
+<td class="mono">#{{ $order->id }}</td>
+<td class="mono">#{{ $order->user_id }}</td>
+<td>{{ $order->created_at?->format('Y-m-d H:i:s') }}</td>
 <td>
-<Badge>{{ ucfirst($order['status']) }}</Badge>
+<Badge>{{ ucfirst($order->status->value) }}</Badge>
 </td>
-<td class="mono">${{ number_format($order['total'] / 100, 2) }}</td>
+<td class="mono">${{ number_format($order->total / 100, 2) }}</td>
 <td>
-@if($order['status'] === 'paid')<form method="post" action="/admin/orders/{{ $order['id'] }}/ship">
+@if($order->status === \App\OrderStatus::Paid)<form method="post" action="/admin/orders/{{ $order->id }}/ship">
 <Button variant="secondary">Ship order →</Button>
 </form>
 @else
-<span class="small muted">{{ $order['status'] === 'pending' ? 'Awaiting payment' : 'Complete' }}</span>
+<span class="small muted">{{ $order->status === \App\OrderStatus::Pending ? 'Awaiting payment' : 'Complete' }}</span>
 @endif
 </td>
 </tr>

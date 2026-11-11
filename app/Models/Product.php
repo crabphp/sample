@@ -23,7 +23,7 @@ final class Product extends Model
     public ?\DateTimeImmutable $created_at;
     public ?\DateTimeImmutable $updated_at;
     // JSON text as the database stores it, which is how the API gives it.
-    public ?string $details;
+    public ?string $details = null;
 
     /**
      * As the API gives a product: its times as the database holds them, without an offset.
