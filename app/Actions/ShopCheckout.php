@@ -8,6 +8,7 @@ use App\Http\CheckoutInput;
 use App\Shop\Carts;
 use App\Shop\Pages;
 use App\User;
+use Crab\Contracts\Session\Session;
 use Crab\Http\Response;
 use Crab\OpenApi\Attributes\Response as ApiResponse;
 use Crab\OpenApi\Attributes\Security;
@@ -34,9 +35,9 @@ final readonly class ShopCheckout
     #[ApiResponse(303, headers: ['Location'])]
     #[ApiResponse(409, body: ['type' => 'string'], contentType: 'text/html')]
     #[ApiResponse(422, body: ['type' => 'string'], contentType: 'text/html')]
-    public function handle(User $user, CheckoutInput $input): Response
+    public function handle(User $user, CheckoutInput $input, Session $session): Response
     {
         $id = $this->carts->checkout($user, $input->checkoutId, $this->orders);
-        return Pages::redirect('/orders/' . $id, 'ordered');
+        return Pages::redirect($session, '/orders/' . $id, 'ordered');
     }
 }

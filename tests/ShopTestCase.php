@@ -49,6 +49,7 @@ abstract class ShopTestCase extends TestCase
         // The real environment is read before .env, so a test can have a shop of its own.
         foreach ([
             'DB_DSN' => $dsn,
+            'APP_KEY' => str_repeat('test-key-', 4),
             'DB_USERNAME' => $this->mysql === null ? '' : (getenv('SAMPLE_TEST_MYSQL_USER') ?: 'root'),
             'DB_PASSWORD' => $this->mysql === null ? '' : (getenv('SAMPLE_TEST_MYSQL_PASSWORD') ?: ''),
             'DB_ASYNC' => 'false',

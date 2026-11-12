@@ -6,6 +6,7 @@ namespace App\Actions;
 
 use App\Shop\Pages;
 use Crab\Auth\CookieAuth;
+use Crab\Contracts\Session\Session;
 use Crab\Http\Response;
 use Crab\OpenApi\Attributes\Response as ApiResponse;
 use Psr\Http\Message\ServerRequestInterface;
@@ -19,8 +20,10 @@ final readonly class ShopLogout
     ) {}
 
     #[ApiResponse(303, headers: ['Location', 'Set-Cookie'])]
-    public function handle(ServerRequestInterface $request): Response
+    public function handle(ServerRequestInterface $request, Session $session): Response
     {
-        return Pages::redirect('/', 'logout')->withCookie($this->auth->logout($request));
+        // Nothing of the visit outlives the logout.
+        $session->invalidate();
+        return Pages::redirect($session, '/', 'logout')->withCookie($this->auth->logout($request));
     }
 }

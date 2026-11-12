@@ -14,6 +14,7 @@ use App\Models\Tag;
 use App\Shop\Pages;
 use App\User;
 use Crab\Contracts\Database\Database;
+use Crab\Contracts\Session\Session;
 use Crab\Contracts\Storage\Storage;
 use Crab\Http\HttpException;
 use Crab\Http\Response;
@@ -72,24 +73,24 @@ final readonly class ShopAdmin
     }
 
     #[ApiResponse(303, headers: ['Location'])]
-    public function productTags(int $id, TagSelection $input): Response
+    public function productTags(int $id, TagSelection $input, Session $session): Response
     {
         $this->tags->changeProduct($id, new TagInput($input->tagIds));
-        return Pages::redirect('/admin/products', 'tags');
+        return Pages::redirect($session, '/admin/products', 'tags');
     }
 
     #[ApiResponse(303, headers: ['Location'])]
-    public function orderTags(int $id, TagSelection $input): Response
+    public function orderTags(int $id, TagSelection $input, Session $session): Response
     {
         $this->tags->changeOrder($id, new TagInput($input->tagIds));
-        return Pages::redirect('/admin/orders', 'tags');
+        return Pages::redirect($session, '/admin/orders', 'tags');
     }
 
     #[ApiResponse(303, headers: ['Location'])]
-    public function create(NewProduct $input): Response
+    public function create(NewProduct $input, Session $session): Response
     {
         $this->create->handle($input);
-        return Pages::redirect('/admin/products', 'product');
+        return Pages::redirect($session, '/admin/products', 'product');
     }
 
     #[ApiResponse(303, headers: ['Location'])]
@@ -97,9 +98,10 @@ final readonly class ShopAdmin
         int $id,
         #[Fields(['stock' => ['int', new Range(min: 0, max: 100_000)]])]
         Data $input,
+        Session $session,
     ): Response {
         $this->stock->handle($id, $input);
-        return Pages::redirect('/admin/products', 'stock');
+        return Pages::redirect($session, '/admin/products', 'stock');
     }
 
     #[ApiResponse(200, body: ['type' => 'string'], contentType: 'text/html')]
@@ -114,10 +116,10 @@ final readonly class ShopAdmin
     }
 
     #[ApiResponse(303, headers: ['Location'])]
-    public function ship(int $id): Response
+    public function ship(int $id, Session $session): Response
     {
         $this->ship->handle($id);
-        return Pages::redirect('/admin/orders', 'shipped');
+        return Pages::redirect($session, '/admin/orders', 'shipped');
     }
 
     #[ApiResponse(200, body: ['type' => 'string'], contentType: 'text/html')]
@@ -140,13 +142,13 @@ final readonly class ShopAdmin
     }
 
     #[ApiResponse(303, headers: ['Location'])]
-    public function report(#[Fields(['day' => 'string'])] Data $input): Response
+    public function report(#[Fields(['day' => 'string'])] Data $input, Session $session): Response
     {
         try {
             $this->report->handle($input->day);
         } catch (\InvalidArgumentException $error) {
             throw new HttpException(422, $error->getMessage(), previous: $error);
         }
-        return Pages::redirect('/admin/reports?day=' . rawurlencode($input->day), 'report');
+        return Pages::redirect($session, '/admin/reports?day=' . rawurlencode($input->day), 'report');
     }
 }

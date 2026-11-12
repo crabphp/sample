@@ -9,6 +9,7 @@ use App\Http\OrderInput;
 use App\User;
 use Crab\Contracts\Database\Connection;
 use Crab\Contracts\Database\Database;
+use Crab\Contracts\Session\Session;
 use Crab\Contracts\Validation\Validator;
 use Crab\Http\HttpException;
 use Crab\Validation\ValidationException;
@@ -48,7 +49,9 @@ final readonly class Carts
         if ($user !== null) {
             return 'user:' . $user->id;
         }
-        $id = BrowserCookies::read($request, 'shop_cart');
+        $session = $request->getAttribute(Session::ATTRIBUTE);
+        $id = $session instanceof Session ? $session->get('cart', '') : '';
+        $id = is_string($id) ? $id : '';
         if (preg_match('/^[a-f0-9]{64}$/D', $id) !== 1) {
             return null;
         }

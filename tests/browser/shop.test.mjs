@@ -71,9 +71,10 @@ for (const javaScriptEnabled of [false, true]) {
     await add(page, 1, 2);
     assert.match(await page.locator('main').innerText(), /Added to your cart/);
     assert.equal(await page.locator('[data-cart-count]').innerText(), '2');
-    const guest = (await context.cookies()).find(cookie => cookie.name === 'shop_cart');
+    const guest = await session(context);
     assert.equal(guest.httpOnly, true);
     assert.equal(guest.sameSite, 'Lax');
+    assert.match(sessionValues(guest).cart, /^[a-f0-9]{64}$/);
     await page.getByLabel('Quantity', { exact: true }).fill('3');
     await Promise.all([page.waitForNavigation(), page.getByRole('button', { name: 'Update', exact: true }).click()]);
     assert.equal(await page.locator('[data-cart-count]').innerText(), '3');
@@ -97,7 +98,7 @@ for (const javaScriptEnabled of [false, true]) {
     await page.getByLabel('Password', { exact: true }).fill(password);
     await Promise.all([page.waitForURL('**/cart'), page.getByRole('button', { name: 'Create account →', exact: true }).click()]);
     assert.equal(await page.locator('[data-cart-count]').innerText(), '2');
-    assert.equal((await context.cookies()).some(cookie => cookie.name === 'shop_cart'), false);
+    assert.equal('cart' in sessionValues(await session(context)), false, 'The guest cart is merged and forgotten.');
     await logout(page);
     assert.equal(await page.locator('[data-cart-count]').innerText(), '0');
     await login(page, email, password);
@@ -319,3 +320,15 @@ test('System themes, contrast, keyboard focus and small screens remain accessibl
     assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true, path);
   }
 });
+
+// The shop's session cookie, which the cookie driver signs but does not hide.
+async function session(context) {
+    return (await context.cookies()).find(cookie => /^(__Host-)?session$/.test(cookie.name));
+}
+
+function sessionValues(cookie) {
+    // A session left with nothing in it is deleted, cookie and all.
+    if (cookie === undefined) return {};
+    const payload = decodeURIComponent(cookie.value).split('.')[0].replace(/-/g, '+').replace(/_/g, '/');
+    return JSON.parse(Buffer.from(payload, 'base64').toString('utf8')).values;
+}

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Shop;
 
 use App\User;
+use Crab\Contracts\Session\Session;
 use Crab\Http\Response;
 use Psr\Http\Message\ServerRequestInterface;
 
@@ -37,22 +38,25 @@ final readonly class Pages
         int $status = 200,
     ): Response {
         $cart = $this->carts->snapshot($this->carts->key($request, $user));
-        $flash = BrowserCookies::read($request, 'shop_flash');
+        $session = $request->getAttribute(Session::ATTRIBUTE);
+        $flash = $session instanceof Session ? $session->get('status') : null;
         $response = view(
             $view,
-            [...$data, 'user' => $user, 'cart' => $cart, 'flash' => self::FLASH[$flash] ?? null],
+            [...$data, 'user' => $user, 'cart' => $cart, 'flash' => is_string($flash) ? $flash : null],
             $status,
         )
             ->withHeader('Cache-Control', 'private, no-store')
             ->withHeader('X-Content-Type-Options', 'nosniff')
             ->withHeader('Referrer-Policy', 'same-origin');
-        return $flash === '' ? $response : $response->withCookie(BrowserCookies::make('shop_flash'));
+        return $response;
     }
 
-    public static function redirect(string $path, string $flash): Response
+    /**
+     * Back to a page, with a message for it to show once.
+     */
+    public static function redirect(Session $session, string $path, string $notice): Response
     {
-        return Response::redirect($path, 303)
-            ->withCookie(BrowserCookies::make('shop_flash', $flash, 60))
-            ->withHeader('Cache-Control', 'private, no-store');
+        $session->flash('status', self::FLASH[$notice]);
+        return Response::redirect($path, 303)->withHeader('Cache-Control', 'private, no-store');
     }
 }

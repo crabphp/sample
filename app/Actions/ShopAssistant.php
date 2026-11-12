@@ -5,11 +5,11 @@ declare(strict_types=1);
 namespace App\Actions;
 
 use App\Models\Product;
-use App\Shop\BrowserCookies;
 use App\Shop\Carts;
 use App\Shop\Pages;
 use App\User;
 use Crab\Contracts\Database\Database;
+use Crab\Contracts\Session\Session;
 use Crab\Http\HttpException;
 use Crab\Http\Request;
 use Crab\Http\Response;
@@ -114,14 +114,19 @@ final readonly class ShopAssistant
 
     private function owner(Request $request, ?User $user): string
     {
-        return $user === null ? 'guest:' . BrowserCookies::read($request, 'shop_assistant') : 'user:' . $user->id;
+        return $user === null ? 'guest:' . self::guest($request) : 'user:' . $user->id;
     }
 
     private function keep(Data $input, Request $request, ?User $user, array $reply): Response
     {
-        $guest = BrowserCookies::read($request, 'shop_assistant');
+        $guest = self::guest($request);
         if (preg_match('/^[a-f0-9]{64}$/D', $guest) !== 1) {
             $guest = bin2hex(random_bytes(32));
+        }
+        $session = $request->getAttribute(Session::ATTRIBUTE);
+        if ($user === null && $session instanceof Session) {
+            // A guest's replies are found again by the id its session keeps.
+            $session->put('assistant', $guest);
         }
         $id = Carts::uuid();
         $this->db
@@ -141,8 +146,16 @@ final readonly class ShopAssistant
             'Cache-Control',
             'private, no-store',
         );
-        return $user === null
-            ? $response->withCookie(BrowserCookies::make('shop_assistant', $guest, 86_400))
-            : $response;
+        return $response;
+    }
+
+    /**
+     * The id a guest's session keeps for its assistant replies, or '' for none.
+     */
+    private static function guest(Request $request): string
+    {
+        $session = $request->getAttribute(Session::ATTRIBUTE);
+        $guest = $session instanceof Session ? $session->get('assistant', '') : '';
+        return is_string($guest) ? $guest : '';
     }
 }

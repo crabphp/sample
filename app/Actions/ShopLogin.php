@@ -5,11 +5,11 @@ declare(strict_types=1);
 namespace App\Actions;
 
 use App\Http\LoginInput;
-use App\Shop\BrowserCookies;
 use App\Shop\Carts;
 use App\Shop\Pages;
 use App\User;
 use Crab\Auth\CookieAuth;
+use Crab\Contracts\Session\Session;
 use Crab\Http\HttpException;
 use Crab\Http\Response;
 use Crab\OpenApi\Attributes\Response as ApiResponse;
@@ -41,6 +41,7 @@ final readonly class ShopLogin
         LoginInput $input,
         ?User $user,
         ServerRequestInterface $request,
+        Session $session,
     ): Response {
         try {
             $result = $this->login->handle(new Data(['email' => $input->email, 'password' => $input->password]));
@@ -57,8 +58,9 @@ final readonly class ShopLogin
             );
         }
         $this->carts->merge($request, $result['user']);
-        return Pages::redirect('/cart', 'login')
-            ->withCookie($this->auth->cookie($result['token']))
-            ->withCookie(BrowserCookies::make('shop_cart'));
+        $session->forget('cart');
+        // A new id once someone logs in, so one known before stops working.
+        $session->regenerate();
+        return Pages::redirect($session, '/cart', 'login')->withCookie($this->auth->cookie($result['token']));
     }
 }

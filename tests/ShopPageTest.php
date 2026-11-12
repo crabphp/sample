@@ -67,13 +67,16 @@ final class ShopPageTest extends ShopTestCase
             ->post('/cart/1/add', ['actionId' => $id, 'quantity' => 2])
             ->assertStatus(303)
             ->assertHeader('Location', '/cart');
-        $cookie = $guest->cookies['shop_cart'];
-        self::assertMatchesRegularExpression('/^[a-f0-9]{64}$/', $cookie);
+        self::assertMatchesRegularExpression('/^[a-f0-9]{64}$/', self::session($guest)['cart']);
         $guest->post('/cart/1/add', ['actionId' => $id, 'quantity' => 2])->assertStatus(303);
         $cart = $guest->get('/cart')->assertStatus(200);
         self::assertStringContainsString('$28.00', $cart->body());
         self::assertStringContainsString('Added to your cart.', $cart->body());
-        self::assertStringContainsString('Max-Age=0', $cart->header('Set-Cookie'));
+        self::assertStringStartsWith(
+            'session=',
+            $cart->header('Set-Cookie'),
+            'The session is written again without the message.',
+        );
         self::assertStringNotContainsString('Added to your cart.', $guest->get('/cart')->body());
         $guest->post('/cart/1/update', ['actionId' => Carts::uuid(), 'quantity' => 3])->assertStatus(303);
         self::assertStringContainsString('$42.00', $guest->get('/cart')->body());
@@ -89,12 +92,13 @@ final class ShopPageTest extends ShopTestCase
         $guest = $this->browser();
         $guest->add(1, 3)->assertStatus(303);
         $guest->add(2)->assertStatus(303);
-        $old = $guest->cookies['shop_cart'];
+        $old = self::session($guest)['cart'];
+        $before = $guest->cookies['session'];
         $guest
             ->post('/login', ['email' => 'ada@example.com', 'password' => 'password'])
             ->assertStatus(303)
             ->assertHeader('Location', '/cart');
-        self::assertArrayNotHasKey('shop_cart', $guest->cookies);
+        self::assertArrayNotHasKey('cart', self::session($guest), 'The guest cart is merged and forgotten.');
         self::assertFalse(
             $this->db
                 ->table('carts')
@@ -105,7 +109,8 @@ final class ShopPageTest extends ShopTestCase
             ['1' => 5, '2' => 1],
             json_decode($this->db->table('carts')->where('id', 'user:2')->value('lines'), true),
         );
-        $guest->cookies['shop_cart'] = $old;
+        // The session from before logging in, sent again: its cart was merged already, so nothing is added twice.
+        $guest->cookies['session'] = $before;
         $guest->post('/login', ['email' => 'ada@example.com', 'password' => 'password'])->assertStatus(303);
         self::assertStringContainsString('$132.00', $guest->get('/cart')->body());
         $guest->post('/logout')->assertStatus(303);
@@ -292,5 +297,17 @@ final class ShopPageTest extends ShopTestCase
             ['1' => 1],
             json_decode($this->db->table('carts')->where('id', 'user:2')->value('lines'), true),
         );
+    }
+
+    /**
+     * What the browser's session cookie holds. The cookie driver signs it but does not hide it.
+     *
+     * @return array<string, mixed>
+     */
+    private static function session(Browser $browser): array
+    {
+        $payload = explode('.', $browser->cookies['session'] ?? '')[0];
+        $record = json_decode((string) base64_decode(strtr($payload, '-_', '+/'), true), true);
+        return is_array($record) && is_array($record['values'] ?? null) ? $record['values'] : [];
     }
 }

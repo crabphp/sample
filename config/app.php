@@ -13,6 +13,9 @@ return [
     'name' => env('APP_NAME', 'Crab Shop'),
     // Use the listening address locally; APP_URL names the public address behind a proxy.
     'url' => env('APP_URL') ?? $defaultUrl,
+    // The secret cookie sessions are signed with; php cua key:generate writes APP_KEY into .env.
+    'key' => env('APP_KEY'),
+
     // Show the details of a failure to the client. Never in production.
     'debug' => env('APP_DEBUG', false),
 

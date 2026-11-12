@@ -76,11 +76,12 @@ immutable cache; change that version when deploying changed assets.
 
 ### Carts, cookies and feedback
 
-Carts are application records in the database, **not sessions**. A signed-in
-cart is keyed to its user. A guest receives a cryptographically random 256-bit
-cart ID in the `shop_cart` HttpOnly, SameSite=Lax cookie, valid for 30 days.
+Carts are application records in the database; the session only names a
+guest's. A signed-in cart is keyed to its user. A guest receives a
+cryptographically random 256-bit cart ID, kept in the visit's session.
 Signing in or registering merges guest quantities into the account cart in a
-transaction, deletes the guest cart and expires its cookie. Every merged item
+transaction, deletes the guest cart, forgets its ID and gives the session a new
+one. Every merged item
 is retained; if the combined quantities exceed the order's 20-product or
 20-per-product limit, edit the cart before checking out. Signing out hides the
 account cart; it remains available on the next login, including on another
@@ -95,13 +96,23 @@ an operation ID, retained for 30 days, so re-submission does not increment twice
 Updates and removals use the same protection. Missing products stay visible
 and removable; stock failures keep the entire cart.
 
-Feedback uses a **60-second HttpOnly flash cookie**, `shop_flash`. It contains
-only a fixed message code such as `added`; the next HTML response maps the code
-to application text, displays it and expires the cookie. It stores no identity,
-price, cart content or arbitrary HTML. As with normal one-use flash messages,
-the next page opened in another tab may consume it. The guest assistant has a
-separate one-day random ownership cookie for private answer records. HTTPS
-adds Secure and `__Host-` prefixes to these cookies.
+A visit keeps its temporary data in a **session** (`SessionPlugin` and
+`StartSession` in `app.php`, set in `config/session.php`): a guest's cart ID,
+a guest assistant's ID for its private answer records, and the message the
+next page shows after a form, flashed with `$session->flash()`. The session
+uses the cookie driver: everything rides in one HttpOnly, SameSite=Lax cookie,
+signed with `app.key` so it cannot be changed, kept for 30 days without a
+visit, and nothing is stored on the server. The cookie is signed, not
+encrypted, so it holds only random IDs and fixed messages: no identity, price
+or cart content. Logging out invalidates the session. As with any one-use flash
+message, the next page opened in another tab may show it. HTTPS makes the
+cookie Secure, named `__Host-session`.
+
+Write a key before starting the shop the first time:
+
+```sh
+php cua key:generate
+```
 
 `CookieAuth` uses the existing token store and its HttpOnly, SameSite=Lax auth
 cookie. Sign out revokes the presented token. Every changing browser route
