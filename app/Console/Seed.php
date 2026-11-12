@@ -8,6 +8,7 @@ use App\Models\Account;
 use App\Models\Order;
 use App\Models\Product;
 use App\Models\Review;
+use App\Models\Tag;
 use Crab\Contracts\Auth\PasswordHasher;
 use Crab\Contracts\Cache\Cache;
 use Crab\Contracts\Console\Command;
@@ -159,6 +160,8 @@ final readonly class Seed implements Command
             'auth_tokens',
             'run_steps',
             'runs',
+            'taggables',
+            'tags',
             'reviews',
             'order_items',
             'orders',
@@ -260,7 +263,7 @@ final readonly class Seed implements Command
                 ++$orders;
             }
         }
-        $this->reviews();
+        $this->relations();
         $this->cache->delete('categories');
         $output->line(
             'The shop has ' . count($products) . ' products, ' . count($users) . " people and {$orders} orders.",
@@ -269,11 +272,20 @@ final readonly class Seed implements Command
         return 0;
     }
 
-    private function reviews(): void
+    private function relations(): void
     {
         $order = Order::query()->orderBy('id')->first();
         $product = Product::query()->orderBy('id')->first();
         $this->db->transaction(static function () use ($order, $product): void {
+            $gift = new Tag();
+            $gift->name = 'gift';
+            $gift->save();
+            $product->attach('tags', [$gift->id]);
+            $order->attach('tags', [$gift->id]);
+            $seasonal = new Tag();
+            $seasonal->name = 'seasonal';
+            $seasonal->save();
+            $product->attach('tags', [$seasonal->id]);
             foreach ([$product, $order] as $subject) {
                 $review = new Review();
                 $review->user_id = $order->user_id;
@@ -382,7 +394,7 @@ final readonly class Seed implements Command
                 }
             });
         }
-        $this->reviews();
+        $this->relations();
         $this->cache->delete('categories');
         $output->line("The shop has {$productCount} products, {$userCount} people and {$orderCount} orders.");
         $output->line('Log in as ada@example.com or admin@example.com, with the password "password".');

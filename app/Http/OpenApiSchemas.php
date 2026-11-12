@@ -11,6 +11,60 @@ namespace App\Http;
  */
 final class OpenApiSchemas
 {
+    public const TAG = [
+        'type' => 'object',
+        'properties' => ['id' => ['type' => 'integer'], 'name' => ['type' => 'string']],
+        'required' => ['id', 'name'],
+        'additionalProperties' => false,
+    ];
+
+    public const TAG_LIST = ['type' => 'array', 'items' => self::TAG];
+
+    public const TAG_PAGE = [
+        ...self::PRODUCT_PAGE,
+        'properties' => [...self::PRODUCT_PAGE['properties'], 'data' => self::TAG_LIST],
+    ];
+
+    public const TAG_SUMMARY = [
+        'type' => 'object',
+        'properties' => [
+            'tag' => self::TAG,
+            'products' => ['type' => 'integer'],
+            'stock' => ['type' => 'integer'],
+            'average_price' => ['type' => ['number', 'null'], 'description' => 'Average price in cents.'],
+            'lowest_price' => ['type' => ['integer', 'null']],
+            'highest_price' => ['type' => ['integer', 'null']],
+            'orders' => ['type' => 'integer'],
+            'order_total' => ['type' => 'integer', 'description' => 'Total in cents.'],
+            'latest_order_at' => ['type' => ['string', 'null'], 'format' => 'date-time'],
+            'latest_order_status' => [
+                'type' => ['string', 'null'],
+                'enum' => ['pending', 'paid', 'shipped', 'cancelled', null],
+            ],
+            'product_names' => ['type' => 'array', 'maxItems' => 20, 'items' => ['type' => 'string']],
+            'order_statuses' => [
+                'type' => 'array',
+                'maxItems' => 20,
+                'items' => self::ORDER_SUMMARY['properties']['status'],
+            ],
+        ],
+        'required' => [
+            'tag',
+            'products',
+            'stock',
+            'average_price',
+            'lowest_price',
+            'highest_price',
+            'orders',
+            'order_total',
+            'latest_order_at',
+            'latest_order_status',
+            'product_names',
+            'order_statuses',
+        ],
+        'additionalProperties' => false,
+    ];
+
     public const REVIEW = [
         'type' => 'object',
         'properties' => [

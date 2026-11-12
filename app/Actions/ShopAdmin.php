@@ -6,8 +6,11 @@ namespace App\Actions;
 
 use App\Http\NewProduct;
 use App\Http\ProductSearch;
+use App\Http\TagInput;
+use App\Http\TagSelection;
 use App\Models\Order;
 use App\Models\Product;
+use App\Models\Tag;
 use App\Shop\Pages;
 use App\User;
 use Crab\Contracts\Database\Database;
@@ -35,6 +38,7 @@ final readonly class ShopAdmin
         private Pages $pages,
         private CreateProduct $create,
         private SetStock $stock,
+        private Tags $tags,
         private ShipOrder $ship,
         private BuildDailyReport $report,
         private Database $db,
@@ -53,16 +57,32 @@ final readonly class ShopAdmin
     {
         $page = Product::search($search)
             ->except('details', 'created_at', 'updated_at')
+            ->with('tags')
             ->paginate($search->perPage, $search->page);
         return $this->pages->render('admin.products', $request, $user, [
             'page' => $page,
             'search' => $search,
+            'tags' => Tag::query()->orderBy('name')->get(),
             'pagination' => ShopCatalogue::pagination(
                 $page,
                 ['q' => $search->q, 'sort' => $search->sort],
                 '/admin/products',
             ),
         ]);
+    }
+
+    #[ApiResponse(303, headers: ['Location'])]
+    public function productTags(int $id, TagSelection $input): Response
+    {
+        $this->tags->changeProduct($id, new TagInput($input->tagIds));
+        return Pages::redirect('/admin/products', 'tags');
+    }
+
+    #[ApiResponse(303, headers: ['Location'])]
+    public function orderTags(int $id, TagSelection $input): Response
+    {
+        $this->tags->changeOrder($id, new TagInput($input->tagIds));
+        return Pages::redirect('/admin/orders', 'tags');
     }
 
     #[ApiResponse(303, headers: ['Location'])]
@@ -86,8 +106,11 @@ final readonly class ShopAdmin
     public function orders(ServerRequestInterface $request, User $user, #[FromQuery]
         #[Range(min: 1)] int $page = 1): Response
     {
-        $orders = Order::query()->orderBy('id', 'desc')->paginate(20, $page);
-        return $this->pages->render('admin.orders', $request, $user, ['page' => $orders]);
+        $orders = Order::query()->with('tags')->orderBy('id', 'desc')->paginate(20, $page);
+        return $this->pages->render('admin.orders', $request, $user, [
+            'page' => $orders,
+            'tags' => Tag::query()->orderBy('name')->get(),
+        ]);
     }
 
     #[ApiResponse(303, headers: ['Location'])]

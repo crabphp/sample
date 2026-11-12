@@ -19,6 +19,7 @@ final readonly class Pages
         'logout' => 'You have been signed out.',
         'ordered' => 'Your order has been placed.',
         'product' => 'Product created.',
+        'tags' => 'Tags saved.',
         'stock' => 'Stock updated.',
         'shipped' => 'Order marked as shipped.',
         'report' => 'Daily report generated.',

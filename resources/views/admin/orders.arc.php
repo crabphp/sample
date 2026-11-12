@@ -16,6 +16,7 @@
 <th scope="col">Status</th>
 <th scope="col">Total</th>
 <th scope="col">Action</th>
+<th scope="col">Tags</th>
 </tr>
 </Slot>
 @foreach($page->items as $order)<tr>
@@ -33,6 +34,9 @@
 @else
 <span class="small muted">{{ $order->status === \App\OrderStatus::Pending ? 'Awaiting payment' : 'Complete' }}</span>
 @endif
+</td>
+<td>
+<TagEditor :action="'/admin/orders/' . $order->id . '/tags'" :tags="$tags" :selected="array_column($order->tags, 'id')" />
 </td>
 </tr>
 @endforeach

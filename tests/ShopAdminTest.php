@@ -67,13 +67,42 @@ final class ShopAdminTest extends ShopTestCase
         $admin->get('/admin/reports?day=../../secret')->assertStatus(422);
     }
 
+    public function testTagsCanBeEditedWithNativeFormsIncludingClearingEveryCheckbox(): void
+    {
+        $tag = new \App\Models\Tag();
+        $tag->name = 'gift';
+        $tag->save();
+        $admin = $this->browser('admin@example.com');
+        foreach (['products', 'orders'] as $kind) {
+            $html = $admin
+                ->get('/admin/' . $kind)
+                ->assertStatus(200)
+                ->body();
+            self::assertStringContainsString('Save tags', $html);
+            self::assertStringContainsString('gift', $html);
+            $admin->post('/admin/' . $kind . '/1/tags', ['tagIds' => [(string) $tag->id]])->assertStatus(303);
+        }
+        self::assertSame(2, $this->db->table('taggables')->count());
+        $admin->post('/admin/products/1/tags', [])->assertStatus(303);
+        self::assertSame(['orders'], $this->db->table('taggables')->pluck('taggable_type'));
+        $admin->post('/admin/orders/1/tags', ['tagIds' => ['999']])->assertStatus(422);
+        self::assertSame(1, $this->db->table('taggables')->count());
+    }
+
     public function testMembersAreRefusedEveryAdministrationPageAndAction(): void
     {
         $member = $this->browser('ada@example.com');
         foreach (['/admin', '/admin/products', '/admin/orders', '/admin/reports'] as $path) {
             $member->get($path)->assertStatus(403)->assertHeader('Content-Type', 'text/html; charset=utf-8');
         }
-        foreach (['/admin/products', '/admin/products/1/stock', '/admin/orders/1/ship', '/admin/reports'] as $path) {
+        foreach ([
+            '/admin/products',
+            '/admin/products/1/stock',
+            '/admin/orders/1/ship',
+            '/admin/products/1/tags',
+            '/admin/orders/1/tags',
+            '/admin/reports',
+        ] as $path) {
             $member->post($path)->assertStatus(403)->assertHeader('Content-Type', 'text/html; charset=utf-8');
         }
         self::assertSame(6, $this->db->table('products')->count());

@@ -10,6 +10,7 @@ use Crab\Tide\HasMany;
 use Crab\Tide\Model;
 use Crab\Tide\MorphMany;
 use Crab\Tide\MorphOne;
+use Crab\Tide\MorphToMany;
 
 /**
  * One order, as a model that knows its lines. ShowOrder reads one with
@@ -23,6 +24,10 @@ final class Order extends Model
 
     #[MorphOne]
     public ?Review $highlight;
+
+    /** @var list<Tag> */
+    #[MorphToMany(Tag::class, 'taggable')]
+    public array $tags;
 
     public int $id;
     public int $user_id;

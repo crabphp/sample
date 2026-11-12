@@ -28,6 +28,7 @@ use App\Actions\ShopOrders;
 use App\Actions\ShopProduct;
 use App\Actions\ShowOrder;
 use App\Actions\ShowProduct;
+use App\Actions\Tags;
 use App\Actions\WatchOrder;
 use App\Actions\WatchStock;
 use App\Http\AdminsOnly;
@@ -78,6 +79,8 @@ Route::middleware(CookieAuth::class)->group(static function (): void {
         Route::get('/admin', [\App\Actions\ShopAdmin::class, 'index']);
         Route::get('/admin/products', [\App\Actions\ShopAdmin::class, 'products']);
         Route::post('/admin/products', [\App\Actions\ShopAdmin::class, 'create']);
+        Route::post('/admin/products/{id}/tags', [\App\Actions\ShopAdmin::class, 'productTags']);
+        Route::post('/admin/orders/{id}/tags', [\App\Actions\ShopAdmin::class, 'orderTags']);
         Route::post('/admin/products/{id}/stock', [\App\Actions\ShopAdmin::class, 'stock']);
         Route::get('/admin/orders', [\App\Actions\ShopAdmin::class, 'orders']);
         Route::post('/admin/orders/{id}/ship', [\App\Actions\ShopAdmin::class, 'ship']);
@@ -102,6 +105,7 @@ Route::prefix('/api')->group(static function (): void {
     Route::get('/products/{id}', ShowProduct::class);
     Route::get('/products/{id}/stock', WatchStock::class); // server-sent events, live
     Route::get('/categories', ListCategories::class);
+    Route::get('/products/{id}/tags', [Tags::class, 'product']);
     Route::get('/products/{id}/reviews', [Reviews::class, 'product']);
     Route::get('/products/{id}/review-highlight', [Reviews::class, 'highlight']);
 
@@ -125,6 +129,7 @@ Route::prefix('/api')->group(static function (): void {
         Route::get('/orders', ListMyOrders::class);
         Route::post('/orders', PlaceOrder::class);
         Route::get('/orders/{id}', ShowOrder::class);
+        Route::get('/orders/{id}/tags', [Tags::class, 'order']);
         Route::get('/orders/{id}/reviews', [Reviews::class, 'order']);
         Route::post('/products/{id}/reviews', [Reviews::class, 'createProduct']);
         Route::post('/orders/{id}/reviews', [Reviews::class, 'createOrder']);
@@ -136,6 +141,11 @@ Route::prefix('/api')->group(static function (): void {
             Route::post('/products', CreateProduct::class);
             Route::put('/products/{id}/stock', SetStock::class);
             Route::put('/orders/{id}/ship', ShipOrder::class);
+            Route::get('/tags', Tags::class);
+            Route::post('/tags', [Tags::class, 'create']);
+            Route::get('/tags/{id}', [Tags::class, 'show']);
+            Route::put('/products/{id}/tags', [Tags::class, 'changeProduct']);
+            Route::put('/orders/{id}/tags', [Tags::class, 'changeOrder']);
         });
     });
 });

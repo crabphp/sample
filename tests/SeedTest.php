@@ -13,6 +13,28 @@ use Crab\Contracts\Runs\Runs;
 
 final class SeedTest extends ShopTestCase
 {
+    public function testSeedIncludesBothKindsOfReviewsAndTagsAndResetsTheirLinks(): void
+    {
+        foreach ([['--users=2', '--products=1', '--orders=1'], []] as $options) {
+            self::assertSame(0, $this->command('shop:seed', '--fresh', ...$options));
+            self::assertSame(2, $this->db->table('reviews')->count());
+            self::assertSame(
+                ['orders', 'products'],
+                $this->db->table('reviews')->orderBy('reviewable_type')->pluck('reviewable_type'),
+            );
+            self::assertSame(2, $this->db->table('tags')->count());
+            self::assertSame(3, $this->db->table('taggables')->count());
+            $product = \App\Models\Product::query()->whereHas('reviews')->with('tags', 'reviews')->first();
+            self::assertNotNull($product);
+            self::assertCount(2, $product->tags);
+            self::assertCount(1, $product->reviews);
+            $order = \App\Models\Order::query()->whereHas('reviews')->with('tags', 'reviews')->first();
+            self::assertNotNull($order);
+            self::assertCount(1, $order->tags);
+            self::assertSame($order->user_id, $order->reviews[0]->user_id);
+        }
+    }
+
     public function testFreshFixturesRevokeCredentialsBeforeReusingAnIdentity(): void
     {
         // This id will belong to the fixture administrator after the reset.

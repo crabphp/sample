@@ -9,6 +9,7 @@ use Crab\Tide\Model;
 use Crab\Tide\ModelQuery;
 use Crab\Tide\MorphMany;
 use Crab\Tide\MorphOne;
+use Crab\Tide\MorphToMany;
 
 /**
  * One product, as a model: a row that is read, changed and saved.
@@ -23,6 +24,10 @@ final class Product extends Model
 
     #[MorphOne]
     public ?Review $highlight;
+
+    /** @var list<Tag> */
+    #[MorphToMany(Tag::class, 'taggable')]
+    public array $tags;
 
     public int $id;
     public string $sku;

@@ -19,6 +19,7 @@
 <th scope="col">Category</th>
 <th scope="col">Price</th>
 <th scope="col">Available stock</th>
+<th scope="col">Tags</th>
 </tr>
 </Slot>
 @foreach($page->items as $product)<tr>
@@ -34,6 +35,9 @@
 <input id="stock-{{ $product->id }}" name="stock" type="number" min="0" max="100000" value="{{ $product->stock }}" required>
 <Button variant="secondary">Save</Button>
 </form>
+</td>
+<td>
+<TagEditor :action="'/admin/products/' . $product->id . '/tags'" :tags="$tags" :selected="array_column($product->tags, 'id')" />
 </td>
 </tr>
 @endforeach
