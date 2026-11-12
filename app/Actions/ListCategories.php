@@ -29,6 +29,7 @@ final readonly class ListCategories
     {
         return $this->cache->remember('categories', 60, function (): array {
             $categories = $this->db
+                ->current()
                 ->table('products')
                 ->select('category')
                 ->selectRaw('COUNT(*) AS products')

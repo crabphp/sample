@@ -21,12 +21,17 @@ final readonly class WatchOrder
 
     public function handle(Socket $socket, int $id, User $user): void
     {
-        $order = $this->db->table('orders')->find($id);
+        $order = $this->db->current()->table('orders')->find($id);
         if ($order === null || (string) $order['user_id'] !== (string) $user->id) {
             throw new HttpException(404, 'No such order.');
         }
         $socket->join("orders.{$id}");
-        $snapshot = $this->db->table('orders')->where('id', $id)->select('status', 'version')->first();
+        $snapshot = $this->db
+            ->current()
+            ->table('orders')
+            ->where('id', $id)
+            ->select('status', 'version')
+            ->first();
         $socket->send([
             'type' => 'ready',
             'id' => $id,

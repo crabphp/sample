@@ -17,9 +17,14 @@ final readonly class PruneShopData
     public function handle(): void
     {
         $now = $this->clock->now()->getTimestamp();
-        $this->db->table('carts')->where('id', 'like', 'guest:%')->where('expires_at', '<=', $now)->delete();
+        $this->db
+            ->current()
+            ->table('carts')
+            ->where('id', 'like', 'guest:%')
+            ->where('expires_at', '<=', $now)
+            ->delete();
         foreach (['cart_operations', 'assistant_replies'] as $table) {
-            $this->db->table($table)->where('expires_at', '<=', $now)->delete();
+            $this->db->current()->table($table)->where('expires_at', '<=', $now)->delete();
         }
     }
 }

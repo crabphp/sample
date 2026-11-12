@@ -1,12 +1,12 @@
 # Crab Shop
 
-A complete server-rendered store on the [Crab framework](../framework), with an Arc interface, a JSON API and working background services. The site uses the released framework **v0.7.1**, Arc **v0.2.0** and Tide **v0.1.0** through the sibling path repositories. Payment and warehouse fulfilment remain simulated; the checkout states this clearly and never collects payment details.
+A complete server-rendered store on the [Crab framework](../framework), with an Arc interface, a JSON API and working background services. The site uses the released framework **v0.7.2**, Arc **v0.2.0** and Tide **v0.2.0** through the sibling path repositories. Payment and warehouse fulfilment remain simulated; the checkout states this clearly and never collects payment details.
 
 It is not the skeleton to start a project from; that is [`crab`](../crab).
 
 ## Running it
 
-Use PHP 8.4 with `mbstring`, `pdo_sqlite`, `pcntl`, `posix` and `simplexml`. Keep the `framework`, `arc`, `runs`, `actors`, `redis`, `s3`, `clockwerk` and `openapi` package folders beside this application for Composer's path repositories. The database is SQLite, so none needs installing, but `.env.example` carries broadcasts and actors over Redis, at `redis://127.0.0.1:6379`: start one (`docker run -d -p 6379:6379 redis:7-alpine`). `php cua start` needs it: the queue and the scheduler run in processes of their own, and their broadcasts reach the sockets only through Redis, so the local carrier is refused. The tests run without it.
+Use PHP 8.4 with `mbstring`, `pdo_sqlite`, `pcntl`, `posix` and `simplexml`. Keep the `framework`, `tide`, `arc`, `runs`, `actors`, `redis`, `s3`, `clockwerk` and `openapi` package folders beside this application for Composer's path repositories. The database is SQLite, so none needs installing, but `.env.example` carries broadcasts and actors over Redis, at `redis://127.0.0.1:6379`: start one (`docker run -d -p 6379:6379 redis:7-alpine`). `php cua start` needs it: the queue and the scheduler run in processes of their own, and their broadcasts reach the sockets only through Redis, so the local carrier is refused. The tests run without it.
 
 ```sh
 set -e
@@ -194,7 +194,7 @@ model request writes one warning with the attempted URL and settings.
 | Sessionless feedback | `app/Shop/Pages.php`, `BrowserCookies.php`, `Flash`; a fixed-code HttpOnly cookie consumed on the next page |
 | Server-side administration | `ShopAdmin`, `resources/views/admin/`, `tests/ShopAdminTest.php`; shared CreateProduct, SetStock, ShipOrder and BuildDailyReport actions |
 | Responsive design and assets | `resources/assets/`, `ShopAssets`; self-hosted OFL fonts, one stylesheet, system light/dark themes |
-| Query builder, transactions, pagination | `ListProducts`, `ListCategories`, `BuildDailyReport`, and the stock taken in `PlaceOrder` and `CancelStaleOrders`: lists, reports and atomic changes stay on the builder |
+| Query builder, transactions, pagination | `ListProducts`, `ListCategories`, `BuildDailyReport`, and the stock taken in `PlaceOrder` and `CancelStaleOrders`: model lists use Tide; grouped reports and atomic bulk changes stay on the builder |
 | Rows as records | `app/OrderSummary.php` is read with `->into(OrderSummary::class)` in `ListMyOrders`, its status a backed enum (`OrderStatus`) and its time a date: the typed shape of one query's result |
 | Models (Tide) | `app/Models/`: `Account`, `Product`, `Order` and `OrderItem` extend `Crab\Tide\Model`, with `TidePlugin` listed in `app.php`. They say only what differs from what Tide assumes: `Account` reads the `users` table, and `Order::$customer` its `user_id`. Accounts are read and made in `Login`, `Register` and `app/Users.php`; products in `ShowProduct`, `CreateProduct` and `SetStock`, which writes only what changed; orders with `Order::query()->with('lines.product', 'customer')` in `ShowOrder`, `ShopOrder`, `SendOrderConfirmation` and `FollowUpOrder`. `PlaceOrder` and `ShipOrder` save models inside a transaction, which they follow without being passed it, and Tide keeps every `created_at` and `updated_at` |
 | Migrations | `database/migrations/` |
@@ -294,6 +294,6 @@ SAMPLE_TEST_REDIS_URL=redis://127.0.0.1:6379 composer test
 
 Existing shops must run `php cua migrate` before starting the updated application. New migrations add database carts, cart operation IDs, checkout receipts and private assistant answers. Legacy local-storage carts cannot be recovered by the server; users of the earlier browser-only UI must add those items again. The stale-order command is now `order:cancel-stale`, following the singular command-area convention; update any external invocation of its old plural name. The new migration widens MySQL order totals to hold every accepted order; SQLite already uses 64-bit integers. Rolling that migration back refuses to narrow the column when a total would be lost.
 
-`composer format` applies the shared Mago formatting rules. CI checks out the framework and packages on `main` beside the sample and runs these checks on PHP 8.4, with SQLite, MySQL and Redis stores. The framework and Arc are pinned to their released versions through path repositories; the other optional packages retain their existing `@dev` constraints. Keep the sibling framework and Arc checkouts at v0.7.1 and v0.2.0 respectively.
+`composer format` applies the shared Mago formatting rules. CI checks out the framework and packages on `main` beside the sample and runs these checks on PHP 8.4, with SQLite, MySQL and Redis stores. The framework, Tide and Arc are pinned to their released versions through path repositories; the other optional packages retain their existing `@dev` constraints. Keep the sibling framework checkout at v0.7.2 and Tide and Arc at v0.2.0.
 
 Browser coverage and isolated server instructions are in [`tests/browser/README.md`](tests/browser/README.md). It runs the complete flow with JavaScript disabled and enabled, including real cross-origin forms and concurrent checkout.

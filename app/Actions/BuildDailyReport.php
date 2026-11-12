@@ -38,6 +38,7 @@ final readonly class BuildDailyReport
             throw new \InvalidArgumentException('The report day must be a valid date in YYYY-MM-DD form.');
         }
         $totals = $this->db
+            ->current()
             ->table('orders')
             ->select('status')
             ->selectRaw('COUNT(*) as orders, SUM(total) as revenue')

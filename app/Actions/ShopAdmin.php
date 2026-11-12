@@ -51,7 +51,9 @@ final readonly class ShopAdmin
     #[ApiResponse(200, body: ['type' => 'string'], contentType: 'text/html')]
     public function products(ServerRequestInterface $request, User $user, #[FromQuery] ProductSearch $search): Response
     {
-        $page = Product::search($search)->paginate($search->perPage, $search->page);
+        $page = Product::search($search)
+            ->except('details', 'created_at', 'updated_at')
+            ->paginate($search->perPage, $search->page);
         return $this->pages->render('admin.products', $request, $user, [
             'page' => $page,
             'search' => $search,

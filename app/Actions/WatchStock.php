@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Actions;
 
-use Crab\Contracts\Database\Database;
+use App\Models\Product;
 use Crab\Engine\Async\Async;
 use Crab\Engine\EventLoop;
 use Crab\Http\HttpException;
@@ -22,10 +22,6 @@ use Crab\OpenApi\Attributes\Response;
 final readonly class WatchStock
 {
     private const CHECKS = 60;
-
-    public function __construct(
-        private Database $db,
-    ) {}
 
     #[Response(
         200,
@@ -56,8 +52,6 @@ final readonly class WatchStock
 
     private function stock(int $id): ?int
     {
-        $stock = $this->db->table('products')->where('id', $id)->value('stock');
-
-        return $stock === null ? null : (int) $stock;
+        return Product::query()->where('id', $id)->value('stock');
     }
 }

@@ -54,6 +54,7 @@ final readonly class Carts
         }
         $key = 'guest:' . $id;
         return $this->db
+            ->current()
             ->table('carts')
             ->where('id', $key)
             ->where('expires_at', '>', $this->clock->now()->getTimestamp())
@@ -64,11 +65,15 @@ final readonly class Carts
 
     public function snapshot(?string $key): array
     {
-        $row = $key === null ? null : $this->db->table('carts')->where('id', $key)->first();
+        $row = $key === null ? null : $this->db->current()->table('carts')->where('id', $key)->first();
         $quantities = $row === null ? [] : json_decode($row['lines'], true, flags: JSON_THROW_ON_ERROR);
         $products = $quantities === []
             ? []
-            : array_column($this->db->table('products')->whereIn('id', array_keys($quantities))->get(), null, 'id');
+            : array_column(
+                $this->db->current()->table('products')->whereIn('id', array_keys($quantities))->get(),
+                null,
+                'id',
+            );
         $lines = [];
         $total = 0;
         $count = 0;

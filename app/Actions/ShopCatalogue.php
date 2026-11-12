@@ -34,7 +34,9 @@ final readonly class ShopCatalogue
         ?User $user,
     ): Response {
         $inCents = $search->inCents();
-        $page = Product::search($inCents)->paginate($inCents->perPage, $inCents->page);
+        $page = Product::search($inCents)
+            ->except('details', 'created_at', 'updated_at')
+            ->paginate($inCents->perPage, $inCents->page);
         $query = array_filter(
             [
                 'q' => $search->q === '' ? null : $search->q,

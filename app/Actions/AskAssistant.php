@@ -53,6 +53,7 @@ final readonly class AskAssistant
         $products = $words === []
             ? []
             : $this->db
+                ->current()
                 ->table('products')
                 ->where(static function ($query) use ($words): void {
                     foreach ($words as $word) {

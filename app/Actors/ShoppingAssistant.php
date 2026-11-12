@@ -107,6 +107,7 @@ final readonly class ShoppingAssistant
             static fn(string $word): bool => strlen($word) > 2,
         ));
         $query = fn() => $this->db
+            ->current()
             ->table('products')
             ->where('stock', '>', 0)
             ->when($shown !== [], static fn($query) => $query->whereNotIn('id', $shown))

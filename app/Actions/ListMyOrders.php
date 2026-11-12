@@ -29,11 +29,13 @@ final readonly class ListMyOrders
     public function handle(User $user, #[FromQuery] ?string $cursor = null): CursorPage
     {
         $items = $this->db
+            ->current()
             ->table('order_items')
             ->selectRaw('COALESCE(SUM(order_items.quantity), 0)')
             ->whereColumn('order_items.order_id', 'orders.id');
 
         return $this->db
+            ->current()
             ->table('orders')
             ->where('user_id', $user->id)
             ->select('id', 'status', 'total', 'created_at')

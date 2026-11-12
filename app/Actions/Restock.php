@@ -25,7 +25,7 @@ final readonly class Restock
     public function handle(): void
     {
         // Many rows in one statement is the query builder's, which keeps no times: updated_at is written here.
-        $filled = $this->db->table('products')->where('stock', '<', 10)->increment('stock', 60, [
+        $filled = $this->db->current()->table('products')->where('stock', '<', 10)->increment('stock', 60, [
             'updated_at' => $this->clock->now(),
         ]);
 

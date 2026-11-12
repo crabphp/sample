@@ -19,14 +19,8 @@ final readonly class ListProducts
     #[Response(200, body: OpenApiSchemas::PRODUCT_PAGE)]
     public function handle(#[FromQuery] ProductSearch $search): Page
     {
-        $page = Product::search($search)->paginate($search->perPage, $search->page);
-
-        return new Page(
-            array_map(static fn(Product $product): array => $product->summary(), $page->items),
-            $page->perPage,
-            $page->currentPage,
-            $page->hasMore,
-            $page->total,
-        );
+        return Product::search($search)
+            ->select('sku', 'name', 'category', 'price', 'stock')
+            ->paginate($search->perPage, $search->page);
     }
 }

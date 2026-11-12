@@ -50,6 +50,7 @@ final readonly class DispatchOrders implements Command
 
         while (!$stopping) {
             $order = $this->db
+                ->current()
                 ->table('orders')
                 ->where('status', 'paid')
                 ->orderBy('id')

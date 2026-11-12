@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Console;
 
+use App\Models\Account;
+use App\Models\Product;
 use Crab\Contracts\Auth\PasswordHasher;
 use Crab\Contracts\Cache\Cache;
 use Crab\Contracts\Console\Command;
@@ -126,9 +128,9 @@ final readonly class Seed implements Command
             }
         }
         $filled =
-            $this->db->table('products')->exists()
-            || $this->db->table('users')->exists()
-            || $this->db->table('orders')->exists();
+            $this->db->current()->table('products')->exists()
+            || $this->db->current()->table('users')->exists()
+            || $this->db->current()->table('orders')->exists();
         if ($filled && !$input->flag('fresh')) {
             $output->line('The shop already has data. Run it with --fresh to start again.');
             return 0;
@@ -160,7 +162,7 @@ final readonly class Seed implements Command
             'products',
             'users',
         ] as $table) {
-            $this->db->table($table)->delete();
+            $this->db->current()->table($table)->delete();
         }
         if ($sized) {
             return $this->sized($counts['products'], $counts['users'], $counts['orders'], $output);
@@ -190,7 +192,7 @@ final readonly class Seed implements Command
                 'updated_at' => $joined,
             ];
         }
-        $this->db->table('users')->insertMany($users);
+        $this->db->current()->table('users')->insertMany($users);
 
         $products = [];
         foreach (self::PRODUCTS as $category => $items) {
@@ -213,10 +215,10 @@ final readonly class Seed implements Command
                 ];
             }
         }
-        $this->db->table('products')->insertMany($products);
+        $this->db->current()->table('products')->insertMany($products);
 
-        $prices = $this->db->table('products')->pluck('price', 'id');
-        $customers = $this->db->table('users')->where('role', 'member')->pluck('id');
+        $prices = Product::query()->pluck('price', 'id');
+        $customers = Account::query()->where('role', 'member')->pluck('id');
         $orders = 0;
         for ($day = 14; $day >= 0; --$day) {
             for ($n = mt_rand(6, 16); $n > 0; --$n) {
@@ -232,6 +234,7 @@ final readonly class Seed implements Command
                     $total += $prices[$productId] * $quantity;
                 }
                 $orderId = $this->db
+                    ->current()
                     ->table('orders')
                     ->insert([
                         'user_id' => $customers[array_rand($customers)],
@@ -245,6 +248,7 @@ final readonly class Seed implements Command
                         'updated_at' => $at($placed + 30),
                     ]);
                 $this->db
+                    ->current()
                     ->table('order_items')
                     ->insertMany(array_map(static fn(array $line): array => [
                         'order_id' => $orderId,
@@ -291,7 +295,7 @@ final readonly class Seed implements Command
                 'updated_at' => $created,
             ];
             if (count($users) === 100 || $id === $userCount) {
-                $this->db->table('users')->insertMany($users);
+                $this->db->current()->table('users')->insertMany($users);
                 $users = [];
             }
         }
@@ -317,7 +321,7 @@ final readonly class Seed implements Command
                 'updated_at' => $updated,
             ];
             if (count($products) === 100 || $id === $productCount) {
-                $this->db->table('products')->insertMany($products);
+                $this->db->current()->table('products')->insertMany($products);
                 $products = [];
             }
         }

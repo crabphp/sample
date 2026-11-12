@@ -20,7 +20,7 @@ final readonly class SignalOrderShipped
 
     public function handle(int $orderId): void
     {
-        $order = $this->db->table('orders')->find($orderId);
+        $order = $this->db->current()->table('orders')->find($orderId);
         if ($order === null || $order['status'] !== 'shipped' || $order['follow_up_run'] === null) {
             return;
         }

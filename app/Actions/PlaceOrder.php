@@ -8,6 +8,7 @@ use App\Events\OrderPlaced;
 use App\Http\OpenApiSchemas;
 use App\Http\OrderInput;
 use App\Models\Order;
+use App\Models\OrderItem;
 use App\Models\Product;
 use App\OrderStatus;
 use App\User;
@@ -61,7 +62,7 @@ final readonly class PlaceOrder
         try {
             $productIds = array_map(
                 intval(...),
-                $this->db->table('order_items')->where('order_id', $placed['id'])->pluck('product_id'),
+                OrderItem::query()->where('order_id', $placed['id'])->pluck('product_id'),
             );
             $this->events->dispatch(new OrderPlaced($placed['id'], $user->id, $placed['total'], $productIds));
         } catch (Throwable $error) {

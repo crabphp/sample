@@ -41,6 +41,7 @@ final readonly class ShopAssistant
     {
         $owner = $this->owner($request, $user);
         $rows = $this->db
+            ->current()
             ->table('assistant_replies')
             ->where('owner', $owner)
             ->where('expires_at', '>', $this->clock->now()->getTimestamp())
@@ -124,6 +125,7 @@ final readonly class ShopAssistant
         }
         $id = Carts::uuid();
         $this->db
+            ->current()
             ->table('assistant_replies')
             ->insert([
                 'id' => $id,

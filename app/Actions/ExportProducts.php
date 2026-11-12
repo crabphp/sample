@@ -30,6 +30,7 @@ final readonly class ExportProducts
         $csv = fopen('php://temp', 'w+b');
         fputcsv($csv, ['sku', 'name', 'category', 'price', 'stock'], escape: '');
         foreach ($this->db
+            ->current()
             ->table('products')
             ->select('sku', 'name', 'category', 'price', 'stock')
             ->orderBy('sku')

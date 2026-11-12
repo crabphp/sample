@@ -23,7 +23,10 @@ final readonly class ShopHome
     #[ApiResponse(200, body: ['type' => 'string'], contentType: 'text/html')]
     public function handle(ServerRequestInterface $request, ?User $user): Response
     {
-        $products = Product::search(new ProductSearch())->limit(4)->get();
+        $products = Product::search(new ProductSearch())
+            ->except('details', 'created_at', 'updated_at')
+            ->limit(4)
+            ->get();
         return $this->pages->render('shop.home', $request, $user, [
             'products' => $products,
             'categories' => $this->categories->handle(),
