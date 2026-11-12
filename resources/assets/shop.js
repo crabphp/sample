@@ -85,8 +85,10 @@
           const documentText = await response.text();
           const parsed = new DOMParser().parseFromString(documentText, 'text/html');
           const freshThread = parsed.querySelector('[data-chat-thread]');
-          if (freshThread === null || thread === null) throw new Error('Conversation unavailable');
-          thread.replaceWith(freshThread);
+          // The thread on the page now: an earlier answer has already replaced the one found at load.
+          const currentThread = form.parentElement.querySelector('[data-chat-thread]');
+          if (freshThread === null || currentThread === null) throw new Error('Conversation unavailable');
+          currentThread.replaceWith(freshThread);
           const currentProducts = document.querySelector('.assistant-page + .section');
           const freshProducts = parsed.querySelector('.assistant-page + .section');
           if (freshProducts !== null) {

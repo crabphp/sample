@@ -131,19 +131,25 @@ for (const javaScriptEnabled of [false, true]) {
     await screen('404');
     await page.goto('/products?minPrice=500&maxPrice=1');
     await screen('validation');
+    // A guest asks once and gets an answer page; a signed-in shopper has a conversation instead.
+    await logout(page);
     await page.goto('/assistant');
     await page.getByLabel('What are you looking for?').fill('a mug');
     if (javaScriptEnabled) {
       await page.getByRole('button', { name: /Ask the assistant/ }).click();
-      await page.locator('[data-assistant-answer] a').first().waitFor();
-      assert.match(await page.locator('[data-assistant-answer]').innerText(), /Stoneware Mug/);
-      await page.getByRole('button', { name: 'Read full answer', exact: true }).click();
-      await page.waitForURL(/\/assistant\?reply=/);
+      // The live answer streams into the page's chat thread, with links to the products it names.
+      await page.locator('.chat-turn-live a').first().waitFor();
+      assert.match(await page.locator('.chat-turn-live').innerText(), /Stoneware Mug/);
+      // A finished answer clears the form, so the question is asked again for the full answer.
+      await page.getByLabel('What are you looking for?').fill('a mug');
+      await Promise.all([page.waitForURL(/\/assistant\?reply=/), page.getByRole('button', { name: 'Read full answer', exact: true }).click()]);
     } else {
       await Promise.all([page.waitForURL(/\/assistant\?reply=/), page.getByRole('button', { name: /Ask the assistant/ }).click()]);
     }
     assert.match(await page.locator('.chat-thread').innerText(), /Stoneware Mug/);
     await screen('assistant');
+    await login(page, email, password);
+    await page.goto('/assistant');
     await page.getByLabel('What are you looking for?').fill('a mug');
     await Promise.all([page.waitForNavigation(), page.getByRole('button', { name: 'Send message', exact: true }).click()]);
     assert.match(await page.locator('.chat-thread').innerText(), /Turn 1/i);
@@ -167,8 +173,10 @@ for (const javaScriptEnabled of [false, true]) {
     await Promise.all([page.waitForNavigation(), page.locator('.inline-search button').click()]);
     const row = page.locator('tbody tr').filter({ hasText: sku });
     await row.locator('[name=stock]').fill('77');
-    const stockPath = await row.locator('form').getAttribute('action');
-    await Promise.all([page.waitForNavigation(), row.getByRole('button', { name: 'Save', exact: true }).click()]);
+    // A row has a form for its stock and one for its tags.
+    const stockForm = row.locator('form.stock-form');
+    const stockPath = await stockForm.getAttribute('action');
+    await Promise.all([page.waitForNavigation(), stockForm.getByRole('button', { name: 'Save', exact: true }).click()]);
     const productId = stockPath.match(/products\/(\d+)/)[1];
     const product = await page.request.get('/api/products/' + productId);
     assert.equal((await product.json()).stock, 77);
