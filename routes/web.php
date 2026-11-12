@@ -15,6 +15,7 @@ use App\Actions\PlaceOrder;
 use App\Actions\PretendModel;
 use App\Actions\Ready;
 use App\Actions\Register;
+use App\Actions\Reviews;
 use App\Actions\SetStock;
 use App\Actions\ShipOrder;
 use App\Actions\ShopCart;
@@ -101,6 +102,8 @@ Route::prefix('/api')->group(static function (): void {
     Route::get('/products/{id}', ShowProduct::class);
     Route::get('/products/{id}/stock', WatchStock::class); // server-sent events, live
     Route::get('/categories', ListCategories::class);
+    Route::get('/products/{id}/reviews', [Reviews::class, 'product']);
+    Route::get('/products/{id}/review-highlight', [Reviews::class, 'highlight']);
 
     // The assistant streams a model's answer as it comes; the model is pretend, as the warehouse is.
     Route::post('/assistant', AskAssistant::class);
@@ -122,6 +125,11 @@ Route::prefix('/api')->group(static function (): void {
         Route::get('/orders', ListMyOrders::class);
         Route::post('/orders', PlaceOrder::class);
         Route::get('/orders/{id}', ShowOrder::class);
+        Route::get('/orders/{id}/reviews', [Reviews::class, 'order']);
+        Route::post('/products/{id}/reviews', [Reviews::class, 'createProduct']);
+        Route::post('/orders/{id}/reviews', [Reviews::class, 'createOrder']);
+        Route::get('/reviews/{id}', [Reviews::class, 'show']);
+        Route::delete('/reviews/{id}', [Reviews::class, 'delete']);
 
         // For administrators.
         Route::middleware(AdminsOnly::class)->group(static function (): void {

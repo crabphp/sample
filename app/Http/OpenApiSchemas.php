@@ -11,6 +11,58 @@ namespace App\Http;
  */
 final class OpenApiSchemas
 {
+    public const REVIEW = [
+        'type' => 'object',
+        'properties' => [
+            'id' => ['type' => 'integer'],
+            'user_id' => ['type' => 'integer'],
+            'reviewable_type' => ['type' => 'string', 'enum' => ['products', 'orders']],
+            'reviewable_id' => ['type' => 'integer'],
+            'rating' => ['type' => 'integer', 'minimum' => 1, 'maximum' => 5],
+            'body' => ['type' => 'string'],
+            'created_at' => ['type' => ['string', 'null'], 'format' => 'date-time'],
+            'updated_at' => ['type' => ['string', 'null'], 'format' => 'date-time'],
+        ],
+        'required' => [
+            'id',
+            'user_id',
+            'reviewable_type',
+            'reviewable_id',
+            'rating',
+            'body',
+            'created_at',
+            'updated_at',
+        ],
+        'additionalProperties' => false,
+    ];
+
+    public const REVIEW_PAGE = [
+        ...self::PRODUCT_PAGE,
+        'properties' => [
+            ...self::PRODUCT_PAGE['properties'],
+            'data' => ['type' => 'array', 'items' => self::REVIEW],
+        ],
+    ];
+
+    public const REVIEW_SUBJECT = [
+        'type' => 'object',
+        'properties' => [
+            'review' => self::REVIEW,
+            'subject' => [
+                'type' => 'object',
+                'properties' => [
+                    'type' => ['type' => 'string', 'enum' => ['products', 'orders']],
+                    'id' => ['type' => 'integer'],
+                    'label' => ['type' => 'string'],
+                ],
+                'required' => ['type', 'id', 'label'],
+                'additionalProperties' => false,
+            ],
+        ],
+        'required' => ['review', 'subject'],
+        'additionalProperties' => false,
+    ];
+
     public const DATABASE_TIME = [
         'type' => ['string', 'null'],
         'pattern' => '^\\d{4}-\\d{2}-\\d{2} \\d{2}:\\d{2}:\\d{2}$',

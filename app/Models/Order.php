@@ -8,6 +8,8 @@ use App\OrderStatus;
 use Crab\Tide\BelongsTo;
 use Crab\Tide\HasMany;
 use Crab\Tide\Model;
+use Crab\Tide\MorphMany;
+use Crab\Tide\MorphOne;
 
 /**
  * One order, as a model that knows its lines. ShowOrder reads one with
@@ -15,6 +17,13 @@ use Crab\Tide\Model;
  */
 final class Order extends Model
 {
+    /** @var list<Review> */
+    #[MorphMany(Review::class)]
+    public array $reviews;
+
+    #[MorphOne]
+    public ?Review $highlight;
+
     public int $id;
     public int $user_id;
     public OrderStatus $status;

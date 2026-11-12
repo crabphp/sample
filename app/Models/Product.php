@@ -7,6 +7,8 @@ namespace App\Models;
 use App\Http\ProductSearch;
 use Crab\Tide\Model;
 use Crab\Tide\ModelQuery;
+use Crab\Tide\MorphMany;
+use Crab\Tide\MorphOne;
 
 /**
  * One product, as a model: a row that is read, changed and saved.
@@ -15,6 +17,13 @@ use Crab\Tide\ModelQuery;
  */
 final class Product extends Model
 {
+    /** @var list<Review> */
+    #[MorphMany(Review::class)]
+    public array $reviews;
+
+    #[MorphOne]
+    public ?Review $highlight;
+
     public int $id;
     public string $sku;
     public string $name;

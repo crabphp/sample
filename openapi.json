@@ -1734,6 +1734,310 @@
                 }
             }
         },
+        "/api/orders/{id}/reviews": {
+            "get": {
+                "summary": "Reviews.order",
+                "operationId": "Reviews.order",
+                "tags": [
+                    "api"
+                ],
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    },
+                    {
+                        "name": "page",
+                        "in": "query",
+                        "required": false,
+                        "schema": {
+                            "type": "integer",
+                            "minimum": 1,
+                            "default": 1
+                        },
+                        "style": "form",
+                        "explode": true
+                    }
+                ],
+                "security": [
+                    {
+                        "bearer": []
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "type": "object",
+                                                "properties": {
+                                                    "id": {
+                                                        "type": "integer"
+                                                    },
+                                                    "user_id": {
+                                                        "type": "integer"
+                                                    },
+                                                    "reviewable_type": {
+                                                        "type": "string",
+                                                        "enum": [
+                                                            "products",
+                                                            "orders"
+                                                        ]
+                                                    },
+                                                    "reviewable_id": {
+                                                        "type": "integer"
+                                                    },
+                                                    "rating": {
+                                                        "type": "integer",
+                                                        "minimum": 1,
+                                                        "maximum": 5
+                                                    },
+                                                    "body": {
+                                                        "type": "string"
+                                                    },
+                                                    "created_at": {
+                                                        "type": [
+                                                            "string",
+                                                            "null"
+                                                        ],
+                                                        "format": "date-time"
+                                                    },
+                                                    "updated_at": {
+                                                        "type": [
+                                                            "string",
+                                                            "null"
+                                                        ],
+                                                        "format": "date-time"
+                                                    }
+                                                },
+                                                "required": [
+                                                    "id",
+                                                    "user_id",
+                                                    "reviewable_type",
+                                                    "reviewable_id",
+                                                    "rating",
+                                                    "body",
+                                                    "created_at",
+                                                    "updated_at"
+                                                ],
+                                                "additionalProperties": false
+                                            }
+                                        },
+                                        "current_page": {
+                                            "type": "integer",
+                                            "minimum": 1
+                                        },
+                                        "per_page": {
+                                            "type": "integer",
+                                            "minimum": 1
+                                        },
+                                        "from": {
+                                            "type": [
+                                                "integer",
+                                                "null"
+                                            ]
+                                        },
+                                        "to": {
+                                            "type": [
+                                                "integer",
+                                                "null"
+                                            ]
+                                        },
+                                        "has_more": {
+                                            "type": "boolean"
+                                        },
+                                        "total": {
+                                            "type": "integer",
+                                            "minimum": 0
+                                        },
+                                        "last_page": {
+                                            "type": "integer",
+                                            "minimum": 1
+                                        }
+                                    },
+                                    "required": [
+                                        "data",
+                                        "current_page",
+                                        "per_page",
+                                        "from",
+                                        "to",
+                                        "has_more",
+                                        "total",
+                                        "last_page"
+                                    ],
+                                    "additionalProperties": false
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Authentication is required.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            },
+                            "text/plain": {
+                                "schema": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "The request is invalid.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            },
+                            "text/plain": {
+                                "schema": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "post": {
+                "summary": "Reviews.createOrder",
+                "operationId": "Reviews.createOrder",
+                "tags": [
+                    "api"
+                ],
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/App.Http.NewReview"
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearer": []
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "id": {
+                                            "type": "integer"
+                                        },
+                                        "user_id": {
+                                            "type": "integer"
+                                        },
+                                        "reviewable_type": {
+                                            "type": "string",
+                                            "enum": [
+                                                "products",
+                                                "orders"
+                                            ]
+                                        },
+                                        "reviewable_id": {
+                                            "type": "integer"
+                                        },
+                                        "rating": {
+                                            "type": "integer",
+                                            "minimum": 1,
+                                            "maximum": 5
+                                        },
+                                        "body": {
+                                            "type": "string"
+                                        },
+                                        "created_at": {
+                                            "type": [
+                                                "string",
+                                                "null"
+                                            ],
+                                            "format": "date-time"
+                                        },
+                                        "updated_at": {
+                                            "type": [
+                                                "string",
+                                                "null"
+                                            ],
+                                            "format": "date-time"
+                                        }
+                                    },
+                                    "required": [
+                                        "id",
+                                        "user_id",
+                                        "reviewable_type",
+                                        "reviewable_id",
+                                        "rating",
+                                        "body",
+                                        "created_at",
+                                        "updated_at"
+                                    ],
+                                    "additionalProperties": false
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Authentication is required.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            },
+                            "text/plain": {
+                                "schema": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "The request is invalid.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            },
+                            "text/plain": {
+                                "schema": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/api/orders/{id}/ship": {
             "put": {
                 "summary": "ShipOrder",
@@ -2396,6 +2700,394 @@
                 }
             }
         },
+        "/api/products/{id}/review-highlight": {
+            "get": {
+                "summary": "Reviews.highlight",
+                "operationId": "Reviews.highlight",
+                "tags": [
+                    "api"
+                ],
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "oneOf": [
+                                        {
+                                            "type": "object",
+                                            "properties": {
+                                                "id": {
+                                                    "type": "integer"
+                                                },
+                                                "user_id": {
+                                                    "type": "integer"
+                                                },
+                                                "reviewable_type": {
+                                                    "type": "string",
+                                                    "enum": [
+                                                        "products",
+                                                        "orders"
+                                                    ]
+                                                },
+                                                "reviewable_id": {
+                                                    "type": "integer"
+                                                },
+                                                "rating": {
+                                                    "type": "integer",
+                                                    "minimum": 1,
+                                                    "maximum": 5
+                                                },
+                                                "body": {
+                                                    "type": "string"
+                                                },
+                                                "created_at": {
+                                                    "type": [
+                                                        "string",
+                                                        "null"
+                                                    ],
+                                                    "format": "date-time"
+                                                },
+                                                "updated_at": {
+                                                    "type": [
+                                                        "string",
+                                                        "null"
+                                                    ],
+                                                    "format": "date-time"
+                                                }
+                                            },
+                                            "required": [
+                                                "id",
+                                                "user_id",
+                                                "reviewable_type",
+                                                "reviewable_id",
+                                                "rating",
+                                                "body",
+                                                "created_at",
+                                                "updated_at"
+                                            ],
+                                            "additionalProperties": false
+                                        },
+                                        {
+                                            "type": "null"
+                                        }
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "The request is invalid.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            },
+                            "text/plain": {
+                                "schema": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/products/{id}/reviews": {
+            "get": {
+                "summary": "Reviews.product",
+                "operationId": "Reviews.product",
+                "tags": [
+                    "api"
+                ],
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    },
+                    {
+                        "name": "page",
+                        "in": "query",
+                        "required": false,
+                        "schema": {
+                            "type": "integer",
+                            "minimum": 1,
+                            "default": 1
+                        },
+                        "style": "form",
+                        "explode": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "type": "object",
+                                                "properties": {
+                                                    "id": {
+                                                        "type": "integer"
+                                                    },
+                                                    "user_id": {
+                                                        "type": "integer"
+                                                    },
+                                                    "reviewable_type": {
+                                                        "type": "string",
+                                                        "enum": [
+                                                            "products",
+                                                            "orders"
+                                                        ]
+                                                    },
+                                                    "reviewable_id": {
+                                                        "type": "integer"
+                                                    },
+                                                    "rating": {
+                                                        "type": "integer",
+                                                        "minimum": 1,
+                                                        "maximum": 5
+                                                    },
+                                                    "body": {
+                                                        "type": "string"
+                                                    },
+                                                    "created_at": {
+                                                        "type": [
+                                                            "string",
+                                                            "null"
+                                                        ],
+                                                        "format": "date-time"
+                                                    },
+                                                    "updated_at": {
+                                                        "type": [
+                                                            "string",
+                                                            "null"
+                                                        ],
+                                                        "format": "date-time"
+                                                    }
+                                                },
+                                                "required": [
+                                                    "id",
+                                                    "user_id",
+                                                    "reviewable_type",
+                                                    "reviewable_id",
+                                                    "rating",
+                                                    "body",
+                                                    "created_at",
+                                                    "updated_at"
+                                                ],
+                                                "additionalProperties": false
+                                            }
+                                        },
+                                        "current_page": {
+                                            "type": "integer",
+                                            "minimum": 1
+                                        },
+                                        "per_page": {
+                                            "type": "integer",
+                                            "minimum": 1
+                                        },
+                                        "from": {
+                                            "type": [
+                                                "integer",
+                                                "null"
+                                            ]
+                                        },
+                                        "to": {
+                                            "type": [
+                                                "integer",
+                                                "null"
+                                            ]
+                                        },
+                                        "has_more": {
+                                            "type": "boolean"
+                                        },
+                                        "total": {
+                                            "type": "integer",
+                                            "minimum": 0
+                                        },
+                                        "last_page": {
+                                            "type": "integer",
+                                            "minimum": 1
+                                        }
+                                    },
+                                    "required": [
+                                        "data",
+                                        "current_page",
+                                        "per_page",
+                                        "from",
+                                        "to",
+                                        "has_more",
+                                        "total",
+                                        "last_page"
+                                    ],
+                                    "additionalProperties": false
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "The request is invalid.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            },
+                            "text/plain": {
+                                "schema": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "post": {
+                "summary": "Reviews.createProduct",
+                "operationId": "Reviews.createProduct",
+                "tags": [
+                    "api"
+                ],
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/App.Http.NewReview"
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearer": []
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "id": {
+                                            "type": "integer"
+                                        },
+                                        "user_id": {
+                                            "type": "integer"
+                                        },
+                                        "reviewable_type": {
+                                            "type": "string",
+                                            "enum": [
+                                                "products",
+                                                "orders"
+                                            ]
+                                        },
+                                        "reviewable_id": {
+                                            "type": "integer"
+                                        },
+                                        "rating": {
+                                            "type": "integer",
+                                            "minimum": 1,
+                                            "maximum": 5
+                                        },
+                                        "body": {
+                                            "type": "string"
+                                        },
+                                        "created_at": {
+                                            "type": [
+                                                "string",
+                                                "null"
+                                            ],
+                                            "format": "date-time"
+                                        },
+                                        "updated_at": {
+                                            "type": [
+                                                "string",
+                                                "null"
+                                            ],
+                                            "format": "date-time"
+                                        }
+                                    },
+                                    "required": [
+                                        "id",
+                                        "user_id",
+                                        "reviewable_type",
+                                        "reviewable_id",
+                                        "rating",
+                                        "body",
+                                        "created_at",
+                                        "updated_at"
+                                    ],
+                                    "additionalProperties": false
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Authentication is required.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            },
+                            "text/plain": {
+                                "schema": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "The request is invalid.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            },
+                            "text/plain": {
+                                "schema": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/api/products/{id}/stock": {
             "get": {
                 "summary": "WatchStock",
@@ -2783,6 +3475,214 @@
                     },
                     "429": {
                         "description": "Too Many Requests",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            },
+                            "text/plain": {
+                                "schema": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/reviews/{id}": {
+            "get": {
+                "summary": "Reviews.show",
+                "operationId": "Reviews.show",
+                "tags": [
+                    "api"
+                ],
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "security": [
+                    {
+                        "bearer": []
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "review": {
+                                            "type": "object",
+                                            "properties": {
+                                                "id": {
+                                                    "type": "integer"
+                                                },
+                                                "user_id": {
+                                                    "type": "integer"
+                                                },
+                                                "reviewable_type": {
+                                                    "type": "string",
+                                                    "enum": [
+                                                        "products",
+                                                        "orders"
+                                                    ]
+                                                },
+                                                "reviewable_id": {
+                                                    "type": "integer"
+                                                },
+                                                "rating": {
+                                                    "type": "integer",
+                                                    "minimum": 1,
+                                                    "maximum": 5
+                                                },
+                                                "body": {
+                                                    "type": "string"
+                                                },
+                                                "created_at": {
+                                                    "type": [
+                                                        "string",
+                                                        "null"
+                                                    ],
+                                                    "format": "date-time"
+                                                },
+                                                "updated_at": {
+                                                    "type": [
+                                                        "string",
+                                                        "null"
+                                                    ],
+                                                    "format": "date-time"
+                                                }
+                                            },
+                                            "required": [
+                                                "id",
+                                                "user_id",
+                                                "reviewable_type",
+                                                "reviewable_id",
+                                                "rating",
+                                                "body",
+                                                "created_at",
+                                                "updated_at"
+                                            ],
+                                            "additionalProperties": false
+                                        },
+                                        "subject": {
+                                            "type": "object",
+                                            "properties": {
+                                                "type": {
+                                                    "type": "string",
+                                                    "enum": [
+                                                        "products",
+                                                        "orders"
+                                                    ]
+                                                },
+                                                "id": {
+                                                    "type": "integer"
+                                                },
+                                                "label": {
+                                                    "type": "string"
+                                                }
+                                            },
+                                            "required": [
+                                                "type",
+                                                "id",
+                                                "label"
+                                            ],
+                                            "additionalProperties": false
+                                        }
+                                    },
+                                    "required": [
+                                        "review",
+                                        "subject"
+                                    ],
+                                    "additionalProperties": false
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Authentication is required.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            },
+                            "text/plain": {
+                                "schema": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "The request is invalid.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            },
+                            "text/plain": {
+                                "schema": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "summary": "Reviews.delete",
+                "operationId": "Reviews.delete",
+                "tags": [
+                    "api"
+                ],
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "security": [
+                    {
+                        "bearer": []
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "No Content"
+                    },
+                    "401": {
+                        "description": "Authentication is required.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            },
+                            "text/plain": {
+                                "schema": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "The request is invalid.",
                         "content": {
                             "application/json": {
                                 "schema": {
@@ -4230,6 +5130,25 @@
                     "name",
                     "category",
                     "price"
+                ]
+            },
+            "App.Http.NewReview": {
+                "type": "object",
+                "properties": {
+                    "rating": {
+                        "type": "integer",
+                        "minimum": 1,
+                        "maximum": 5
+                    },
+                    "body": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 2000
+                    }
+                },
+                "required": [
+                    "rating",
+                    "body"
                 ]
             },
             "App.Http.OrderInput": {
