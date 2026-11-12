@@ -84,7 +84,7 @@ final readonly class ShopAdmin
     public function orders(ServerRequestInterface $request, User $user, #[FromQuery]
         #[Range(min: 1)] int $page = 1): Response
     {
-        $orders = Order::query()->orderByDesc('id')->paginate(20, $page);
+        $orders = Order::query()->orderBy('id', 'desc')->paginate(20, $page);
         return $this->pages->render('admin.orders', $request, $user, ['page' => $orders]);
     }
 

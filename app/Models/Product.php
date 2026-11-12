@@ -34,30 +34,24 @@ final class Product extends Model
      */
     public static function search(ProductSearch $search): ModelQuery
     {
-        return self::query()
-            ->when($search->q !== '', static fn(ModelQuery $query): ModelQuery => $query->where(
-                'name',
-                'like',
-                '%' . $search->q . '%',
-            ))
-            ->when($search->category !== null, static fn(ModelQuery $query): ModelQuery => $query->where(
-                'category',
-                $search->category,
-            ))
+        $query = self::query();
+        if ($search->q !== '') {
+            $query->where('name', 'like', '%' . $search->q . '%');
+        }
+        if ($search->category !== null) {
+            $query->where('category', $search->category);
+        }
+        if ($search->colour !== null) {
             // MySQL unquotes JSON null to the text "null" when compared as a string.
-            ->when($search->colour !== null, static fn(ModelQuery $query): ModelQuery => $query->whereNotNull(
-                'details->colour',
-            )->where('details->colour', $search->colour))
-            ->when($search->minPrice !== null, static fn(ModelQuery $query): ModelQuery => $query->where(
-                'price',
-                '>=',
-                $search->minPrice,
-            ))
-            ->when($search->maxPrice !== null, static fn(ModelQuery $query): ModelQuery => $query->where(
-                'price',
-                '<=',
-                $search->maxPrice,
-            ))
+            $query->whereNotNull('details->colour')->where('details->colour', $search->colour);
+        }
+        if ($search->minPrice !== null) {
+            $query->where('price', '>=', $search->minPrice);
+        }
+        if ($search->maxPrice !== null) {
+            $query->where('price', '<=', $search->maxPrice);
+        }
+        return $query
             ->orderBy(
                 match ($search->sort) {
                     'price-asc', 'price-desc' => 'price',

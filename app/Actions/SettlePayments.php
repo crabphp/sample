@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace App\Actions;
 
-use App\Models\Order;
 use App\OrderStatus;
 use Crab\Contracts\Broadcast\Broadcaster;
 use Crab\Contracts\Database\Connection;
@@ -47,9 +46,10 @@ final readonly class SettlePayments
                 return 0;
             }
 
-            // On the model, in this transaction: Tide writes updated_at.
-            Order::query()->whereIn('id', array_column($orders, 'id'))->increment('version', 1, [
+            // Many rows in one statement, in this transaction; the builder keeps no times, so updated_at is said.
+            $transaction->table('orders')->whereIn('id', array_column($orders, 'id'))->increment('version', 1, [
                 'status' => OrderStatus::Paid,
+                'updated_at' => $this->clock->now(),
             ]);
 
             foreach ($orders as $order) {

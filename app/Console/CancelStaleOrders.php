@@ -4,8 +4,6 @@ declare(strict_types=1);
 
 namespace App\Console;
 
-use App\Models\Order;
-use App\Models\Product;
 use App\OrderStatus;
 use Crab\Contracts\Broadcast\Broadcaster;
 use Crab\Contracts\Cache\Cache;
@@ -60,14 +58,19 @@ final readonly class CancelStaleOrders implements Command
                 ->get();
 
             // Restore each product once, in the same lock order used when placing orders.
+            $now = $this->clock->now();
             foreach ($stock as $line) {
-                Product::query()
+                $db
+                    ->table('products')
                     ->where('id', $line['product_id'])
-                    ->increment('stock', (int) $line['quantity']);
+                    ->increment('stock', (int) $line['quantity'], ['updated_at' => $now]);
             }
 
-            // On the model, in this transaction: Tide writes updated_at.
-            Order::query()->whereIn('id', $ids)->increment('version', 1, ['status' => OrderStatus::Cancelled]);
+            // Many rows in one statement, in this transaction; the builder keeps no times, so updated_at is said.
+            $db->table('orders')->whereIn('id', $ids)->increment('version', 1, [
+                'status' => OrderStatus::Cancelled,
+                'updated_at' => $now,
+            ]);
 
             foreach ($orders as $order) {
                 $id = (int) $order['id'];

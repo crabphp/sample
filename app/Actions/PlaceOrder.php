@@ -8,7 +8,6 @@ use App\Events\OrderPlaced;
 use App\Http\OpenApiSchemas;
 use App\Http\OrderInput;
 use App\Models\Order;
-use App\Models\OrderItem;
 use App\Models\Product;
 use App\OrderStatus;
 use App\User;
@@ -17,6 +16,7 @@ use Crab\Contracts\Database\Database;
 use Crab\Http\HttpException;
 use Crab\Http\Response;
 use Crab\OpenApi\Attributes\Response as ApiResponse;
+use Psr\Clock\ClockInterface;
 use Psr\EventDispatcher\EventDispatcherInterface;
 use Psr\Log\LoggerInterface;
 use Throwable;
@@ -32,6 +32,7 @@ final readonly class PlaceOrder
         private Database $db,
         private EventDispatcherInterface $events,
         private LoggerInterface $log,
+        private ClockInterface $clock,
     ) {}
 
     #[ApiResponse(201, body: OpenApiSchemas::CREATED_ORDER, description: 'Order placed.', headers: ['Location'])]
@@ -60,7 +61,7 @@ final readonly class PlaceOrder
         try {
             $productIds = array_map(
                 intval(...),
-                OrderItem::query()->where('order_id', $placed['id'])->pluck('product_id'),
+                $this->db->table('order_items')->where('order_id', $placed['id'])->pluck('product_id'),
             );
             $this->events->dispatch(new OrderPlaced($placed['id'], $user->id, $placed['total'], $productIds));
         } catch (Throwable $error) {
@@ -87,11 +88,12 @@ final readonly class PlaceOrder
                 "There is no product {$productId}.",
             );
 
-            // Taken in one statement, so that two orders cannot both take the last one. Tide writes updated_at.
-            $taken = Product::query()
+            // Taken in one statement, so that two orders cannot both take the last one.
+            $taken = $db
+                ->table('products')
                 ->where('id', $productId)
                 ->where('stock', '>=', $quantity)
-                ->decrement('stock', $quantity);
+                ->decrement('stock', $quantity, ['updated_at' => $this->clock->now()]);
 
             if ($taken === 0) {
                 throw new HttpException(409, "There is not enough of {$product->name} in stock.");
@@ -109,17 +111,11 @@ final readonly class PlaceOrder
         $placed->total = $total;
         $placed->save();
 
-        $items = [];
-        foreach ($lines as $line) {
-            $item = new OrderItem();
-            $item->order_id = $placed->id;
-            $item->product_id = $line['product_id'];
-            $item->quantity = $line['quantity'];
-            $item->price = $line['price'];
-            $items[] = $item;
-        }
-        // The lines in one statement; nothing here needs their ids.
-        OrderItem::insertMany($items);
+        // The lines in one statement, on the transaction's connection; nothing here needs their ids.
+        $db->table('order_items')->insertMany(array_map(static fn(array $line): array => [
+            'order_id' => $placed->id,
+            ...$line,
+        ], $lines));
 
         return ['id' => $placed->id, 'status' => $placed->status->value, 'total' => $total];
     }
