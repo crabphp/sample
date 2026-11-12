@@ -2,7 +2,7 @@
 
 A complete server-rendered store on the [Crab framework](../framework), with an Arc interface, a JSON API and working background services. The site uses the released framework **v0.7.2**, Arc **v0.2.0** and Tide **v0.2.0** through the sibling path repositories. Payment and warehouse fulfilment remain simulated; the checkout states this clearly and never collects payment details.
 
-It is not the skeleton to start a project from; that is [`crab`](../crab).
+This is the owner's playground: every Tide feature belongs in a real shop use case, with tests. It is not the skeleton to start a project from; that is [`crab`](../crab).
 
 ## Running it
 
@@ -43,8 +43,8 @@ Open <http://127.0.0.1:8080/>. The shop is the main site:
 | `/orders`, `/orders/{id}` | Your order history and private receipts; only the owner can read a receipt, including when the other visitor is an administrator |
 | `/login`, `/register` | Sign in or create a customer account; use the account menu to sign out |
 | `/assistant` | Ask for product suggestions; signed-in customers can continue their actor-backed conversation |
-| `/admin/products` | Administrators can create products and update stock |
-| `/admin/orders`, `/admin/reports` | Administrators can ship paid orders and generate or read a daily report |
+| `/admin/products` | Administrators can create products, update stock and edit tags with native checkbox forms |
+| `/admin/orders`, `/admin/reports` | Administrators can tag and ship paid orders and generate or read a daily report |
 
 Catalogue price filters accept dollars with up to two decimal places, from
 `0` to `9999999.99`. An empty bound leaves that end open. The server validates
@@ -118,7 +118,7 @@ when deploying, including behind a TLS proxy: CookieAuth uses it for origin
 checks and makes the cookie Secure for HTTPS.
 
 It uses SQLite. `shop:seed` makes 36 products, 12 people and about two weeks of
-orders, the same ones every time. Everyone's password is `password`:
+orders, the same ones every time. It also seeds product and order reviews, shared `gift` and `seasonal` tags, and one customer’s preferences and saved product. Everyone's password is `password`:
 
 | Account | Role |
 | --- | --- |
@@ -153,6 +153,24 @@ The other seeded customers are `alan`, `katherine`, `linus`, `margaret`,
 | `POST` | `/api/products` | Add a product. Administrators |
 | `PUT` | `/api/products/{id}/stock` | `{"stock": 40}`. Administrators |
 | `PUT` | `/api/orders/{id}/ship` | Ship a paid order. Administrators. Repeating a shipped order keeps its version and shipment time |
+
+Reviews of products are public; reviews of orders are private to the order's owner, including when another customer is an administrator. Authors can delete their own reviews. Tag editing and cross-order tag summaries require an administrator; a customer can read tags on their own orders. Product tags are public labels.
+
+| Method | Route | Use |
+| --- | --- | --- |
+| `GET`, `POST` | `/api/products/{id}/reviews` | Paged reviews (`?page=2`); signed-in customers add `{"rating": 5, "body": "Useful every day"}` |
+| `GET`, `POST` | `/api/orders/{id}/reviews` | The same, for the order's owner only |
+| `GET` | `/api/products/{id}/review-highlight` | The highest-rated review, newest on a tie; JSON null when there are none |
+| `GET`, `DELETE` | `/api/reviews/{id}` | Read a review with a small typed subject link; delete your own review |
+| `GET` | `/api/products/{id}/tags`, `/api/orders/{id}/tags` | Labels for a product or your own order |
+| `GET`, `POST` | `/api/tags` | Administrators list tags (`?page=2`) or create `{"name": "gift"}`; names are unique lowercase slugs |
+| `GET` | `/api/tags/{id}` | Administrators see product counts, stock, price range/average, order counts/totals, latest order date/status and bounded previews |
+| `PUT` | `/api/products/{id}/tags`, `/api/orders/{id}/tags` | Administrators send `{"tagIds": [1, 2], "operation": "sync"}`; `attach` adds, `detach` removes, `sync` replaces. Omit `operation` for sync; an empty sync clears the labels. Unknown IDs reject the entire edit |
+| `GET`, `PUT` | `/api/me/preferences` | Your `{"newsletter": false, "categories": ["desk"]}` preferences; categories must exist in the catalogue. This stores preferences only; it does not send newsletters |
+| `GET` | `/api/me/saved-products` | Your saved products, twenty at a time with `?page=2`; simple pagination omits totals |
+| `PUT`, `DELETE` | `/api/me/saved-products/{id}` | Save or remove a product; repeating either is harmless |
+
+Create tags through the API, then assign them in `/admin/products` and `/admin/orders`. Both forms use the same `sync()` action as the API and work without JavaScript. Uncheck every box to clear a selection.
 
 The checked-in [OpenAPI 3.1 document](openapi.json) describes the HTTP routes, their input validation, authentication, errors and typed responses. The WebSocket route is listed above. Generate it without starting a server, then check that the committed copy is current:
 
@@ -216,6 +234,29 @@ model request writes one warning with the attempted URL and settings.
 | Dashboard package | `/clockwerk` |
 | OpenAPI package | `config/openapi.php`, `#[Response]` on actions, and the committed `openapi.json` |
 | Deploying | `/up` and `Ready` for probes. `start` refuses a route, listener or task whose services cannot be made, and `php cua describe app` lists them; break `app.php` and `php cua status` and `stop` still reach the running server |
+
+### Tide coverage
+
+Tide maps model columns and relations and saves individual models. Its queries return models, including partial ones; there is no handoff to the query builder. Joins, extra columns, raw SQL, expressions, grouped reports and bulk writes start on `$db->current()->table(...)` (or the transaction callback's connection). `ListMyOrders` keeps its computed item total on the builder with `into(OrderSummary::class)`; `ListCategories`, `BuildDailyReport`, stock counters and seeder batches remain builder work.
+
+| Tide feature | Shop example and coverage |
+| --- | --- |
+| Convention-based models, table overrides, mapped/custom keys | `Product`, `Order`, `OrderItem`; `Account` maps `users`; `Preferences` maps `account_preferences`, key `user_id`, property `accountId` via `ColumnName` |
+| Typed columns, enums, dates, casts, hidden fields | `Order::$status`; model timestamps; `Preferences::$categories` uses `#[Json]`; `Account::$password` and `Preferences::$accountId` use `#[Hidden]`. `AccountLibraryTest`, `TideQueryTest` |
+| Timestamp configuration and JSON date format | `Preferences` keeps only its update time; products/orders retain database timestamp formatting, while reviews/preferences use ATOM dates |
+| Own-column selections | `ListProducts::handle()` uses `select()`; shop catalogue/home/admin lists use `except()`; saved products select their public summary. Unread fields, including nullable defaults, are uninitialised and omitted from JSON; partial saves, refresh and required relation/cursor keys are tested in `TideQueryTest` |
+| Typed `count`, `sum`, `avg`, `min`, `max`, `pluck`, `value` | `Tags::show()` keeps `whereHas('tags')` on every aggregate and returns typed dates/enums; inverse relations supply bounded previews. `WatchStock` reads a typed value; seeding plucks prices/customer IDs. Empty results and type isolation are tested in `TagTest` |
+| `BelongsTo`, `HasMany`, nested eager loads | `Order::$customer`, `Order::$lines`, `OrderItem::$product`; receipts and confirmation mail load `lines.product`. `Review::$author` is associated explicitly |
+| `HasOne` | `Account::$preferences`; `AccountPreferences` locks the account when first saving its preferences. `AccountLibraryTest` |
+| `BelongsToMany` | `Account::$savedProducts`, with an explicitly named pivot; `SavedProducts` adds/removes links. `AccountLibraryTest` |
+| `MorphTo`, `MorphMany`, `MorphOne` | `Review::$reviewable` is `Product|Order`; both expose reviews and a single highlight. `Reviews` creates with `associate()`, queries `related('reviews')`, and orders the product highlight explicitly. `ReviewTest` includes overlapping IDs, eager loading both owner types and private order access |
+| `MorphToMany`, `MorphedByMany` | Products and orders share `taggables`; `Tag::$products` and `$orders` are the inverse relations. `Tags` and admin forms edit links with `attach`, `detach`, `sync`; `TagTest` covers inverses, repeated edits, rollback and relation invalidation |
+| Explicit `with`, `load`, `related`, `whereHas`, `whereDoesntHave` | Receipts, review pages and tag summaries; `Tags::change()` reloads links explicitly. `ReviewTest`/`TagTest` check absence filters and that OR cannot escape a relation's owner/type |
+| Pagination and chunks | Catalogue uses `paginate`, saved products `simplePaginate`; `TideQueryTest` covers model cursor pages with partial reads. `ExportProducts` uses `chunkById` with the unique SKU as cursor, preserving CSV order across batches (`CatalogueFeedTest`) |
+| Save, delete, refresh, changed-column writes | Product creation/stock changes, review creation/deletion, preferences; reviews refresh after association before serialization. `TideQueryTest` checks partial saves preserve unread columns |
+| Current transactions, locks and rollback | Checkout/shipping, preferences and tag edits; `ReviewTest` retries a model after rollback; `TagTest` checks pivot writes roll back with the surrounding transaction |
+
+Run `php cua migrate` on an existing shop. The three Tide migrations add reviews, tags and their typed pivot, account preferences and saved products. They preserve existing shop rows; `TideMigrationTest` checks rollback and reapplication. `shop:seed --fresh` clears dependent rows before replacing their owners and seeds the examples for both ordinary and sized datasets (`SeedTest`). Polymorphic owner IDs cannot have a foreign key to two tables: any future product/order deletion flow must remove their reviews and tag links in its transaction.
 
 The order input classes use PHP types for nested fields. An order has 1–20 lines, each with a `productId` and a quantity of 1–20. Leaving out `quantity` or sending it as `null` means one item.
 

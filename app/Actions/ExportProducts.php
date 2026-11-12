@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Actions;
 
-use Crab\Contracts\Database\Database;
+use App\Models\Product;
 use Crab\Http\Response;
 use Crab\OpenApi\Attributes\Response as ApiResponse;
 
@@ -14,10 +14,6 @@ use Crab\OpenApi\Attributes\Response as ApiResponse;
  */
 final readonly class ExportProducts
 {
-    public function __construct(
-        private Database $db,
-    ) {}
-
     #[ApiResponse(
         200,
         body: ['type' => 'string'],
@@ -29,14 +25,22 @@ final readonly class ExportProducts
     {
         $csv = fopen('php://temp', 'w+b');
         fputcsv($csv, ['sku', 'name', 'category', 'price', 'stock'], escape: '');
-        foreach ($this->db
-            ->current()
-            ->table('products')
+        // SKU is unique, so it can be the chunk cursor and keep the feed's existing order.
+        Product::query()
             ->select('sku', 'name', 'category', 'price', 'stock')
-            ->orderBy('sku')
-            ->get() as $product) {
-            fputcsv($csv, array_values($product), escape: '');
-        }
+            ->chunkById(
+                100,
+                static function (array $products) use ($csv): void {
+                    foreach ($products as $product) {
+                        fputcsv(
+                            $csv,
+                            [$product->sku, $product->name, $product->category, $product->price, $product->stock],
+                            escape: '',
+                        );
+                    }
+                },
+                'sku',
+            );
         rewind($csv);
 
         return Response::attachment((string) stream_get_contents($csv), 'products.csv', 'text/csv; charset=utf-8');

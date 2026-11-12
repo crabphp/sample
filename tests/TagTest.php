@@ -104,6 +104,33 @@ final class TagTest extends ShopTestCase
         self::assertSame([], $summary['order_statuses']);
     }
 
+    public function testLinkWritesInvalidateLoadedRelationsAndParticipateInRollback(): void
+    {
+        $tag = new Tag();
+        $tag->name = 'gift';
+        $tag->save();
+        $product = Product::query()->with('tags')->find(1);
+        $order = Order::find(1);
+        $order->attach('tags', [$tag->id]);
+        try {
+            $this->db->transaction(static function () use ($product, $tag): void {
+                $product->attach('tags', [$tag->id]);
+                self::assertFalse(isset($product->tags));
+                self::assertSame([$tag->id], $product->related('tags')->pluck('id'));
+                throw new \RuntimeException('Undo the edit');
+            });
+        } catch (\RuntimeException $error) {
+            self::assertSame('Undo the edit', $error->getMessage());
+        }
+        self::assertSame([], $product->related('tags')->pluck('id'));
+        self::assertSame([$tag->id], $order->related('tags')->pluck('id'));
+        $product->sync('tags', [$tag->id]);
+        Product::load([$product], 'tags');
+        self::assertCount(1, $product->tags);
+        $product->detach('tags', [$tag->id]);
+        self::assertFalse(isset($product->tags));
+    }
+
     public function testInvalidEditsAreAtomicAndOrderTagsRemainPrivate(): void
     {
         $admin = $this->api->actingAs($this->user('admin@example.com'));

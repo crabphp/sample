@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace App\Models;
 
 use App\User;
+use Crab\Tide\BelongsToMany;
+use Crab\Tide\HasOne;
 use Crab\Tide\Hidden;
 use Crab\Tide\Model;
 use Crab\Tide\Table;
@@ -16,6 +18,13 @@ use Crab\Tide\Table;
 #[Table('users')]
 final class Account extends Model
 {
+    #[HasOne('user_id')]
+    public ?Preferences $preferences;
+
+    /** @var list<Product> */
+    #[BelongsToMany(Product::class, pivot: 'saved_products', key: 'user_id')]
+    public array $savedProducts;
+
     public int $id;
     public string $name;
     public string $email;

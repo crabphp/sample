@@ -6,6 +6,7 @@ namespace App\Console;
 
 use App\Models\Account;
 use App\Models\Order;
+use App\Models\Preferences;
 use App\Models\Product;
 use App\Models\Review;
 use App\Models\Tag;
@@ -160,6 +161,8 @@ final readonly class Seed implements Command
             'auth_tokens',
             'run_steps',
             'runs',
+            'saved_products',
+            'account_preferences',
             'taggables',
             'tags',
             'reviews',
@@ -277,6 +280,12 @@ final readonly class Seed implements Command
         $order = Order::query()->orderBy('id')->first();
         $product = Product::query()->orderBy('id')->first();
         $this->db->transaction(static function () use ($order, $product): void {
+            $account = Account::find($order->user_id);
+            $account->attach('savedProducts', [$product->id]);
+            $preferences = new Preferences();
+            $preferences->accountId = $account->id;
+            $preferences->categories = [$product->category];
+            $preferences->save();
             $gift = new Tag();
             $gift->name = 'gift';
             $gift->save();

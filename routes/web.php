@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Actions\AccountPreferences;
 use App\Actions\AskAssistant;
 use App\Actions\ChatWithAssistant;
 use App\Actions\CreateProduct;
@@ -16,6 +17,7 @@ use App\Actions\PretendModel;
 use App\Actions\Ready;
 use App\Actions\Register;
 use App\Actions\Reviews;
+use App\Actions\SavedProducts;
 use App\Actions\SetStock;
 use App\Actions\ShipOrder;
 use App\Actions\ShopCart;
@@ -124,6 +126,11 @@ Route::prefix('/api')->group(static function (): void {
 
     Route::middleware(TokenAuth::class)->group(static function (): void {
         Route::post('/ws/ticket', IssueTicket::class);
+        Route::get('/me/preferences', AccountPreferences::class);
+        Route::put('/me/preferences', [AccountPreferences::class, 'save']);
+        Route::get('/me/saved-products', SavedProducts::class);
+        Route::put('/me/saved-products/{id}', [SavedProducts::class, 'save']);
+        Route::delete('/me/saved-products/{id}', [SavedProducts::class, 'remove']);
         Route::get('/me', #[Response(200, body: OpenApiSchemas::USER)] static fn(User $user): User => $user);
         Route::post('/assistant/chat', ChatWithAssistant::class); // your own assistant, an actor that remembers
         Route::get('/orders', ListMyOrders::class);

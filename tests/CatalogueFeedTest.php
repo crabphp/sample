@@ -28,6 +28,35 @@ final class CatalogueFeedTest extends ShopTestCase
         self::assertSame($csv, file_get_contents($file));
     }
 
+    public function testTheFeedCrossesChunkBoundariesInSkuOrderWithoutExtraColumns(): void
+    {
+        $rows = [];
+        for ($number = 1; $number <= 105; ++$number) {
+            $rows[] = [
+                'sku' => 'ZZZ-' . str_pad((string) $number, 3, '0', STR_PAD_LEFT),
+                'name' => 'Product ' . $number,
+                'category' => 'desk',
+                'price' => $number,
+                'stock' => 10,
+            ];
+        }
+        foreach (array_chunk($rows, 50) as $batch) {
+            $this->db->table('products')->insertMany($batch);
+        }
+        $response = $this->api->get('/api/products.csv')->assertStatus(200);
+        $stream = fopen('php://temp', 'w+');
+        fwrite($stream, $response->body());
+        rewind($stream);
+        self::assertSame(['sku', 'name', 'category', 'price', 'stock'], fgetcsv($stream, escape: ''));
+        $skus = [];
+        while (($row = fgetcsv($stream, escape: '')) !== false) {
+            self::assertCount(5, $row);
+            $skus[] = $row[0];
+        }
+        fclose($stream);
+        self::assertSame($this->db->table('products')->orderBy('sku')->pluck('sku'), $skus);
+    }
+
     public function testAFeedLargerThanACatalogueIsRefusedAndLeavesNothing(): void
     {
         $http = new FakeClient(['*' => FakeClient::response(200, str_repeat('x', (8 * 1024 * 1024) + 1))]);

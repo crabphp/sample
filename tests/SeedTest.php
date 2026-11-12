@@ -24,6 +24,8 @@ final class SeedTest extends ShopTestCase
             );
             self::assertSame(2, $this->db->table('tags')->count());
             self::assertSame(3, $this->db->table('taggables')->count());
+            self::assertSame(1, $this->db->table('saved_products')->count());
+            self::assertSame(1, $this->db->table('account_preferences')->count());
             $product = \App\Models\Product::query()->whereHas('reviews')->with('tags', 'reviews')->first();
             self::assertNotNull($product);
             self::assertCount(2, $product->tags);

@@ -11,6 +11,31 @@ namespace App\Http;
  */
 final class OpenApiSchemas
 {
+    public const PREFERENCES = [
+        'type' => 'object',
+        'properties' => [
+            'newsletter' => ['type' => 'boolean'],
+            'categories' => ['type' => 'array', 'items' => ['type' => 'string']],
+            'updated_at' => ['type' => ['string', 'null'], 'format' => 'date-time'],
+        ],
+        'required' => ['newsletter', 'categories', 'updated_at'],
+        'additionalProperties' => false,
+    ];
+
+    public const SAVED_PRODUCT_PAGE = [
+        'type' => 'object',
+        'properties' => [
+            'data' => ['type' => 'array', 'items' => self::PRODUCT_SUMMARY],
+            'current_page' => ['type' => 'integer'],
+            'per_page' => ['type' => 'integer'],
+            'from' => ['type' => ['integer', 'null']],
+            'to' => ['type' => ['integer', 'null']],
+            'has_more' => ['type' => 'boolean'],
+        ],
+        'required' => ['data', 'current_page', 'per_page', 'from', 'to', 'has_more'],
+        'additionalProperties' => false,
+    ];
+
     public const TAG = [
         'type' => 'object',
         'properties' => ['id' => ['type' => 'integer'], 'name' => ['type' => 'string']],
