@@ -27,7 +27,7 @@
 @endif
 <form method="post" action="/cart/{{ $line['id'] }}/update" class="quantity-form">
 <input type="hidden" name="actionId" value="{{ App\Shop\Carts::uuid() }}">
-<Input name="quantity" id="quantity-{{ $line['id'] }}" label="Quantity" type="number" :value="(string) $line['quantity']" min="1" max="20" :required="true" />
+<Input name="quantity" id="quantity-{{ $line['id'] }}" label="Quantity" type="number" :value="(string) $line['quantity']" min="1" max="20" required />
 <Button variant="secondary">Update</Button>
 </form>
 </div>

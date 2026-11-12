@@ -25,7 +25,7 @@
 </div>
 <form method="post" action="/cart/{{ $product->id }}/add" class="product-purchase">
 <input type="hidden" name="actionId" value="{{ App\Shop\Carts::uuid() }}">
-<Input name="quantity" label="Quantity" type="number" value="1" min="1" max="20" :required="true" />
+<Input name="quantity" label="Quantity" type="number" value="1" min="1" max="20" required />
 <Button :disabled="$product->stock <= 0">
 @if($product->stock > 0)Add to cart <span aria-hidden="true">+</span>
 @else Sold out@endif

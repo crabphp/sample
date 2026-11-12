@@ -1,6 +1,6 @@
 @props(?App\User $user = null, string $slot = '')
 <form method="post" action="{{ $user !== null ? '/assistant/chat' : '/assistant' }}" class="assistant-form" data-assistant-form data-conversation="{{ $user !== null ? 'true' : 'false' }}">
-<Input name="question" label="What are you looking for?" placeholder="A mug, a lamp, a notebook…" autocomplete="off" :required="true" />
+<Input name="question" label="What are you looking for?" placeholder="A mug, a lamp, a notebook…" autocomplete="off" required />
 <div class="actions">
 <Button>@if($user !== null)Send message@else Ask the assistant <span aria-hidden="true">↗</span>@endif
 </Button>

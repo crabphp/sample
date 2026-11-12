@@ -8,9 +8,9 @@
 <Card title="Create your account">
 <p class="muted">A few details and you’re in.</p>
 <form method="post" action="/register" class="stack">
-<Input name="name" label="Full name" autocomplete="name" :required="true" />
-<Input name="email" label="Email address" type="email" autocomplete="username" :required="true" />
-<Input name="password" label="Password" type="password" autocomplete="new-password" :required="true">
+<Input name="name" label="Full name" autocomplete="name" required />
+<Input name="email" label="Email address" type="email" autocomplete="username" required />
+<Input name="password" label="Password" type="password" autocomplete="new-password" required>
 <span class="field-help">At least 8 characters; at most 72 bytes.</span>
 </Input>
 <Button>Create account →</Button>

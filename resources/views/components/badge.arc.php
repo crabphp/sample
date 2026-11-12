@@ -1,2 +1,2 @@
-@props(string $slot = '')
-<span class="badge">{!! $slot !!}</span>
+@props(array $attributes = [], string $slot = '')
+<span @attributes($attributes, ['class' => 'badge'])>{!! $slot !!}</span>

@@ -4,11 +4,11 @@
 <Card title="Daily report" eyebrow="Store performance">
 <p class="muted">Generate a summary of orders and revenue for a day.</p>
 <form method="post" action="/admin/reports" class="stack">
-<Input name="day" label="Report date" type="date" :value="$day" :required="true" />
+<Input name="day" label="Report date" type="date" :value="$day" required />
 <Button>Generate report</Button>
 </form>
 <form method="get" action="/admin/reports" class="stack">
-<Input name="day" id="view-day" label="View an existing report" type="date" :value="$day" :required="true" />
+<Input name="day" id="view-day" label="View an existing report" type="date" :value="$day" required />
 <Button variant="secondary">View report</Button>
 </form>
 </Card>

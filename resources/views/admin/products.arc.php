@@ -47,11 +47,11 @@
 <section class="section">
 <Card title="Add a product" eyebrow="Catalogue">
 <form method="post" action="/admin/products" class="admin-product-form">
-<Input name="name" label="Product name" :required="true" />
-<Input name="sku" label="SKU" placeholder="DESK-001" :required="true" />
-<Input name="category" label="Category" :required="true" />
-<Input name="price" label="Price (cents)" type="number" min="1" max="100000000" :required="true" />
-<Input name="stock" label="Initial stock" type="number" min="0" max="100000" value="0" :required="true" />
+<Input name="name" label="Product name" required />
+<Input name="sku" label="SKU" placeholder="DESK-001" required />
+<Input name="category" label="Category" required />
+<Input name="price" label="Price (cents)" type="number" min="1" max="100000000" required />
+<Input name="stock" label="Initial stock" type="number" min="0" max="100000" value="0" required />
 <Button>Create product</Button>
 </form>
 </Card>

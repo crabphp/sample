@@ -11,8 +11,8 @@
 @if($error !== null)<p class="flash" role="alert">{{ $error }}</p>
 @endif
 <form method="post" action="/login" class="stack">
-<Input name="email" label="Email address" type="email" :value="$email" autocomplete="username" :required="true" />
-<Input name="password" label="Password" type="password" autocomplete="current-password" :required="true" />
+<Input name="email" label="Email address" type="email" :value="$email" autocomplete="username" required />
+<Input name="password" label="Password" type="password" autocomplete="current-password" required />
 <Button>Sign in →</Button>
 </form>
 <p class="small muted">New here? <a href="/register">Create an account</a>
