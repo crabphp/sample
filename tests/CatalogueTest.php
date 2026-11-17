@@ -130,6 +130,40 @@ final class CatalogueTest extends ShopTestCase
         );
 
         $admin->put("/api/products/{$made['id']}/stock", ['stock' => 40])->assertStatus(200)->assertJson('stock', 40);
-        $admin->put('/api/products/99999/stock', ['stock' => 1])->assertStatus(404);
+        $admin->put('/api/products/99999/stock', ['stock' => 1])->assertStatus(404)->assertJson(
+            'error.message',
+            'No such product.',
+        );
+    }
+
+    public function testStockSetToWhatItWasLeavesTheRememberedCountsAlone(): void
+    {
+        $admin = $this->api->actingAs($this->user('admin@example.com'));
+        $deskInStock = static fn(array $rows): int => array_column($rows, 'in_stock', 'category')['desk'];
+        $before = $deskInStock($this->api->get('/api/categories')->json());
+        // A change the cache has not heard of: the remembered counts stay until something says they changed.
+        $hidden = (int) $this->db
+            ->table('products')
+            ->where('category', 'desk')
+            ->where('stock', '>', 0)
+            ->orderBy('id')
+            ->value('id');
+        $this->db->table('products')->where('id', $hidden)->update(['stock' => 0]);
+        $id = (int) $this->db->table('products')->where('category', 'desk')->where('stock', '>', 0)->value('id');
+        $stock = (int) $this->db->table('products')->where('id', $id)->value('stock');
+
+        $admin->put("/api/products/{$id}/stock", ['stock' => $stock])->assertStatus(200);
+        self::assertSame(
+            $before,
+            $deskInStock($this->api->get('/api/categories')->json()),
+            'Nothing changed, so the counts were kept.',
+        );
+
+        $admin->put("/api/products/{$id}/stock", ['stock' => $stock + 1])->assertStatus(200);
+        self::assertSame(
+            $before - 1,
+            $deskInStock($this->api->get('/api/categories')->json()),
+            'A change forgets them.',
+        );
     }
 }

@@ -60,7 +60,7 @@ final readonly class Tags
     #[ApiResponse(200, body: OpenApiSchemas::TAG_SUMMARY)]
     public function show(int $id): array
     {
-        $tag = Tag::find($id) ?? throw new HttpException(404, 'No such tag.');
+        $tag = Tag::findOrFail($id);
         // These are totals of model columns. The related-row condition stays on every aggregate.
         $products = Product::query()->whereHas('tags', static fn(ModelQuery $query): ModelQuery => $query->where(
             'id',
@@ -90,7 +90,7 @@ final readonly class Tags
     #[ApiResponse(200, body: OpenApiSchemas::TAG_LIST)]
     public function product(int $id): array
     {
-        $product = Product::query()->with('tags')->find($id) ?? throw new HttpException(404, 'No such product.');
+        $product = Product::query()->with('tags')->findOrFail($id);
         return $product->tags;
     }
 
@@ -108,7 +108,7 @@ final readonly class Tags
     #[ApiResponse(422, description: 'One or more tag IDs do not exist.')]
     public function changeProduct(int $id, TagInput $input): array
     {
-        $product = Product::find($id) ?? throw new HttpException(404, 'No such product.');
+        $product = Product::findOrFail($id);
         return $this->change($product, $input);
     }
 
@@ -116,7 +116,7 @@ final readonly class Tags
     #[ApiResponse(422, description: 'One or more tag IDs do not exist.')]
     public function changeOrder(int $id, TagInput $input): array
     {
-        $order = Order::find($id) ?? throw new HttpException(404, 'No such order.');
+        $order = Order::findOrFail($id);
         return $this->change($order, $input);
     }
 

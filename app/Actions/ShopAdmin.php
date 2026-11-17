@@ -56,7 +56,8 @@ final readonly class ShopAdmin
     #[ApiResponse(200, body: ['type' => 'string'], contentType: 'text/html')]
     public function products(ServerRequestInterface $request, User $user, #[FromQuery] ProductSearch $search): Response
     {
-        $page = Product::search($search)
+        $page = Product::query()
+            ->matching($search)
             ->except('details', 'created_at', 'updated_at')
             ->with('tags')
             ->paginate($search->perPage, $search->page);
@@ -108,7 +109,7 @@ final readonly class ShopAdmin
     public function orders(ServerRequestInterface $request, User $user, #[FromQuery]
         #[Range(min: 1)] int $page = 1): Response
     {
-        $orders = Order::query()->with('tags')->orderBy('id', 'desc')->paginate(20, $page);
+        $orders = Order::query()->with('tags')->withCount('lines')->orderBy('id', 'desc')->paginate(20, $page);
         return $this->pages->render('admin.orders', $request, $user, [
             'page' => $orders,
             'tags' => Tag::query()->orderBy('name')->get(),

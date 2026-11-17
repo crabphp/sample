@@ -47,6 +47,19 @@ final class ShopAdminTest extends ShopTestCase
         $admin->post('/admin/products/' . $id . '/stock', ['stock' => 12])->assertStatus(303);
         self::assertSame(12, $this->db->table('products')->where('id', $id)->value('stock'));
         $admin->post('/admin/products/' . $id . '/stock', ['stock' => -1])->assertStatus(422);
+        // The order list counts each order's lines without reading them.
+        $this->db->table('order_items')->insert(['order_id' => 2, 'product_id' => 1, 'quantity' => 2, 'price' => 1400]);
+        $orders = $admin->get('/admin/orders')->body();
+        self::assertStringContainsString('<th scope="col">Items</th>', $orders);
+        // Order 2 is customer 3's, order 1 customer 2's; each row's count follows its status.
+        self::assertMatchesRegularExpression(
+            '~<td class="mono">#2</td>\s*<td class="mono">#3</td>(?:(?!</tr>).)*?<td class="mono">2</td>~s',
+            $orders,
+        );
+        self::assertMatchesRegularExpression(
+            '~<td class="mono">#1</td>\s*<td class="mono">#2</td>(?:(?!</tr>).)*?<td class="mono">1</td>~s',
+            $orders,
+        );
         $admin->post('/admin/orders/1/ship')->assertStatus(303);
         $version = $this->db->table('orders')->where('id', 1)->value('version');
         $admin->post('/admin/orders/1/ship')->assertStatus(303);

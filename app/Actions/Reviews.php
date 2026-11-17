@@ -26,7 +26,7 @@ final readonly class Reviews
     public function product(int $id, #[FromQuery]
         #[Range(min: 1)] int $page = 1): Page
     {
-        $product = Product::find($id) ?? throw new HttpException(404, 'No such product.');
+        $product = Product::findOrFail($id);
         return $product->related('reviews')->orderBy('id', 'desc')->paginate(20, $page);
     }
 
@@ -41,7 +41,7 @@ final readonly class Reviews
     #[ApiResponse(201, body: OpenApiSchemas::REVIEW)]
     public function createProduct(User $user, int $id, NewReview $input): Response
     {
-        $product = Product::find($id) ?? throw new HttpException(404, 'No such product.');
+        $product = Product::findOrFail($id);
         return $this->create($user, $product, $input);
     }
 
@@ -60,14 +60,14 @@ final readonly class Reviews
                 'id',
                 'desc',
             ))
-            ->find($id) ?? throw new HttpException(404, 'No such product.');
+            ->findOrFail($id);
         return Response::json($product->highlight);
     }
 
     #[ApiResponse(200, body: OpenApiSchemas::REVIEW_SUBJECT)]
     public function show(User $user, int $id): array
     {
-        $review = Review::query()->with('reviewable')->find($id) ?? throw new HttpException(404, 'No such review.');
+        $review = Review::query()->with('reviewable')->findOrFail($id);
         if ($review->reviewable instanceof Order) {
             $this->ownedOrder($user, $review->reviewable->id);
         }
@@ -86,7 +86,7 @@ final readonly class Reviews
     #[ApiResponse(204)]
     public function delete(User $user, int $id): Response
     {
-        $review = Review::find($id) ?? throw new HttpException(404, 'No such review.');
+        $review = Review::findOrFail($id);
         if ($review->user_id !== (int) $user->id) {
             throw new HttpException(404, 'No such review.');
         }
@@ -96,7 +96,7 @@ final readonly class Reviews
 
     private function ownedOrder(User $user, int $id): Order
     {
-        return Order::query()->where('user_id', $user->id)->find($id) ?? throw new HttpException(404, 'No such order.');
+        return Order::query()->where('user_id', $user->id)->findOrFail($id);
     }
 
     private function create(User $user, Product|Order $subject, NewReview $input): Response

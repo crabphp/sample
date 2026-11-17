@@ -4,9 +4,7 @@ declare(strict_types=1);
 
 namespace App\Models;
 
-use App\Http\ProductSearch;
 use Crab\Tide\Model;
-use Crab\Tide\ModelQuery;
 use Crab\Tide\MorphMany;
 use Crab\Tide\MorphOne;
 use Crab\Tide\MorphToMany;
@@ -40,42 +38,6 @@ final class Product extends Model
     public ?\DateTimeImmutable $updated_at;
     // JSON text as the database stores it, which is how the API gives it.
     public ?string $details = null;
-
-    /**
-     * The products a search asks for, in its order: the shop's pages and the API read the same.
-     *
-     * @return ModelQuery<self>
-     */
-    public static function search(ProductSearch $search): ModelQuery
-    {
-        $query = self::query();
-        if ($search->q !== '') {
-            $query->where('name', 'like', '%' . $search->q . '%');
-        }
-        if ($search->category !== null) {
-            $query->where('category', $search->category);
-        }
-        if ($search->colour !== null) {
-            // MySQL unquotes JSON null to the text "null" when compared as a string.
-            $query->whereNotNull('details->colour')->where('details->colour', $search->colour);
-        }
-        if ($search->minPrice !== null) {
-            $query->where('price', '>=', $search->minPrice);
-        }
-        if ($search->maxPrice !== null) {
-            $query->where('price', '<=', $search->maxPrice);
-        }
-        return $query
-            ->orderBy(
-                match ($search->sort) {
-                    'price-asc', 'price-desc' => 'price',
-                    'newest' => 'id',
-                    default => 'name',
-                },
-                in_array($search->sort, ['price-desc', 'newest'], true) ? 'desc' : 'asc',
-            )
-            ->orderBy('id');
-    }
 
     public function inStock(): bool
     {

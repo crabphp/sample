@@ -9,7 +9,6 @@ use App\Models\Account;
 use App\Models\Product;
 use App\User;
 use Crab\Contracts\Database\Page;
-use Crab\Http\HttpException;
 use Crab\Http\Response;
 use Crab\OpenApi\Attributes\Response as ApiResponse;
 use Crab\Routing\FromQuery;
@@ -32,7 +31,7 @@ final readonly class SavedProducts
     #[ApiResponse(404, description: 'No such product.')]
     public function save(User $user, int $id): Response
     {
-        $product = Product::find($id) ?? throw new HttpException(404, 'No such product.');
+        $product = Product::findOrFail($id);
         Account::find($user->id)->attach('savedProducts', [$product->id]);
         return new Response(204);
     }

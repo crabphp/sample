@@ -14,6 +14,7 @@
 <th scope="col">Customer</th>
 <th scope="col">Placed</th>
 <th scope="col">Status</th>
+<th scope="col">Items</th>
 <th scope="col">Total</th>
 <th scope="col">Action</th>
 <th scope="col">Tags</th>
@@ -26,6 +27,7 @@
 <td>
 <Badge>{{ ucfirst($order->status->value) }}</Badge>
 </td>
+<td class="mono">{{ $order->lines_count }}</td>
 <td class="mono">${{ number_format($order->total / 100, 2) }}</td>
 <td>
 @if($order->status === \App\OrderStatus::Paid)<form method="post" action="/admin/orders/{{ $order->id }}/ship">

@@ -13,7 +13,7 @@ final class TideQueryTest extends ShopTestCase
 {
     public function testPartialModelsOmitUnreadColumnsAndSaveOnlyTheirChanges(): void
     {
-        $product = Product::search(new ProductSearch())->select('name', 'price')->find(1);
+        $product = Product::query()->matching(new ProductSearch())->select('name', 'price')->find(1);
         self::assertSame(['id' => 1, 'name' => 'Stoneware Mug', 'price' => 1400], $product->jsonSerialize());
         self::assertFalse(new \ReflectionProperty(Product::class, 'details')->isInitialized($product));
         try {
@@ -56,5 +56,15 @@ final class TideQueryTest extends ShopTestCase
         self::assertSame([800, 1400], array_column($page->items, 'price'));
         $next = Product::query()->select('name')->orderBy('price')->orderBy('id')->cursorPaginate(2, $page->nextCursor);
         self::assertSame([2500, 4200], array_column($next->items, 'price'));
+    }
+
+    public function testAFactoryMakesTheProductsATestIsAbout(): void
+    {
+        $garden = ProductFactory::new()->count(3)->state(['category' => 'garden'])->create();
+        $empty = ProductFactory::new()->state(['category' => 'garden', 'stock' => 0])->createOne();
+        self::assertCount(3, array_unique(array_map(static fn(Product $p): string => $p->sku, $garden)));
+        $counts = array_column($this->api->get('/api/categories')->assertStatus(200)->json(), null, 'category');
+        self::assertSame(['category' => 'garden', 'products' => 4, 'in_stock' => 3], $counts['garden']);
+        self::assertSame(0, Product::findOrFail($empty->id)->stock);
     }
 }

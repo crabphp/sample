@@ -37,7 +37,7 @@ final readonly class ShipOrder
     {
         $this->db->transaction(function (Connection $transaction) use ($id): void {
             // A model call runs in the transaction it is written in, with no connection to pass.
-            $order = Order::query()->lockForUpdate()->find($id) ?? throw new HttpException(404, 'No such order.');
+            $order = Order::query()->lockForUpdate()->findOrFail($id);
 
             if ($order->status === OrderStatus::Shipped) {
                 // A retry may repair a lost notification, without shipping or broadcasting twice.

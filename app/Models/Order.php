@@ -6,6 +6,7 @@ namespace App\Models;
 
 use App\OrderStatus;
 use Crab\Tide\BelongsTo;
+use Crab\Tide\Count;
 use Crab\Tide\HasMany;
 use Crab\Tide\Model;
 use Crab\Tide\MorphMany;
@@ -47,6 +48,12 @@ final class Order extends Model
      */
     #[HasMany(OrderItem::class)]
     public array $lines;
+
+    /**
+     * How many lines the order has, read with withCount('lines'): the admin list shows it without loading them.
+     */
+    #[Count('lines')]
+    public int $lines_count;
 
     /**
      * Who placed it. Named for what it is here, so its key is said: user_id.

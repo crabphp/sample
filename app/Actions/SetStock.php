@@ -7,7 +7,6 @@ namespace App\Actions;
 use App\Http\OpenApiSchemas;
 use App\Models\Product;
 use Crab\Contracts\Cache\Cache;
-use Crab\Http\HttpException;
 use Crab\OpenApi\Attributes\Response;
 use Crab\Validation\Data;
 use Crab\Validation\Fields;
@@ -30,13 +29,15 @@ final readonly class SetStock
         #[Fields(['stock' => ['int', new Range(min: 0, max: 100_000)]])]
         Data $change,
     ): Product {
-        $product = Product::find($id) ?? throw new HttpException(404, 'No such product.');
+        $product = Product::findOrFail($id);
 
         // Only what changed is written: the stock, and the time Tide keeps with it.
-        $product->stock = $change->stock;
-        $product->save();
+        $product->save(['stock' => $change->stock]);
 
-        $this->cache->delete('categories');
+        // The category list counts what is in stock; a stock set to what it was changes nothing there.
+        if ($product->wasChanged('stock')) {
+            $this->cache->delete('categories');
+        }
 
         return $product;
     }

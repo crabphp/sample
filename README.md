@@ -266,6 +266,11 @@ Tide maps model columns and relations and saves individual models. Its queries r
 | Pagination and chunks | Catalogue uses `paginate`, saved products `simplePaginate`; `TideQueryTest` covers model cursor pages with partial reads. `ExportProducts` uses `chunkById` with the unique SKU as cursor, preserving CSV order across batches (`CatalogueFeedTest`) |
 | Save, delete, refresh, changed-column writes | Product creation/stock changes, review creation/deletion, preferences; reviews refresh after association before serialization. `TideQueryTest` checks partial saves preserve unread columns |
 | Current transactions, locks and rollback | Checkout/shipping, preferences and tag edits; `ReviewTest` retries a model after rollback; `TagTest` checks pivot writes roll back with the surrounding transaction |
+| `findOrFail()`, answered with a 404 | `ShowProduct`, `SetStock`, `ShipOrder`, `Reviews`, `Tags` and `SavedProducts` find by key or answer "No such product." without writing the status. `CatalogueTest` checks the message |
+| Scopes in a query class | `ProductQuery::matching()` is the catalogue's search; Tide finds the class beside `Product`, so `Product::query()->matching($search)` serves the shop's pages, admin list and API. `TideQueryTest`, `CatalogueTest` |
+| `#[Count]` and `withCount()` | `Order::$lines_count`; the admin order list shows each order's items without loading its lines. `ShopAdminTest` |
+| `save()` with values, `wasChanged()` | `SetStock` saves the stock in one call and forgets the category counts only when the stock changed. `CatalogueTest` |
+| Factories | `tests/ProductFactory.php` makes the products a test is about. `TideQueryTest` |
 
 Run `php cua migrate` on an existing shop. The three Tide migrations add reviews, tags and their typed pivot, account preferences and saved products. They preserve existing shop rows; `TideMigrationTest` checks rollback and reapplication. `shop:seed --fresh` clears dependent rows before replacing their owners and seeds the examples for both ordinary and sized datasets (`SeedTest`). Polymorphic owner IDs cannot have a foreign key to two tables: any future product/order deletion flow must remove their reviews and tag links in its transaction.
 
