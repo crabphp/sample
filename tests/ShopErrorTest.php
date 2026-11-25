@@ -57,7 +57,8 @@ final class ShopErrorTest extends ShopTestCase
 
     public function testServerFailuresUseTheSameDesignAndDoNotExposeDebugDetails(): void
     {
-        $this->db->execute('DROP TABLE products');
+        // Renamed rather than dropped, which MySQL refuses while saved_products refers to it.
+        $this->db->execute('ALTER TABLE products RENAME TO products_gone');
         $html = $this->api
             ->get('/products')
             ->assertStatus(500)
