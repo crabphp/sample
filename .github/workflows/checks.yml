@@ -7,7 +7,12 @@ permissions:
 
 jobs:
   sample:
+    name: PHP ${{ matrix.php }}
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        php: ['8.4', '8.5', '8.6']
     services:
       redis:
         image: redis:7-alpine
@@ -81,7 +86,7 @@ jobs:
           path: tide
       - uses: shivammathur/setup-php@v2
         with:
-          php-version: '8.4'
+          php-version: ${{ matrix.php }}
           extensions: mbstring, pdo_sqlite, pdo_mysql, pcntl, posix, simplexml
           coverage: none
           tools: composer:v2
